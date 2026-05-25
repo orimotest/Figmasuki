@@ -132,14 +132,12 @@ function createDraftSvg(idea: IdeaDirection, layout: string, index: number): str
   const text = dark ? "#FFFFFF" : "#0F172A";
   const muted = dark ? "#BAE6FD" : "#475569";
   const accent = dark ? "#67E8F9" : "#2563EB";
-  const safeMain = escapeXml(idea.mainCopy);
-  const safeSub = escapeXml(idea.subCopy);
   const safeCta = escapeXml(idea.cta ?? "詳細を見る");
 
   if (layout === "中央配置" || layout === "見出し一点突破") {
     return baseDraftSvg(bg, `
-      <text x="400" y="150" text-anchor="middle" fill="${text}" font-size="50" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
-      <text x="400" y="220" text-anchor="middle" fill="${muted}" font-size="24" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+      ${svgTextBlock(idea.mainCopy, 400, 128, 46, text, 800, "middle", 13)}
+      ${svgTextBlock(idea.subCopy, 400, 238, 22, muted, 650, "middle", 22)}
       <rect x="300" y="292" width="200" height="48" rx="24" fill="${accent}"/>
       <text x="400" y="323" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
       <text x="400" y="382" text-anchor="middle" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED / 14:00 Online</text>
@@ -149,8 +147,8 @@ function createDraftSvg(idea: IdeaDirection, layout: string, index: number): str
   if (layout === "左右分割" || layout === "カード型") {
     return baseDraftSvg(bg, `
       <rect x="430" y="72" width="290" height="250" rx="24" fill="${dark ? "rgba(255,255,255,0.08)" : "#EFF6FF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#BFDBFE"}"/>
-      <text x="64" y="136" fill="${text}" font-size="46" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
-      <text x="64" y="204" fill="${muted}" font-size="22" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+      ${svgTextBlock(idea.mainCopy, 64, 122, 42, text, 330, "start", 10)}
+      ${svgTextBlock(idea.subCopy, 64, 226, 20, muted, 330, "start", 16)}
       <text x="464" y="132" fill="${accent}" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">見るポイント</text>
       <text x="464" y="174" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">文字優先順位</text>
       <text x="464" y="212" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">CTAの見つけやすさ</text>
@@ -161,9 +159,9 @@ function createDraftSvg(idea: IdeaDirection, layout: string, index: number): str
   }
 
   return baseDraftSvg(bg, `
-    <text x="64" y="128" fill="${text}" font-size="48" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
+    ${svgTextBlock(idea.mainCopy, 64, 112, 42, text, 520, "start", 12)}
     <line x1="64" y1="154" x2="356" y2="154" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
-    <text x="64" y="210" fill="${muted}" font-size="24" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+    ${svgTextBlock(idea.subCopy, 64, 218, 21, muted, 560, "start", 18)}
     <rect x="64" y="278" width="168" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
     <text x="88" y="306" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED</text>
     <rect x="254" y="278" width="194" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
@@ -179,6 +177,29 @@ function baseDraftSvg(bg: string, content: string): string {
     <rect x="24" y="24" width="752" height="402" rx="20" fill="none" stroke="#D8E4F5"/>
     ${content}
   </svg>`;
+}
+
+function svgTextBlock(value: string, x: number, y: number, fontSize: number, fill: string, width: number, anchor: "start" | "middle", maxChars: number): string {
+  const lines = splitForSvg(value, maxChars).slice(0, 3);
+  const tspans = lines
+    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : Math.round(fontSize * 1.14)}">${escapeXml(line)}</tspan>`)
+    .join("");
+  return `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${fill}" font-size="${fontSize}" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif" data-width="${width}">${tspans}</text>`;
+}
+
+function splitForSvg(value: string, maxChars: number): string[] {
+  return value
+    .split("\n")
+    .flatMap((line) => {
+      const chars = Array.from(line.trim());
+      if (chars.length <= maxChars) return [line.trim()];
+      const chunks: string[] = [];
+      for (let index = 0; index < chars.length; index += maxChars) {
+        chunks.push(chars.slice(index, index + maxChars).join(""));
+      }
+      return chunks;
+    })
+    .filter(Boolean);
 }
 
 function createBackgroundVariations(backgroundResult?: BackgroundResult): BackgroundVariation[] {

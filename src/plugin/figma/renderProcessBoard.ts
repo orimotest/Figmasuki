@@ -457,12 +457,29 @@ function createIdeaFallback(directions: Direction[]): IdeaDirection[] {
 }
 
 function appendSvg(parent: FrameNode, svg: string, x: number, y: number, width: number, height: number, name: string): void {
+  const preview = createFrame(`Preview / ${name}`, x, y, width, height, COLORS.board);
+  preview.cornerRadius = 8;
+  preview.strokes = [{ type: "SOLID", color: COLORS.border }];
+  preview.strokeWeight = 1;
+  preview.clipsContent = true;
+  parent.appendChild(preview);
+
   const svgNode = figma.createNodeFromSvg(svg);
   svgNode.name = name;
-  svgNode.x = x;
-  svgNode.y = y;
-  svgNode.resize(width, height);
-  parent.appendChild(svgNode);
+  const originalWidth = Math.max(svgNode.width, 1);
+  const originalHeight = Math.max(svgNode.height, 1);
+  const scale = Math.min(width / originalWidth, height / originalHeight);
+  const scalableNode = svgNode as SceneNode & { rescale?: (scale: number) => void };
+
+  if (typeof scalableNode.rescale === "function") {
+    scalableNode.rescale(scale);
+  } else {
+    svgNode.resize(originalWidth * scale, originalHeight * scale);
+  }
+
+  svgNode.x = (width - svgNode.width) / 2;
+  svgNode.y = (height - svgNode.height) / 2;
+  preview.appendChild(svgNode);
 }
 
 function createStandaloneBoard(title: string, description: string, width: number, height: number): FrameNode {

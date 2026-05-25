@@ -761,12 +761,26 @@
     });
   }
   function appendSvg(parent2, svg, x, y, width, height, name) {
+    const preview = createFrame(`Preview / ${name}`, x, y, width, height, COLORS.board);
+    preview.cornerRadius = 8;
+    preview.strokes = [{ type: "SOLID", color: COLORS.border }];
+    preview.strokeWeight = 1;
+    preview.clipsContent = true;
+    parent2.appendChild(preview);
     const svgNode = figma.createNodeFromSvg(svg);
     svgNode.name = name;
-    svgNode.x = x;
-    svgNode.y = y;
-    svgNode.resize(width, height);
-    parent2.appendChild(svgNode);
+    const originalWidth = Math.max(svgNode.width, 1);
+    const originalHeight = Math.max(svgNode.height, 1);
+    const scale = Math.min(width / originalWidth, height / originalHeight);
+    const scalableNode = svgNode;
+    if (typeof scalableNode.rescale === "function") {
+      scalableNode.rescale(scale);
+    } else {
+      svgNode.resize(originalWidth * scale, originalHeight * scale);
+    }
+    svgNode.x = (width - svgNode.width) / 2;
+    svgNode.y = (height - svgNode.height) / 2;
+    preview.appendChild(svgNode);
   }
   function createStandaloneBoard(title, description, width, height) {
     const board = createFrame(title, 0, 0, width, height, COLORS.board);
