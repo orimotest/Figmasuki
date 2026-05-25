@@ -3,9 +3,9 @@ import type { ComparisonResult } from "../../schemas/comparison";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { Direction } from "../../schemas/direction";
 import type { ProjectData } from "../../schemas/project";
+import type { ProcessBoardStage } from "../../schemas/production";
 import type { SvgCandidate } from "../../schemas/svg";
 import type { BackgroundVariation, DemoComparison, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
-import type { ProcessBoardStage } from "./messageBridge";
 
 const COLORS = {
   canvas: { r: 0.969, g: 0.976, b: 0.988 },
@@ -61,7 +61,7 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
 
 export async function renderProcessStageBoard(project: ProjectData, stage: ProcessBoardStage, options: RenderOptions = {}): Promise<FrameNode> {
   await loadFonts();
-  const startX = options.x ?? figma.viewport.center.x - 4250;
+  const startX = options.x ?? figma.viewport.center.x - 4250 + getStageOffset(stage);
   const startY = options.y ?? figma.viewport.center.y - 420;
   const board = renderProcessStage(project, stage, startX, startY);
   if (options.zoom !== false) {
@@ -69,6 +69,20 @@ export async function renderProcessStageBoard(project: ProjectData, stage: Proce
     figma.viewport.scrollAndZoomIntoView([board]);
   }
   return board;
+}
+
+function getStageOffset(stage: ProcessBoardStage): number {
+  const offsets: Record<ProcessBoardStage, number> = {
+    project_header: 0,
+    ideas: 660,
+    typography_drafts: 1920,
+    refined_svgs: 3380,
+    diagnosis: 4780,
+    compare: 5580,
+    background_variations: 6520,
+    final_candidate: 7440,
+  };
+  return offsets[stage];
 }
 
 function renderProcessStage(project: ProjectData, stage: ProcessBoardStage, x: number, y: number): FrameNode {
@@ -160,7 +174,7 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
 }
 
 function renderProjectHeaderBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
-  const board = createSection("Project Header", "制作条件と実行モード", x, y, 620, 720);
+  const board = createSection("01 Project Header", "制作条件と実行モード", x, y, 620, 720);
   appendBoard(parent, board);
   renderProjectHeaderContent(board, project, 24, 92, 572);
   return board;
@@ -187,7 +201,7 @@ function renderProjectHeaderContent(parent: FrameNode, project: ProjectData, x: 
 }
 
 function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[], x: number, y: number): FrameNode {
-  const board = createSection("30 Ideas Explore", "30案を5つの方向に整理し、15案の文字組みへ進める候補を見える化します。ここではSVGは置きません。", x, y, 1220, 900);
+  const board = createSection("02 30 Ideas Explore", "30案を5つの方向に整理し、15案の文字組みへ進める候補を見える化します。ここではSVGは置きません。", x, y, 1220, 900);
   appendBoard(parent, board);
   addStageStats(board, [
     ["探索", "30案"],
@@ -199,7 +213,7 @@ function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[]
 }
 
 function renderTypographyDraftBoard(parent: FrameNode | null, drafts: TypographyDraft[], x: number, y: number): FrameNode {
-  const board = createSection("15 Typography Drafts", "完成デザインではなく、文字組み・余白・CTA位置を検討する軽量SVG。", x, y, 1420, 1060);
+  const board = createSection("03 15 Typography Drafts", "完成デザインではなく、文字組み・余白・CTA位置を検討する軽量SVG。", x, y, 1420, 1060);
   appendBoard(parent, board);
   addStageStats(board, [
     ["ドラフト", "15案"],
@@ -211,7 +225,7 @@ function renderTypographyDraftBoard(parent: FrameNode | null, drafts: Typography
 }
 
 function renderRefinedSvgBoard(parent: FrameNode | null, workflow: StageWorkflowData | undefined, candidates: SvgCandidate[], x: number, y: number): FrameNode {
-  const board = createSection("5 Refined SVGs", "Geminiで仕上げる想定の高品質SVG。実物フレームは上部にも配置されます。", x, y, 1360, 1060);
+  const board = createSection("04 5 Refined SVGs", "Geminiで仕上げる想定の高品質SVG。実物フレームは上部にも配置されます。", x, y, 1360, 1060);
   appendBoard(parent, board);
   addStageStats(board, [
     ["高品質SVG", "5案"],
@@ -223,14 +237,14 @@ function renderRefinedSvgBoard(parent: FrameNode | null, workflow: StageWorkflow
 }
 
 function renderDiagnosisBoardPanel(parent: FrameNode | null, results: DiagnosisResult[], x: number, y: number): FrameNode {
-  const board = createSection("Diagnosis", "1案を選択して、強み・懸念・最初に直す点を記録。", x, y, 760, 720);
+  const board = createSection("05 Diagnosis", "1案を選択して、強み・懸念・最初に直す点を記録。", x, y, 760, 720);
   appendBoard(parent, board);
   renderDiagnosisContent(board, results, 24, 104, 712);
   return board;
 }
 
 function renderCompareBoardPanel(parent: FrameNode | null, result: ComparisonResult | undefined, demoComparison: DemoComparison | undefined, x: number, y: number): FrameNode {
-  const board = createSection("Compare", "5案の役割と向き不向きを比較し、Primary / Secondaryを決める。", x, y, 900, 720);
+  const board = createSection("05 Compare Result", "5案の役割と向き不向きを比較し、Primary / Secondaryを決める。", x, y, 900, 720);
   appendBoard(parent, board);
   renderCompareContent(board, result, 24, 104, 852, demoComparison);
   return board;
@@ -243,7 +257,7 @@ function renderBackgroundVariationsBoard(
   x: number,
   y: number,
 ): FrameNode {
-  const board = createSection("Background Variations", "Primary案にだけ背景3案を作る。文字とCTAは編集可能なまま残します。", x, y, 880, 720);
+  const board = createSection("06 Background Variations", "Primary案にだけ背景3案を作る。文字とCTAは編集可能なまま残します。", x, y, 880, 720);
   appendBoard(parent, board);
   addText(board, result?.brief.promptText ?? "比較後にbackground briefが入ります。Demoでは背景3案の方向性を確認できます。", 24, 88, {
     size: 11,
@@ -256,7 +270,7 @@ function renderBackgroundVariationsBoard(
 }
 
 function renderFinalCandidateBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
-  const board = createSection("Final Candidate", "選んだ案、適用背景、人間が次に調整するポイント。", x, y, 760, 720);
+  const board = createSection("07 Final Candidate", "選んだ案、適用背景、人間が次に調整するポイント。", x, y, 760, 720);
   appendBoard(parent, board);
   const final = project.stageWorkflow?.finalCandidate;
   const card = createCard(24, 104, 712, 516);

@@ -327,22 +327,57 @@ Figma配置は以下です。
 
 ## UI側の自動進行
 
-探索画面では `AutoStage` を持っています。
+探索画面では `ProductionStage` を持っています。
 
 ```ts
-type AutoStage = "idle" | "ideas" | "drafts" | "refined" | "placing" | "done";
+type ProductionStage =
+  | "idle"
+  | "input_ready"
+  | "exploring_ideas"
+  | "placing_ideas_board"
+  | "generating_typography_drafts"
+  | "placing_typography_board"
+  | "selecting_refined_candidates"
+  | "generating_refined_svgs"
+  | "placing_refined_board"
+  | "running_auto_compare"
+  | "placing_compare_board"
+  | "generating_backgrounds"
+  | "placing_background_board"
+  | "placing_final_candidate"
+  | "completed"
+  | "error";
 ```
 
-UI上ではこのstageに応じて、ProcessTimelineとボタン文言を変えています。
+UI上ではこのstageに応じて、ProductionTimelineとボタン文言を変えています。
 
 主な処理:
 
-- `handleGenerateAndPlace`
+- `runFullAutoProduction`
 - `createProjectFromInput`
-- `getExploreTimeline`
-- `getStageLabel`
+- `getProductionStageLabel`
+- `getProductionStageMessage`
 
-現在のUIは、ユーザーが複数ボタンを順番に押すよりも、主ボタン1つで段階的に進む体験を優先しています。
+現在のUIは、ユーザーが複数ボタンを順番に押すよりも、主ボタン1つで最終候補まで進む体験を優先しています。
+
+## 自動制作ジョブ
+
+`runFullAutoProduction()` は、以下の順で処理します。
+
+1. 入力確認
+2. 30案探索
+3. Project Header / 30 Ideas ExploreをFigmaへ記録
+4. 15 Typography DraftsをFigmaへ記録
+5. 5 Refined SVGsを生成
+6. 5 Refined SVGs Boardと5案SVGをFigmaへ記録
+7. 生成済み5案から仮想 `FigmaFrameData` を作り、自動比較
+8. Compare BoardをFigmaへ記録
+9. background briefから背景を生成
+10. Background Variations BoardをFigmaへ記録
+11. Final Candidate BoardをFigmaへ記録
+12. completedへ遷移
+
+手動の診断・比較・仕上げタブは、詳細確認や再実行用として残しています。
 
 ## 今後API連携する場合の想定
 
@@ -402,4 +437,3 @@ Figmaは結果のレビュー・編集・記録の場です。
 - Figma上の出力は、最終成果物だけでなく検討過程を残すことを重視しています。
 - `Full Process` という巨大な親フレームに全工程を閉じ込める設計は避けています。
 - 実API化する場合も、工程ごとにFigmaへ記録ボードを出す方針です。
-

@@ -370,7 +370,9 @@
       return {
         type: "INSERT_SVG_BATCH",
         payload: {
-          items: value.payload.items.filter((item) => isRecord(item) && hasString(item, "svg")).map((item) => ({ svg: item.svg, name: typeof item.name === "string" ? item.name : void 0 }))
+          items: value.payload.items.filter((item) => isRecord(item) && hasString(item, "svg")).map((item) => ({ svg: item.svg, name: typeof item.name === "string" ? item.name : void 0 })),
+          x: typeof value.payload.x === "number" ? value.payload.x : void 0,
+          y: typeof value.payload.y === "number" ? value.payload.y : void 0
         }
       };
     }
@@ -383,7 +385,13 @@
     if (value.type === "RENDER_PROCESS_STAGE_BOARD" && isRecord(value.payload) && isRecord(value.payload.project) && hasString(value.payload, "stage") && isProcessBoardStage(value.payload.stage)) {
       return {
         type: "RENDER_PROCESS_STAGE_BOARD",
-        payload: { project: value.payload.project, stage: value.payload.stage }
+        payload: {
+          project: value.payload.project,
+          stage: value.payload.stage,
+          x: typeof value.payload.x === "number" ? value.payload.x : void 0,
+          y: typeof value.payload.y === "number" ? value.payload.y : void 0,
+          zoom: typeof value.payload.zoom === "boolean" ? value.payload.zoom : void 0
+        }
       };
     }
     if (value.type === "RENDER_DIAGNOSIS_BOARD" && isRecord(value.payload)) {
@@ -467,7 +475,7 @@
   async function renderProcessStageBoard(project, stage, options = {}) {
     var _a, _b;
     await loadFonts();
-    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250;
+    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250 + getStageOffset(stage);
     const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
     const board = renderProcessStage(project, stage, startX, startY);
     if (options.zoom !== false) {
@@ -475,6 +483,19 @@
       figma.viewport.scrollAndZoomIntoView([board]);
     }
     return board;
+  }
+  function getStageOffset(stage) {
+    const offsets = {
+      project_header: 0,
+      ideas: 660,
+      typography_drafts: 1920,
+      refined_svgs: 3380,
+      diagnosis: 4780,
+      compare: 5580,
+      background_variations: 6520,
+      final_candidate: 7440
+    };
+    return offsets[stage];
   }
   function renderProcessStage(project, stage, x, y) {
     var _a, _b, _c;
@@ -520,7 +541,7 @@
     return board;
   }
   function renderProjectHeaderBoard(parent2, project, x, y) {
-    const board = createSection("Project Header", "\u5236\u4F5C\u6761\u4EF6\u3068\u5B9F\u884C\u30E2\u30FC\u30C9", x, y, 620, 720);
+    const board = createSection("01 Project Header", "\u5236\u4F5C\u6761\u4EF6\u3068\u5B9F\u884C\u30E2\u30FC\u30C9", x, y, 620, 720);
     appendBoard(parent2, board);
     renderProjectHeaderContent(board, project, 24, 92, 572);
     return board;
@@ -545,7 +566,7 @@
     addText(brief, (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 18, 202, { size: 12, width: width - 36 });
   }
   function renderIdeaExploreBoard(parent2, ideas, x, y) {
-    const board = createSection("30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u65B9\u5411\u306B\u6574\u7406\u3057\u300115\u6848\u306E\u6587\u5B57\u7D44\u307F\u3078\u9032\u3081\u308B\u5019\u88DC\u3092\u898B\u3048\u308B\u5316\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 1220, 900);
+    const board = createSection("02 30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u65B9\u5411\u306B\u6574\u7406\u3057\u300115\u6848\u306E\u6587\u5B57\u7D44\u307F\u3078\u9032\u3081\u308B\u5019\u88DC\u3092\u898B\u3048\u308B\u5316\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 1220, 900);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u63A2\u7D22", "30\u6848"],
@@ -556,7 +577,7 @@
     return board;
   }
   function renderTypographyDraftBoard(parent2, drafts, x, y) {
-    const board = createSection("15 Typography Drafts", "\u5B8C\u6210\u30C7\u30B6\u30A4\u30F3\u3067\u306F\u306A\u304F\u3001\u6587\u5B57\u7D44\u307F\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u691C\u8A0E\u3059\u308B\u8EFD\u91CFSVG\u3002", x, y, 1420, 1060);
+    const board = createSection("03 15 Typography Drafts", "\u5B8C\u6210\u30C7\u30B6\u30A4\u30F3\u3067\u306F\u306A\u304F\u3001\u6587\u5B57\u7D44\u307F\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u691C\u8A0E\u3059\u308B\u8EFD\u91CFSVG\u3002", x, y, 1420, 1060);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u30C9\u30E9\u30D5\u30C8", "15\u6848"],
@@ -567,7 +588,7 @@
     return board;
   }
   function renderRefinedSvgBoard(parent2, workflow, candidates, x, y) {
-    const board = createSection("5 Refined SVGs", "Gemini\u3067\u4ED5\u4E0A\u3052\u308B\u60F3\u5B9A\u306E\u9AD8\u54C1\u8CEASVG\u3002\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u306F\u4E0A\u90E8\u306B\u3082\u914D\u7F6E\u3055\u308C\u307E\u3059\u3002", x, y, 1360, 1060);
+    const board = createSection("04 5 Refined SVGs", "Gemini\u3067\u4ED5\u4E0A\u3052\u308B\u60F3\u5B9A\u306E\u9AD8\u54C1\u8CEASVG\u3002\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u306F\u4E0A\u90E8\u306B\u3082\u914D\u7F6E\u3055\u308C\u307E\u3059\u3002", x, y, 1360, 1060);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u9AD8\u54C1\u8CEASVG", "5\u6848"],
@@ -578,20 +599,20 @@
     return board;
   }
   function renderDiagnosisBoardPanel(parent2, results, x, y) {
-    const board = createSection("Diagnosis", "1\u6848\u3092\u9078\u629E\u3057\u3066\u3001\u5F37\u307F\u30FB\u61F8\u5FF5\u30FB\u6700\u521D\u306B\u76F4\u3059\u70B9\u3092\u8A18\u9332\u3002", x, y, 760, 720);
+    const board = createSection("05 Diagnosis", "1\u6848\u3092\u9078\u629E\u3057\u3066\u3001\u5F37\u307F\u30FB\u61F8\u5FF5\u30FB\u6700\u521D\u306B\u76F4\u3059\u70B9\u3092\u8A18\u9332\u3002", x, y, 760, 720);
     appendBoard(parent2, board);
     renderDiagnosisContent(board, results, 24, 104, 712);
     return board;
   }
   function renderCompareBoardPanel(parent2, result, demoComparison, x, y) {
-    const board = createSection("Compare", "5\u6848\u306E\u5F79\u5272\u3068\u5411\u304D\u4E0D\u5411\u304D\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3092\u6C7A\u3081\u308B\u3002", x, y, 900, 720);
+    const board = createSection("05 Compare Result", "5\u6848\u306E\u5F79\u5272\u3068\u5411\u304D\u4E0D\u5411\u304D\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3092\u6C7A\u3081\u308B\u3002", x, y, 900, 720);
     appendBoard(parent2, board);
     renderCompareContent(board, result, 24, 104, 852, demoComparison);
     return board;
   }
   function renderBackgroundVariationsBoard(parent2, variations, result, x, y) {
     var _a;
-    const board = createSection("Background Variations", "Primary\u6848\u306B\u3060\u3051\u80CC\u666F3\u6848\u3092\u4F5C\u308B\u3002\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
+    const board = createSection("06 Background Variations", "Primary\u6848\u306B\u3060\u3051\u80CC\u666F3\u6848\u3092\u4F5C\u308B\u3002\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
     appendBoard(parent2, board);
     addText(board, (_a = result == null ? void 0 : result.brief.promptText) != null ? _a : "\u6BD4\u8F03\u5F8C\u306Bbackground brief\u304C\u5165\u308A\u307E\u3059\u3002Demo\u3067\u306F\u80CC\u666F3\u6848\u306E\u65B9\u5411\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 24, 88, {
       size: 11,
@@ -604,7 +625,7 @@
   }
   function renderFinalCandidateBoard(parent2, project, x, y) {
     var _a;
-    const board = createSection("Final Candidate", "\u9078\u3093\u3060\u6848\u3001\u9069\u7528\u80CC\u666F\u3001\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8\u3002", x, y, 760, 720);
+    const board = createSection("07 Final Candidate", "\u9078\u3093\u3060\u6848\u3001\u9069\u7528\u80CC\u666F\u3001\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8\u3002", x, y, 760, 720);
     appendBoard(parent2, board);
     const final = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate;
     const card = createCard(24, 104, 712, 516);
@@ -995,7 +1016,7 @@
         return;
       }
       if (message.type === "INSERT_SVG_BATCH") {
-        const nodes = placeSvgCandidates(message.payload.items);
+        const nodes = placeSvgCandidates(message.payload.items, message.payload.x !== void 0 && message.payload.y !== void 0 ? { x: message.payload.x, y: message.payload.y } : void 0);
         figma.currentPage.selection = nodes;
         figma.viewport.scrollAndZoomIntoView(nodes);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}\u6848\u3092\u6A2A\u4E26\u3073\u3067Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
@@ -1028,7 +1049,11 @@
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
-        await renderProcessStageBoard(message.payload.project, message.payload.stage);
+        await renderProcessStageBoard(message.payload.project, message.payload.stage, {
+          x: message.payload.x,
+          y: message.payload.y,
+          zoom: message.payload.zoom
+        });
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }

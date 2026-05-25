@@ -7,6 +7,7 @@ import type { DiagnosisResult } from "../schemas/diagnosis";
 import type { ExploreInput } from "../schemas/input";
 import type { ProjectData } from "../schemas/project";
 import { createLayoutStrategies } from "../schemas/project";
+import type { FigmaOutputRecord, ProductionStatus } from "../schemas/production";
 import type { ExploreResult, SvgCandidate } from "../schemas/svg";
 
 export function buildProjectData(params: {
@@ -15,10 +16,13 @@ export function buildProjectData(params: {
   diagnosisResults?: DiagnosisResult[];
   comparisonResult?: ComparisonResult;
   backgroundResult?: BackgroundResult;
+  productionStatus?: ProductionStatus;
+  figmaOutputs?: FigmaOutputRecord[];
 }): ProjectData {
-  const { exploreResult, svgCandidates, diagnosisResults = [], comparisonResult, backgroundResult } = params;
+  const { exploreResult, svgCandidates, diagnosisResults = [], comparisonResult, backgroundResult, productionStatus, figmaOutputs = [] } = params;
   const input = exploreResult.input;
   const isSeminar = exploreResult.contentType === "seminar_banner";
+  const stageWorkflow = createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, backgroundResult });
 
   return {
     projectId: `project_${Date.now().toString(36)}`,
@@ -38,7 +42,17 @@ export function buildProjectData(params: {
     diagnosisResults,
     comparisonResult,
     backgroundResult,
-    stageWorkflow: createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, backgroundResult }),
+    stageWorkflow,
+    productionStatus,
+    stageResults: {
+      ideas: stageWorkflow.ideaDirections,
+      typographyDrafts: stageWorkflow.typographyDrafts,
+      refinedCandidates: stageWorkflow.refinedSvgCandidates,
+      comparison: comparisonResult,
+      backgroundVariations: stageWorkflow.backgroundVariations,
+      finalCandidate: stageWorkflow.finalCandidate,
+    },
+    figmaOutputs,
     createdAt: new Date().toISOString(),
     providerMeta: {
       mode: createProviderMode(svgCandidates),

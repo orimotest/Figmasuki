@@ -33,7 +33,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "INSERT_SVG_BATCH") {
-      const nodes = placeSvgCandidates(message.payload.items);
+      const nodes = placeSvgCandidates(message.payload.items, message.payload.x !== undefined && message.payload.y !== undefined ? { x: message.payload.x, y: message.payload.y } : undefined);
       figma.currentPage.selection = nodes;
       figma.viewport.scrollAndZoomIntoView(nodes);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案を横並びでFigmaに配置しました。` } });
@@ -69,7 +69,11 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
-      await renderProcessStageBoard(message.payload.project, message.payload.stage);
+      await renderProcessStageBoard(message.payload.project, message.payload.stage, {
+        x: message.payload.x,
+        y: message.payload.y,
+        zoom: message.payload.zoom,
+      });
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "工程ボードをFigmaに作成しました。" } });
       return;
     }

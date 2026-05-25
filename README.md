@@ -46,12 +46,32 @@ APIキーがなくてもDemo Modeで一連の流れを確認できます。
 1. `npm run build`
 2. Figmaで `manifest.json` を読み込む
 3. プラグインを起動
-4. 探索画面で `Demoフローを再読み込み`
-5. `一連のプロセスをFigmaに配置`
-6. Figmaキャンバス上に5つの実バナー案と横長プロセスボードが配置される
-7. 1案を選択して診断
-8. 2から5案を選択して比較
-9. 仕上げ画面で背景を生成、適用
+4. 探索画面で `自動制作を開始`
+5. UI上のProduction Timelineで進行状況を確認
+6. Figmaキャンバス上に工程ごとのボードが順番に配置される
+7. 5案の自動比較、背景3案、Final CandidateまでDemo Modeで進む
+8. 必要に応じて、診断・比較・仕上げタブで詳細確認や再実行を行う
+
+## 自動制作ジョブ
+
+メイン体験は、ユーザーがタブを渡り歩く操作ではなく、1つの制作ジョブが最終候補まで進む流れです。
+
+`自動制作を開始` を押すと、以下が順番に進みます。
+
+1. 要件を確認
+2. 30案を探索
+3. 30 Ideas Explore BoardをFigmaに記録
+4. 15案のTypography Draftを生成
+5. 15 Typography Drafts BoardをFigmaに記録
+6. 5案を高品質SVG化
+7. 5 Refined SVGs Boardと5案SVGをFigmaに記録
+8. 5案を自動比較
+9. Compare BoardをFigmaに記録
+10. Primary案の背景3案を生成
+11. Background Variations BoardをFigmaに記録
+12. Final Candidate BoardをFigmaに記録
+
+診断・比較・仕上げタブは、手動検証、詳細確認、部分的な再実行用として残しています。
 
 ## Figmaに記録されるボード
 
@@ -94,8 +114,10 @@ Providerの切り替えは `src/config/providers.ts` で行います。API未設
 
 ## 関連docs
 
+- [自動制作フロー](docs/auto-production-flow.md)
 - [新ワークフロー](docs/new-workflow.md)
 - [Figmaプロセスボード](docs/figma-process-board.md)
+- [Live APIフロー](docs/api-live-flow.md)
 - [Difyワークフロー仕様](docs/dify-workflow-spec.md)
 - [Gemini仕上げ仕様](docs/gemini-refine-spec.md)
 - [Figmaプラグインテスト](docs/figma-plugin-test.md)

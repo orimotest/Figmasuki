@@ -3,24 +3,15 @@ import type { ComparisonResult } from "../../schemas/comparison";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import type { ProjectData } from "../../schemas/project";
+import type { ProcessBoardStage } from "../../schemas/production";
 import { hasString, isRecord } from "../../utils/guards";
-
-export type ProcessBoardStage =
-  | "project_header"
-  | "ideas"
-  | "typography_drafts"
-  | "refined_svgs"
-  | "diagnosis"
-  | "compare"
-  | "background_variations"
-  | "final_candidate";
 
 export type PluginRequestMessage =
   | { type: "INSERT_SVG"; payload: { svg: string; name?: string } }
-  | { type: "INSERT_SVG_BATCH"; payload: { items: Array<{ svg: string; name?: string }> } }
+  | { type: "INSERT_SVG_BATCH"; payload: { items: Array<{ svg: string; name?: string }>; x?: number; y?: number } }
   | { type: "PLACE_EXPLORE_PACKAGE"; payload: ProjectData }
   | { type: "RENDER_PROCESS_BOARD"; payload: ProjectData }
-  | { type: "RENDER_PROCESS_STAGE_BOARD"; payload: { project: ProjectData; stage: ProcessBoardStage } }
+  | { type: "RENDER_PROCESS_STAGE_BOARD"; payload: { project: ProjectData; stage: ProcessBoardStage; x?: number; y?: number; zoom?: boolean } }
   | { type: "RENDER_DIAGNOSIS_BOARD"; payload: DiagnosisResult }
   | { type: "RENDER_COMPARE_BOARD"; payload: ComparisonResult }
   | { type: "RENDER_FINISH_BOARD"; payload: { backgroundResult: BackgroundResult; comparisonResult?: ComparisonResult } }
@@ -70,6 +61,8 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
         items: value.payload.items
           .filter((item): item is { svg: string; name?: string } => isRecord(item) && hasString(item, "svg"))
           .map((item) => ({ svg: item.svg, name: typeof item.name === "string" ? item.name : undefined })),
+        x: typeof value.payload.x === "number" ? value.payload.x : undefined,
+        y: typeof value.payload.y === "number" ? value.payload.y : undefined,
       },
     };
   }
@@ -91,7 +84,13 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
   ) {
     return {
       type: "RENDER_PROCESS_STAGE_BOARD",
-      payload: { project: value.payload.project as ProjectData, stage: value.payload.stage },
+      payload: {
+        project: value.payload.project as ProjectData,
+        stage: value.payload.stage,
+        x: typeof value.payload.x === "number" ? value.payload.x : undefined,
+        y: typeof value.payload.y === "number" ? value.payload.y : undefined,
+        zoom: typeof value.payload.zoom === "boolean" ? value.payload.zoom : undefined,
+      },
     };
   }
 

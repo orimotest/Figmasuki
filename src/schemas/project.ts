@@ -6,6 +6,7 @@ import type { DiagnosisResult } from "./diagnosis";
 import type { Direction } from "./direction";
 import type { InputMode } from "./input";
 import type { ProviderMeta } from "./provider";
+import type { FigmaOutputRecord, ProductionStatus } from "./production";
 import type { SvgCandidate } from "./svg";
 import type { StageWorkflowData } from "./workflow";
 
@@ -53,6 +54,16 @@ export type ProjectData = {
   comparisonResult?: ComparisonResult;
   backgroundResult?: BackgroundResult;
   stageWorkflow?: StageWorkflowData;
+  productionStatus?: ProductionStatus;
+  stageResults?: {
+    ideas?: StageWorkflowData["ideaDirections"];
+    typographyDrafts?: StageWorkflowData["typographyDrafts"];
+    refinedCandidates?: StageWorkflowData["refinedSvgCandidates"];
+    comparison?: ComparisonResult;
+    backgroundVariations?: StageWorkflowData["backgroundVariations"];
+    finalCandidate?: StageWorkflowData["finalCandidate"];
+  };
+  figmaOutputs?: FigmaOutputRecord[];
   createdAt: string;
   providerMeta: ProjectProviderMeta;
 };
