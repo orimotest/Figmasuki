@@ -20,7 +20,7 @@ export function validateSvg(value: unknown): SvgValidationResult {
     hasText: /<text\b/i.test(trimmed),
     noScript: !/<script\b/i.test(trimmed),
     noForeignObject: !/<foreignObject\b/i.test(trimmed),
-    noExternalImage: !/(https?:\/\/|xlink:href=["']https?:\/\/|href=["']https?:\/\/)/i.test(trimmed),
+    noExternalImage: !hasExternalReference(trimmed),
     lengthInRange: trimmed.length >= MIN_SVG_LENGTH && trimmed.length <= MAX_SVG_LENGTH,
   };
   const errors: string[] = [];
@@ -58,4 +58,9 @@ export function extractSvgFromText(text: string): string {
   }
   const inline = text.match(/<svg[\s\S]*?<\/svg>/i);
   return inline?.[0]?.trim() ?? text.trim();
+}
+
+function hasExternalReference(svg: string): boolean {
+  const withoutXmlns = svg.replace(/\sxmlns(?::\w+)?=["']https?:\/\/[^"']+["']/gi, "");
+  return /(xlink:href|href|src)=["']https?:\/\//i.test(withoutXmlns);
 }

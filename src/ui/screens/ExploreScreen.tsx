@@ -44,20 +44,18 @@ const defaultFixedCopy: FixedCopyInput = {
   cta: "無料で参加する",
 };
 
-const demoFlowBrief = sampleBriefs.seminar_banner;
-
 export function ExploreScreen({ providers, projectData, onProjectData }: ExploreScreenProps) {
   const [contentType, setContentType] = useState<ContentType>("seminar_banner");
   const [inputMode, setInputMode] = useState<InputMode>("brief_text");
-  const [briefText, setBriefText] = useState(demoFlowBrief);
+  const [briefText, setBriefText] = useState(sampleBriefs.seminar_banner);
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(defaultFixedCopy);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusLogs, setStatusLogs] = useState<string[]>(["Demoサンプルを読み込んでいます。APIなしで一連の流れを確認できます。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["探索画面を開いたため、Demoサンプルを自動読み込みします。"]);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
   const [svgCandidates, setSvgCandidates] = useState<SvgCandidate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const didAutoLoadDemo = useRef(false);
+  const didAutoRun = useRef(false);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -78,9 +76,9 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   }, []);
 
   useEffect(() => {
-    if (didAutoLoadDemo.current) return;
-    didAutoLoadDemo.current = true;
-    void loadDemoSample("seminar_banner", { silent: true });
+    if (didAutoRun.current) return;
+    didAutoRun.current = true;
+    void runDemoSample("seminar_banner", { silent: true, reason: "auto" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -93,14 +91,14 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   const canShowCta = contentType === "seminar_banner";
 
   function loadDemo(type: ContentType) {
-    void loadDemoSample(type);
+    void runDemoSample(type, { reason: "manual" });
   }
 
   function startDemoFlow() {
-    void loadDemoSample("seminar_banner");
+    void runDemoSample("seminar_banner", { reason: "manual" });
   }
 
-  async function loadDemoSample(type: ContentType, options?: { silent?: boolean }) {
+  async function runDemoSample(type: ContentType, options?: { silent?: boolean; reason?: "auto" | "manual" }) {
     setContentType(type);
     setInputMode("brief_text");
     setBriefText(sampleBriefs[type]);
@@ -108,9 +106,9 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setSuccess(null);
     setIsGenerating(true);
     setStatusLogs([
-      "Demoサンプルを読み込んでいます。",
-      "コピー方向性5件とSVG候補5件を用意します。",
-      "API未設定でもDemo Modeで確認できます。",
+      options?.reason === "auto" ? "Demoサンプルを自動読み込みしています。" : "Demoサンプルを読み込んでいます。",
+      "コピー方向性5件を用意しています。",
+      "SVG候補5件を生成しています。",
     ]);
 
     try {
@@ -125,7 +123,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setExploreResult(result);
       setSvgCandidates(svgResult.svgs);
       onProjectData(buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs }));
-      setStatusLogs((entries) => [...entries, "Demoサンプルの読み込みが完了しました。", "Figmaへ配置、またはプロセスボードを作成できます。"]);
+      setStatusLogs((entries) => [...entries, "Demoサンプルの読み込みが完了しました。", "次はFigmaに5案を配置するか、プロセスボードを作成できます。"]);
       if (!options?.silent) setSuccess("Demoサンプルを読み込みました。");
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Demoサンプルの読み込みに失敗しました。";
@@ -205,7 +203,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   function handleInsertAll() {
     const validItems = svgCandidates.filter((candidate) => candidate.validation.valid).map((candidate) => ({ svg: candidate.svg, name: candidate.name }));
     if (validItems.length === 0) {
-      setError("先にDemoサンプルを読み込むか、探索を開始してください。配置できるSVG候補がありません。");
+      setError("まだ配置できるSVG候補がありません。数秒待って自動読み込みが終わるか、「Demoサンプルを読み込む」を押してください。");
       return;
     }
     postToPlugin({ type: "INSERT_SVG_BATCH", payload: { items: validItems } });
@@ -213,7 +211,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
 
   function handleRenderBoard() {
     if (!projectData) {
-      setError("先にDemoサンプルを読み込むか、探索を開始してください。コピー方向性とSVG候補が揃うとプロセスボードを作成できます。");
+      setError("まだプロセスボード化できる結果がありません。数秒待って自動読み込みが終わるか、「Demoサンプルを読み込む」を押してください。");
       return;
     }
     postToPlugin({ type: "RENDER_PROCESS_BOARD", payload: projectData });
@@ -225,7 +223,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     onProjectData(null);
     setError(null);
     setSuccess(null);
-    setStatusLogs(["結果をリセットしました。Demoサンプルを読み込むか、要件を入力して探索を開始してください。"]);
+    setStatusLogs(["結果をリセットしました。もう一度Demoサンプルを読み込むか、要件を入力して探索を開始してください。"]);
   }
 
   return (
@@ -233,7 +231,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       <section className="panel explore-controls">
         <SectionHeader
           title="探索の入力"
-          description="要件からコピー方向性5件とSVG候補5件を整理します。Demo ModeではAPIなしで確認できます。"
+          description="開いた時点でDemoサンプルを自動読み込みします。要件を変えたい場合だけ入力して探索を開始してください。"
           aside={<ProviderBadge label="SVG" provider={providers.svg} />}
         />
         <div className="badge-row">
@@ -241,7 +239,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           <span className="provider-badge warning">実行モード: Demo Mode対応</span>
           {exploreResult && <span className="provider-badge">30案から5方向</span>}
         </div>
-        <UsageGuide note="API未設定でもDemo Modeにfallbackし、探索、配置、診断、比較、仕上げまで確認できます。" />
+        <UsageGuide note="Demoでは、探索結果とSVG候補が自動で表示されます。次にFigmaへ配置するか、プロセスボードを作成してください。" />
         <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(exploreResult), Boolean(error))} />
         {isGenerating && <LoadingState title="方向性を探索しています" description="コピー、訴求軸、レイアウト方針、SVG候補を整理しています。" />}
 
@@ -282,7 +280,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           )}
         </div>
 
-        {error && <ErrorMessage title="探索を実行できませんでした" detail={error} action="Demoサンプルを読み込むか、入力内容を確認してもう一度実行してください。" />}
+        {error && <ErrorMessage title="探索を実行できませんでした" detail={error} action="数秒待って自動読み込みが終わるか、Demoサンプルを読み込むを押してください。" />}
         {success && <SuccessMessage title={success} detail="Figma上で編集可能なノードやプロセスボードとして確認できます。" />}
 
         <ActionBar>
@@ -316,7 +314,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           {svgCandidates.length === 0 && (
             <EmptyState
               title="候補案はまだありません"
-              body="Demoサンプルを読み込むと、5つのSVG候補を確認できます。または要件を入力して探索を開始してください。"
+              body="通常は数秒でDemo候補が自動表示されます。表示されない場合は下のボタンから再読み込みできます。"
               actionLabel="Demoサンプルを読み込む"
               onAction={startDemoFlow}
             />
