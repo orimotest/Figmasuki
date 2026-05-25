@@ -1,0 +1,1 @@
+export { renderCopyBoard } from "./renderProcessBoard";

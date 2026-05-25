@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.vite/
+*.log
+src/config/localSecrets.ts
+src/config/apiSettings.ts
+!src/config/apiSettings.example.ts
