@@ -1,4 +1,5 @@
 import { appConfig } from "../config/app";
+import type { ProjectData } from "../schemas/project";
 import { createSvgNode } from "./figma/createSvgNode";
 import { extractFrameData } from "./figma/extractFrameData";
 import { extractMultiFrameData } from "./figma/extractMultiFrameData";
@@ -31,19 +32,26 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "INSERT_SVG_BATCH") {
-      const startX = figma.viewport.center.x - 400;
-      const startY = figma.viewport.center.y - 225;
-      const nodes = message.payload.items.map((item, index) =>
-        createSvgNode(item.svg, item.name, {
-          x: startX + index * 900,
-          y: startY,
-          select: false,
-          zoom: false,
-        }),
-      );
+      const nodes = placeSvgCandidates(message.payload.items);
       figma.currentPage.selection = nodes;
       figma.viewport.scrollAndZoomIntoView(nodes);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案を横並びでFigmaに配置しました。` } });
+      return;
+    }
+
+    if (message.type === "PLACE_EXPLORE_PACKAGE") {
+      const nodes = placeProjectCandidates(message.payload);
+      const board = await renderProcessBoard(message.payload, {
+        x: figma.viewport.center.x - 900,
+        y: figma.viewport.center.y + 360,
+        zoom: false,
+      });
+      figma.currentPage.selection = [...nodes, board];
+      figma.viewport.scrollAndZoomIntoView([...nodes, board]);
+      postToUi({
+        type: "PLUGIN_SUCCESS",
+        payload: { message: `${nodes.length}案とプロセスボードをFigmaにまとめて配置しました。` },
+      });
       return;
     }
 
@@ -89,3 +97,20 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     postToUi({ type: "PLUGIN_ERROR", payload: { message: getErrorMessage(error) } });
   }
 };
+
+function placeProjectCandidates(project: ProjectData) {
+  return placeSvgCandidates(project.svgCandidates.map((candidate) => ({ svg: candidate.svg, name: candidate.name })));
+}
+
+function placeSvgCandidates(items: Array<{ svg: string; name?: string }>) {
+  const startX = figma.viewport.center.x - 400;
+  const startY = figma.viewport.center.y - 225;
+  return items.map((item, index) =>
+    createSvgNode(item.svg, item.name, {
+      x: startX + index * 900,
+      y: startY,
+      select: false,
+      zoom: false,
+    }),
+  );
+}

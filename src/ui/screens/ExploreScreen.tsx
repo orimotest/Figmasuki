@@ -11,7 +11,6 @@ import { runGenerateSvgWorkflow } from "../../workflows/generateSvgWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
 import { CanvasBadge } from "../components/CanvasBadge";
-import { DemoDataButton } from "../components/DemoDataButton";
 import { DirectionList } from "../components/DirectionList";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { EmptyState } from "../components/EmptyState";
@@ -78,7 +77,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   useEffect(() => {
     if (didAutoRun.current) return;
     didAutoRun.current = true;
-    void runDemoSample("seminar_banner", { silent: true, reason: "auto" });
+    void runDemoSample("seminar_banner", { silent: true });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -90,51 +89,41 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
 
   const canShowCta = contentType === "seminar_banner";
 
-  function loadDemo(type: ContentType) {
-    void runDemoSample(type, { reason: "manual" });
-  }
-
   function startDemoFlow() {
-    void runDemoSample("seminar_banner", { reason: "manual" });
+    void runDemoSample("seminar_banner");
   }
 
-  async function runDemoSample(type: ContentType, options?: { silent?: boolean; reason?: "auto" | "manual" }) {
+  async function runDemoSample(type: ContentType, options?: { silent?: boolean }) {
     setContentType(type);
     setInputMode("brief_text");
     setBriefText(sampleBriefs[type]);
     setError(null);
     setSuccess(null);
     setIsGenerating(true);
-    setStatusLogs([
-      options?.reason === "auto" ? "Demoサンプルを自動読み込みしています。" : "Demoサンプルを読み込んでいます。",
-      "コピー方向性5件を用意しています。",
-      "SVG候補5件を生成しています。",
-    ]);
+    setStatusLogs(["Demoサンプルを読み込んでいます。", "コピー方向性5件を用意しています。", "SVG候補5件を生成しています。"]);
 
     try {
-      const result = await runExploreWorkflow({
+      const project = await createProjectFromInput({
         contentType: type,
         inputMode: "brief_text",
         briefText: sampleBriefs[type],
         rawInput: sampleBriefs[type],
         targetAudience: type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
       });
-      const svgResult = await runGenerateSvgWorkflow(result);
-      setExploreResult(result);
-      setSvgCandidates(svgResult.svgs);
-      onProjectData(buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs }));
-      setStatusLogs((entries) => [...entries, "Demoサンプルの読み込みが完了しました。", "次はFigmaに5案を配置するか、プロセスボードを作成できます。"]);
+      setStatusLogs((entries) => [...entries, "Demoサンプルの読み込みが完了しました。", "主ボタンを押すと、5案とプロセスボードをFigmaにまとめて配置します。"]);
       if (!options?.silent) setSuccess("Demoサンプルを読み込みました。");
+      return project;
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Demoサンプルの読み込みに失敗しました。";
       setError(message);
       setStatusLogs((entries) => [...entries, message]);
+      return null;
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function handleGenerate() {
+  async function handleGenerateAndPlace() {
     setError(null);
     setSuccess(null);
     const validationMessage = validateInput(inputMode, briefText, fixedCopy, contentType);
@@ -145,51 +134,47 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     }
 
     setIsGenerating(true);
-    setExploreResult(null);
-    setSvgCandidates([]);
-    onProjectData(null);
-    setStatusLogs(["入力内容を整理しています。", "30案のコピー方向性を探索しています。"]);
+    setStatusLogs(["生成と配置を開始します。", "コピー方向性とSVG候補を整理しています。"]);
 
     try {
-      const result = await runExploreWorkflow({
-        contentType,
-        inputMode,
-        briefText: inputMode === "brief_text" ? briefText : undefined,
-        fixedCopy: inputMode === "fixed_copy" ? fixedCopy : undefined,
-        rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
-        targetAudience: contentType === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
-      });
-      if (result.providerMeta?.fallbackUsed) {
-        setStatusLogs((entries) => [
-          ...entries,
-          "APIが未設定、またはlive providerに接続できないためDemo Modeに切り替えました。",
-          result.providerMeta?.fallbackReason ?? "サンプルデータを使って探索しています。",
-        ]);
-      } else if (result.providerMeta?.provider === "demo") {
-        setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
-      }
-
-      setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, `${result.selectedCount}方向に整理しました。`, "SVGレイアウトを生成しています。"]);
-      const svgResult = await runGenerateSvgWorkflow(result);
-      const fallbackSvg = svgResult.svgs.find((candidate) => candidate.meta.fallbackUsed);
-      if (fallbackSvg) {
-        setStatusLogs((entries) => [
-          ...entries,
-          "Gemini API keyが未設定、または生成に失敗したためDemo SVGを表示しています。",
-          fallbackSvg.meta.fallbackReason ?? "Demo SVGに切り替えました。",
-        ]);
-      }
-      setExploreResult(result);
-      setSvgCandidates(svgResult.svgs);
-      onProjectData(buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs }));
-      setStatusLogs((entries) => [...entries, "SVG候補の生成が完了しました。", "Figmaへ配置またはプロセスボード化できます。"]);
+      const project =
+        exploreResult && svgCandidates.length > 0 && projectData
+          ? projectData
+          : await createProjectFromInput({
+              contentType,
+              inputMode,
+              briefText: inputMode === "brief_text" ? briefText : undefined,
+              fixedCopy: inputMode === "fixed_copy" ? fixedCopy : undefined,
+              rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
+              targetAudience: contentType === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
+            });
+      if (!project) return;
+      setStatusLogs((entries) => [...entries, "Figmaへ5案とプロセスボードを連続配置しています。"]);
+      postToPlugin({ type: "PLACE_EXPLORE_PACKAGE", payload: project });
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "探索に失敗しました。";
+      const message = caught instanceof Error ? caught.message : "生成と配置に失敗しました。";
       setError(message);
       setStatusLogs((entries) => [...entries, message]);
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function createProjectFromInput(input: Parameters<typeof runExploreWorkflow>[0]): Promise<ProjectData> {
+    const result = await runExploreWorkflow(input);
+    if (result.providerMeta?.fallbackUsed) {
+      setStatusLogs((entries) => [...entries, "APIが未設定、または接続できないためDemo Modeに切り替えました。"]);
+    } else if (result.providerMeta?.provider === "demo") {
+      setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
+    }
+
+    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, `${result.selectedCount}方向に整理しました。`, "SVG候補を生成しています。"]);
+    const svgResult = await runGenerateSvgWorkflow(result);
+    const project = buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs });
+    setExploreResult(result);
+    setSvgCandidates(svgResult.svgs);
+    onProjectData(project);
+    return project;
   }
 
   function handleInsert(candidate: SvgCandidate) {
@@ -200,30 +185,13 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     postToPlugin({ type: "INSERT_SVG", payload: { svg: candidate.svg, name: candidate.name } });
   }
 
-  function handleInsertAll() {
-    const validItems = svgCandidates.filter((candidate) => candidate.validation.valid).map((candidate) => ({ svg: candidate.svg, name: candidate.name }));
-    if (validItems.length === 0) {
-      setError("まだ配置できるSVG候補がありません。数秒待って自動読み込みが終わるか、「Demoサンプルを読み込む」を押してください。");
-      return;
-    }
-    postToPlugin({ type: "INSERT_SVG_BATCH", payload: { items: validItems } });
-  }
-
-  function handleRenderBoard() {
-    if (!projectData) {
-      setError("まだプロセスボード化できる結果がありません。数秒待って自動読み込みが終わるか、「Demoサンプルを読み込む」を押してください。");
-      return;
-    }
-    postToPlugin({ type: "RENDER_PROCESS_BOARD", payload: projectData });
-  }
-
   function handleReset() {
     setExploreResult(null);
     setSvgCandidates([]);
     onProjectData(null);
     setError(null);
     setSuccess(null);
-    setStatusLogs(["結果をリセットしました。もう一度Demoサンプルを読み込むか、要件を入力して探索を開始してください。"]);
+    setStatusLogs(["結果をリセットしました。もう一度Demoサンプルを読み込むか、要件を入力してください。"]);
   }
 
   return (
@@ -231,7 +199,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       <section className="panel explore-controls">
         <SectionHeader
           title="探索の入力"
-          description="開いた時点でDemoサンプルを自動読み込みします。要件を変えたい場合だけ入力して探索を開始してください。"
+          description="Demo候補は自動で読み込みます。主ボタンを押すと、生成結果をFigmaへ連続配置します。"
           aside={<ProviderBadge label="SVG" provider={providers.svg} />}
         />
         <div className="badge-row">
@@ -239,17 +207,9 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           <span className="provider-badge warning">実行モード: Demo Mode対応</span>
           {exploreResult && <span className="provider-badge">30案から5方向</span>}
         </div>
-        <UsageGuide note="Demoでは、探索結果とSVG候補が自動で表示されます。次にFigmaへ配置するか、プロセスボードを作成してください。" />
+        <UsageGuide note="主ボタン1つで、5案の配置とプロセスボード作成まで進みます。個別配置は候補カードから必要な時だけ使えます。" />
         <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(exploreResult), Boolean(error))} />
-        {isGenerating && <LoadingState title="方向性を探索しています" description="コピー、訴求軸、レイアウト方針、SVG候補を整理しています。" />}
-
-        <div className="demo-actions">
-          <button className="primary-button" type="button" onClick={startDemoFlow} disabled={isGenerating}>
-            Demoサンプルを読み込む
-          </button>
-          <DemoDataButton type="note_thumbnail" onClick={loadDemo} />
-          <DemoDataButton type="seminar_banner" onClick={loadDemo} />
-        </div>
+        {isGenerating && <LoadingState title="生成と配置の準備中です" description="コピー方向性、SVG候補、Figma用プロセスボードをまとめています。" />}
 
         <div className="form-grid">
           <PresetSelector value={contentType} onChange={setContentType} />
@@ -280,21 +240,18 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           )}
         </div>
 
-        {error && <ErrorMessage title="探索を実行できませんでした" detail={error} action="数秒待って自動読み込みが終わるか、Demoサンプルを読み込むを押してください。" />}
-        {success && <SuccessMessage title={success} detail="Figma上で編集可能なノードやプロセスボードとして確認できます。" />}
+        {error && <ErrorMessage title="生成と配置を実行できませんでした" detail={error} action="数秒待って自動読み込みが終わるか、Demoサンプルを再読み込みしてください。" />}
+        {success && <SuccessMessage title={success} detail="Figma上で5案とプロセスボードを確認できます。" />}
 
         <ActionBar>
-          <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerate}>
-            {isGenerating ? "探索中..." : "探索を開始"}
+          <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerateAndPlace}>
+            {isGenerating ? "準備中..." : "生成してFigmaに配置"}
           </button>
-          <button className="secondary-button" type="button" disabled={isGenerating} onClick={handleInsertAll}>
-            5案をまとめてFigmaに配置
-          </button>
-          <button className="secondary-button" type="button" disabled={isGenerating} onClick={handleRenderBoard}>
-            プロセスボードをFigmaに作成
+          <button className="secondary-button" type="button" disabled={isGenerating} onClick={startDemoFlow}>
+            Demoを再読み込み
           </button>
           <button className="ghost-button" type="button" onClick={handleReset}>
-            結果をリセット
+            リセット
           </button>
         </ActionBar>
         <StatusLog entries={statusLogs} />
@@ -306,7 +263,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       </section>
 
       <section className="panel explore-previews">
-        <SectionHeader title="SVG候補" description="Figmaに配置できる800x450のSVG候補です。方向性ごとに見た目の差を持たせています。" />
+        <SectionHeader title="SVG候補" description="主ボタンで5案まとめて配置できます。個別に見たい時だけカード内の配置ボタンを使ってください。" />
         <div className="preview-list">
           {svgCandidates.map((candidate) => (
             <SvgPreviewCard key={candidate.id} candidate={candidate} direction={directionsById.get(candidate.directionId)} onInsert={handleInsert} />
@@ -314,8 +271,8 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           {svgCandidates.length === 0 && (
             <EmptyState
               title="候補案はまだありません"
-              body="通常は数秒でDemo候補が自動表示されます。表示されない場合は下のボタンから再読み込みできます。"
-              actionLabel="Demoサンプルを読み込む"
+              body="通常は数秒でDemo候補が自動表示されます。表示されない場合は再読み込みできます。"
+              actionLabel="Demoを再読み込み"
               onAction={startDemoFlow}
             />
           )}
@@ -330,7 +287,7 @@ function getExploreTimeline(isRunning: boolean, hasResult: boolean, hasError: bo
     { label: "入力内容を確認", description: "用途と入力タイプを整理", status: hasError ? "error" : hasResult || isRunning ? "completed" : "pending" },
     { label: "30案を探索", description: "コピーと訴求軸を広げる", status: hasError ? "error" : hasResult ? "completed" : isRunning ? "running" : "pending" },
     { label: "5方向に整理", description: "代表的な方向性を抽出", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "SVG候補を生成", description: "Figmaに置ける候補案を作成", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
+    { label: "Figmaへ配置", description: "5案とプロセスボードを連続配置", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
   ];
 }
 

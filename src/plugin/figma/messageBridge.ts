@@ -8,6 +8,7 @@ import { hasString, isRecord } from "../../utils/guards";
 export type PluginRequestMessage =
   | { type: "INSERT_SVG"; payload: { svg: string; name?: string } }
   | { type: "INSERT_SVG_BATCH"; payload: { items: Array<{ svg: string; name?: string }> } }
+  | { type: "PLACE_EXPLORE_PACKAGE"; payload: ProjectData }
   | { type: "RENDER_PROCESS_BOARD"; payload: ProjectData }
   | { type: "RENDER_DIAGNOSIS_BOARD"; payload: DiagnosisResult }
   | { type: "RENDER_COMPARE_BOARD"; payload: ComparisonResult }
@@ -60,6 +61,10 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
           .map((item) => ({ svg: item.svg, name: typeof item.name === "string" ? item.name : undefined })),
       },
     };
+  }
+
+  if (value.type === "PLACE_EXPLORE_PACKAGE" && isRecord(value.payload)) {
+    return { type: "PLACE_EXPLORE_PACKAGE", payload: value.payload as ProjectData };
   }
 
   if (value.type === "RENDER_PROCESS_BOARD" && isRecord(value.payload)) {

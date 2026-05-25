@@ -11,12 +11,11 @@
 
 ## APIなしでテストする
 
-1. 探索画面で「Demoサンプルを読み込む」
-2. コピー方向性5件とSVG候補5件が表示されることを確認
-3. 「5案をまとめてFigmaに配置」を押す
+1. 探索画面を開く
+2. コピー方向性5件とSVG候補5件が自動表示されることを確認
+3. 「生成してFigmaに配置」を押す
 4. Figma上に5つの800x450フレームが横並びで配置されることを確認
-5. 「プロセスボードをFigmaに作成」を押す
-6. Project Header、Copy Direction、Layout Strategy、SVG Candidateの各ボードが出ることを確認
+5. 1枚のプロセスボード内にProject Header、Copy Direction、Layout Strategy、SVG Candidateがまとまっていることを確認
 
 ## 診断を確認する
 
