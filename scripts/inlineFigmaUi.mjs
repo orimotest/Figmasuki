@@ -12,12 +12,33 @@ const [html, css, js] = await Promise.all([
   readFile(jsPath, "utf8"),
 ]);
 
-const inlineCss = `<style>\n${css.replaceAll("</style", "<\\/style")}\n</style>`;
-const inlineJs = `<script>\n${js.replaceAll("</script", "<\\/script")}\n</script>`;
+const escapeScriptEnd = (value) => value.replace(/<\/script/gi, "<\\/script");
+
+const jsonCss = escapeScriptEnd(JSON.stringify(css));
+const jsonJs = escapeScriptEnd(JSON.stringify(js));
+
+const inlineCss = `<script>
+(() => {
+  const style = document.createElement("style");
+  style.textContent = ${jsonCss};
+  document.head.appendChild(style);
+})();
+</script>`;
+
+const inlineJs = `<script>
+(() => {
+  const source = ${jsonJs};
+  const blob = new Blob([source], { type: "text/javascript" });
+  const script = document.createElement("script");
+  script.src = URL.createObjectURL(blob);
+  script.onload = () => URL.revokeObjectURL(script.src);
+  document.head.appendChild(script);
+})();
+</script>`;
 
 const output = html
-  .replace(/<script[^>]*src="\.\/ui\.js"[^>]*><\/script>/, inlineJs)
-  .replace(/<link[^>]*href="\.\/assets\/index\.css"[^>]*>/, inlineCss);
+  .replace(/<script[^>]*src="\.\/ui\.js"[^>]*><\/script>/, () => inlineJs)
+  .replace(/<link[^>]*href="\.\/assets\/index\.css"[^>]*>/, () => inlineCss);
 
 if (output === html) {
   throw new Error("Failed to inline Figma UI assets. dist/index.html did not match expected Vite output.");
