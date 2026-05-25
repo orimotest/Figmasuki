@@ -55,19 +55,19 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
 
     if (message.type === "RENDER_DIAGNOSIS_BOARD") {
       await renderStandaloneDiagnosisBoard(message.payload);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "診断ボードをFigmaに追加しました。" } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "診断結果をFigmaに記録しました。" } });
       return;
     }
 
     if (message.type === "RENDER_COMPARE_BOARD") {
       await renderStandaloneCompareBoard(message.payload);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "比較ボードをFigmaに追加しました。" } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "比較結果をFigmaに記録しました。" } });
       return;
     }
 
     if (message.type === "RENDER_FINISH_BOARD") {
       await renderStandaloneFinishBoard(message.payload.backgroundResult, message.payload.comparisonResult);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "仕上げボードをFigmaに追加しました。" } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "仕上げ結果をFigmaに記録しました。" } });
       return;
     }
 

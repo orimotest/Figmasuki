@@ -4,11 +4,19 @@ import { EmptyState } from "./EmptyState";
 
 type DirectionListProps = {
   directions: Direction[];
+  onLoadDemo?: () => void;
 };
 
-export function DirectionList({ directions }: DirectionListProps) {
+export function DirectionList({ directions, onLoadDemo }: DirectionListProps) {
   if (directions.length === 0) {
-    return <EmptyState title="方向性はまだありません" body="作りたい内容を入力し、探索を開始してください。" />;
+    return (
+      <EmptyState
+        title="コピー方向性はまだありません"
+        body="要件を入力して探索を開始すると、5方向のコピー案がここに表示されます。APIなしでもDemoサンプルで確認できます。"
+        actionLabel={onLoadDemo ? "Demoサンプルを読み込む" : undefined}
+        onAction={onLoadDemo}
+      />
+    );
   }
 
   return (

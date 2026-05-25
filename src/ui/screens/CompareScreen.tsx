@@ -105,7 +105,7 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
 
   function handleRenderCompareBoard() {
     if (!comparison) {
-      setError("比較ボードを追加するには、先に比較を実行してください。");
+      setError("比較結果をFigmaに記録するには、先に比較を実行してください。");
       return;
     }
     postToPlugin({ type: "RENDER_COMPARE_BOARD", payload: comparison });
@@ -136,7 +136,7 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
           {isComparing ? "比較中..." : "選択中の案を比較"}
         </button>
         <button className="secondary-button" type="button" disabled={!comparison} onClick={handleRenderCompareBoard}>
-          比較ボードをFigmaに追加
+          比較結果をFigmaに記録
         </button>
         {error && <ErrorMessage title="比較を実行できませんでした" detail={error} action="Figma上でフレームを2から5個選択して、もう一度実行してください。" />}
         {comparison && <SuccessMessage title="比較が完了しました" detail="ベース候補、次点候補、background briefを確認できます。" />}

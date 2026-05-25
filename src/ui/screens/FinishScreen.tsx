@@ -120,7 +120,7 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
 
   function handleRenderFinishBoard() {
     if (!backgroundResult) {
-      setError("仕上げボードを追加するには、先に背景を生成してください。");
+      setError("仕上げ結果をFigmaに記録するには、先に背景を生成してください。");
       return;
     }
     postToPlugin({ type: "RENDER_FINISH_BOARD", payload: { backgroundResult, comparisonResult } });
@@ -167,7 +167,7 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
           {isApplying ? "適用中..." : "背景をFigmaに適用"}
         </button>
         <button className="secondary-button" type="button" disabled={!backgroundResult} onClick={handleRenderFinishBoard}>
-          仕上げボードをFigmaに追加
+          仕上げ結果をFigmaに記録
         </button>
         {error && <ErrorMessage title="仕上げを実行できませんでした" detail={error} action="比較画面でベース案を選び、background briefを送ってから実行してください。" />}
         {success && <SuccessMessage title={success} detail="テキストやCTAは編集可能なまま残っています。" />}

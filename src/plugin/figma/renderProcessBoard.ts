@@ -6,15 +6,16 @@ import type { ProjectData } from "../../schemas/project";
 import type { SvgCandidate } from "../../schemas/svg";
 
 const COLORS = {
-  canvas: { r: 0.957, g: 0.969, b: 0.984 },
+  canvas: { r: 0.969, g: 0.976, b: 0.988 },
   board: { r: 1, g: 1, b: 1 },
   card: { r: 0.984, g: 0.988, b: 0.996 },
-  border: { r: 0.859, g: 0.886, b: 0.925 },
-  text: { r: 0.086, g: 0.125, b: 0.2 },
-  muted: { r: 0.392, g: 0.455, b: 0.545 },
-  blue: { r: 0.082, g: 0.369, b: 0.937 },
+  border: { r: 0.898, g: 0.918, b: 0.949 },
+  text: { r: 0.067, g: 0.094, b: 0.153 },
+  muted: { r: 0.294, g: 0.333, b: 0.388 },
+  blue: { r: 0.145, g: 0.388, b: 0.922 },
   paleBlue: { r: 0.929, g: 0.961, b: 1 },
-  green: { r: 0.086, g: 0.514, b: 0.278 },
+  green: { r: 0.086, g: 0.639, b: 0.29 },
+  orange: { r: 0.961, g: 0.62, b: 0.043 },
 };
 
 const FONT_REGULAR: FontName = { family: "Inter", style: "Regular" };
@@ -31,10 +32,8 @@ type TextOptions = {
 export async function renderProcessBoard(project: ProjectData): Promise<FrameNode> {
   await loadFonts();
   const root = createFrame(`AI Process Board / ${project.projectName}`, 0, 0, 6720, 960, COLORS.canvas);
-  const startX = figma.viewport.center.x - 360;
-  const startY = figma.viewport.center.y - 260;
-  root.x = startX;
-  root.y = startY;
+  root.x = figma.viewport.center.x - 360;
+  root.y = figma.viewport.center.y - 260;
 
   const sections: FrameNode[] = [
     renderProjectBoard(project),
@@ -61,86 +60,80 @@ export async function renderProcessBoard(project: ProjectData): Promise<FrameNod
 export async function renderStandaloneDiagnosisBoard(result: DiagnosisResult): Promise<FrameNode> {
   await loadFonts();
   const board = renderDiagnosisBoard([result]);
-  board.x = figma.viewport.center.x - 400;
-  board.y = figma.viewport.center.y - 300;
-  figma.currentPage.appendChild(board);
-  figma.currentPage.selection = [board];
-  figma.viewport.scrollAndZoomIntoView([board]);
+  placeStandalone(board);
   return board;
 }
 
 export async function renderStandaloneCompareBoard(result: ComparisonResult): Promise<FrameNode> {
   await loadFonts();
   const board = renderCompareBoard(result);
-  board.x = figma.viewport.center.x - 400;
-  board.y = figma.viewport.center.y - 300;
-  figma.currentPage.appendChild(board);
-  figma.currentPage.selection = [board];
-  figma.viewport.scrollAndZoomIntoView([board]);
+  placeStandalone(board);
   return board;
 }
 
 export async function renderStandaloneFinishBoard(result: BackgroundResult, comparison?: ComparisonResult): Promise<FrameNode> {
   await loadFonts();
   const board = renderFinishBoard(result, comparison);
-  board.x = figma.viewport.center.x - 400;
-  board.y = figma.viewport.center.y - 300;
-  figma.currentPage.appendChild(board);
-  figma.currentPage.selection = [board];
-  figma.viewport.scrollAndZoomIntoView([board]);
+  placeStandalone(board);
   return board;
 }
 
 export function renderProjectBoard(project: ProjectData): FrameNode {
-  const board = createBoard("Project Header", "入力要件と生成条件をレビューする起点です。");
+  const board = createBoard("AI Cover Studio / Process Board", "入力要件、探索結果、生成候補、診断、比較、仕上げ方針をFigma上で見返すための記録ボードです。");
   let y = 112;
   y = addKeyValueCard(board, 28, y, "プロジェクト名", project.projectName);
   y = addKeyValueCard(board, 28, y, "用途", project.contentType === "seminar_banner" ? "セミナー / ウェビナーバナー" : "note / ブログサムネイル");
   y = addKeyValueCard(board, 28, y, "サイズ", `${project.canvasSize.width} x ${project.canvasSize.height}`);
   y = addKeyValueCard(board, 28, y, "入力タイプ", project.inputMode === "fixed_copy" ? "確定コピーから作成" : "要件から作成");
-  y = addKeyValueCard(board, 28, y, "要件要約", project.inputSummary.brief);
-  y = addKeyValueCard(board, 28, y, "ターゲット", project.inputSummary.targetAudience ?? "未指定");
+  y = addKeyValueCard(board, 28, y, "入力内容", project.inputSummary.brief);
   y = addKeyValueCard(board, 28, y, "ゴール", project.inputSummary.goal ?? "未指定");
-  y = addKeyValueCard(board, 28, y, "生成日時", new Date(project.createdAt).toLocaleString("ja-JP"));
-  addKeyValueCard(board, 28, y, "Provider", project.providerMeta.mode);
+  y = addKeyValueCard(board, 28, y, "ターゲット", project.inputSummary.targetAudience ?? "未指定");
+  y = addKeyValueCard(board, 28, y, "実行モード", project.providerMeta.mode);
+  addKeyValueCard(board, 28, y, "作成日時", new Date(project.createdAt).toLocaleString("ja-JP"));
   return board;
 }
 
 export function renderCopyBoard(directions: Direction[], project?: ProjectData): FrameNode {
-  const board = createBoard("Copy Exploration Board", `${project?.contentType === "seminar_banner" ? "セミナー" : "note"}向けに、30案を探索して5方向へ整理したコピー案です。`);
-  addPill(board, 28, 94, "30案を探索 -> 5方向を抽出", COLORS.blue);
+  const board = createBoard("Copy Direction Board", `${project?.contentType === "seminar_banner" ? "セミナー" : "note"}向けに、30案を探索して5方向へ整理したコピー案です。`);
+  addPill(board, 28, 94, "30案を探索 -> 5方向を抽出", COLORS.blue, 260);
   let y = 134;
   directions.slice(0, 5).forEach((direction, index) => {
-    const card = createCard(28, y, 784, 122);
+    const card = createCard(28, y, 784, 134);
     board.appendChild(card);
-    addText(card, `${index + 1}. ${direction.title}`, 18, 16, { size: 16, bold: true, width: 740 });
-    addText(card, direction.intent, 18, 42, { size: 11, color: COLORS.muted, width: 740, height: 28 });
-    addText(card, `Main: ${direction.copy.main.replace(/\n/g, " / ")}`, 18, 72, { size: 12, width: 740 });
-    addText(card, `Sub: ${direction.copy.sub}`, 18, 92, { size: 11, color: COLORS.muted, width: 520 });
-    if (direction.copy.cta) addPill(card, 604, 88, direction.copy.cta, COLORS.green);
-    y += 138;
+    addText(card, `${index + 1}. ${direction.title}`, 18, 14, { size: 16, bold: true, width: 420 });
+    addPill(card, 604, 12, getBestFor(direction), COLORS.paleBlue, 160, COLORS.blue);
+    addText(card, `Main: ${direction.copy.main.replace(/\n/g, " / ")}`, 18, 42, { size: 12, bold: true, width: 740 });
+    addText(card, `Sub: ${direction.copy.sub}`, 18, 64, { size: 11, color: COLORS.muted, width: 740 });
+    if (direction.copy.cta) addText(card, `CTA: ${direction.copy.cta}`, 18, 84, { size: 11, color: COLORS.green, bold: true, width: 340 });
+    addText(card, `意図: ${direction.intent}`, 18, 104, { size: 10, color: COLORS.muted, width: 360 });
+    addText(card, `懸念: ${direction.riskNote ?? "大きな懸念はありません。"}`, 400, 104, { size: 10, color: COLORS.muted, width: 360 });
+    y += 146;
   });
+  if (directions.length === 0) addEmpty(board, "コピー方向性はまだありません。Demoサンプルまたは探索結果を作成するとここに表示されます。");
   return board;
 }
 
 export function renderLayoutBoard(project: ProjectData): FrameNode {
-  const board = createBoard("Layout Strategy Board", "コピー方向性ごとの構図、優先順位、色、背景方針を並べます。");
+  const board = createBoard("Layout Strategy Board", "各コピー方向性に対して、構図、優先順位、色、フォント、背景方針を整理したボードです。");
   let y = 112;
   project.layoutStrategies.slice(0, 5).forEach((strategy, index) => {
-    const card = createCard(28, y, 784, 124);
+    const card = createCard(28, y, 784, 132);
     board.appendChild(card);
-    addText(card, `${index + 1}. ${strategy.directionName}`, 18, 16, { size: 15, bold: true, width: 360 });
-    addPill(card, 602, 14, strategy.layoutType, COLORS.blue);
-    addText(card, `構図: ${strategy.composition}`, 18, 44, { size: 11, width: 740, height: 28 });
-    addText(card, `優先順位: ${strategy.hierarchy.join(" > ")}`, 18, 76, { size: 11, width: 740 });
-    addText(card, `色: ${strategy.colorDirection}`, 18, 96, { size: 10, color: COLORS.muted, width: 740 });
-    y += 140;
+    addText(card, `${index + 1}. ${strategy.directionName}`, 18, 14, { size: 15, bold: true, width: 360 });
+    addPill(card, 602, 12, strategy.layoutType, COLORS.blue, 150);
+    addText(card, `構図: ${strategy.composition}`, 18, 42, { size: 11, width: 740, height: 28 });
+    addText(card, `優先順位: ${strategy.hierarchy.join(" > ")}`, 18, 74, { size: 11, width: 740 });
+    addText(card, `色: ${strategy.colorDirection}`, 18, 94, { size: 10, color: COLORS.muted, width: 360 });
+    addText(card, `フォント: ${strategy.typography}`, 400, 94, { size: 10, color: COLORS.muted, width: 360 });
+    addText(card, `背景: ${strategy.background}`, 18, 112, { size: 10, color: COLORS.muted, width: 740 });
+    y += 146;
   });
+  if (project.layoutStrategies.length === 0) addEmpty(board, "レイアウト方針はまだありません。コピー方向性を生成するとここに表示されます。");
   return board;
 }
 
 export function renderCandidateBoard(candidates: SvgCandidate[], directions: Direction[]): FrameNode {
-  const board = createBoard("Layout Candidates Board", "実際のSVG候補をカード内に整列し、方向性とセットで確認します。");
+  const board = createBoard("SVG Candidate Board", "5つのSVG候補を、方向性と説明つきで整理したボードです。SVG本体もこのボード内に配置します。");
   const byDirection = new Map(directions.map((direction) => [direction.id, direction]));
   const positions = [
     [28, 112],
@@ -154,25 +147,26 @@ export function renderCandidateBoard(candidates: SvgCandidate[], directions: Dir
     const [x, y] = positions[index];
     const card = createCard(x, y, 370, 246);
     board.appendChild(card);
+    const direction = byDirection.get(candidate.directionId);
+    addText(card, direction?.title ?? candidate.name, 14, 14, { size: 13, bold: true, width: 190 });
+    addPill(card, 220, 12, candidate.directionId, COLORS.paleBlue, 136, COLORS.blue);
     const svgNode = figma.createNodeFromSvg(candidate.svg);
     svgNode.name = candidate.name;
     svgNode.x = 14;
     svgNode.y = 42;
     svgNode.resize(320, 180);
     card.appendChild(svgNode);
-    const direction = byDirection.get(candidate.directionId);
-    addText(card, direction?.title ?? candidate.name, 14, 14, { size: 13, bold: true, width: 260 });
-    addPill(card, 262, 12, candidate.directionId, COLORS.blue, 84);
-    addText(card, direction?.summary ?? candidate.name, 14, 224, { size: 10, color: COLORS.muted, width: 330 });
+    addText(card, direction ? `${direction.title}の構図案。${direction.summary}` : candidate.name, 14, 224, { size: 10, color: COLORS.muted, width: 330 });
   });
+  if (candidates.length === 0) addEmpty(board, "SVG候補はまだありません。Demoサンプルまたは探索を実行すると5案が表示されます。");
   return board;
 }
 
 export function renderDiagnosisBoard(results: DiagnosisResult[]): FrameNode {
-  const board = createBoard("Diagnosis Board", "選択案の伝わり方と、最初に直すならどこかを整理します。");
+  const board = createBoard("Diagnosis Board", "選択した1案について、最初に伝わること、強い点、気になる点、最初に直す点を記録します。");
   const result = results[results.length - 1];
   if (!result) {
-    addEmpty(board, "まだ診断結果がありません。診断を実行するとここにカードが追加されます。");
+    addEmpty(board, "診断結果はまだありません。Figma上で1案を選択して診断すると、ここに記録されます。");
     return board;
   }
 
@@ -188,9 +182,9 @@ export function renderDiagnosisBoard(results: DiagnosisResult[]): FrameNode {
 }
 
 export function renderCompareBoard(result?: ComparisonResult): FrameNode {
-  const board = createBoard("Compare Board", "複数案の役割、強み、懸念、背景生成briefをレビューします。");
+  const board = createBoard("Compare Board", "複数案の役割、強み、懸念を比べ、ベース候補と背景生成briefを記録します。");
   if (!result) {
-    addEmpty(board, "まだ比較結果がありません。比較を実行するとここに表が追加されます。");
+    addEmpty(board, "比較結果はまだありません。Figma上で2〜5案を選択して比較すると、ここに記録されます。");
     return board;
   }
 
@@ -215,16 +209,16 @@ export function renderCompareBoard(result?: ComparisonResult): FrameNode {
     `背景の方向性: ${result.backgroundBrief.promptText}`,
     `避けること: ${result.backgroundBrief.avoid.join(", ")}`,
     `文字領域への配慮: ${result.backgroundBrief.safeAreaHint}`,
-    `keywords: ${result.backgroundBrief.suggestedStyleKeywords.join(", ")}`,
+    `suggested style keywords: ${result.backgroundBrief.suggestedStyleKeywords.join(", ")}`,
   ]);
   return board;
 }
 
 export function renderFinishBoard(result?: BackgroundResult, comparison?: ComparisonResult): FrameNode {
-  const board = createBoard("Finish Board", "選ばれた案だけを背景で仕上げ、最終案として確認します。");
+  const board = createBoard("Finish Board", "選ばれた案だけを背景で仕上げ、最終案として確認するための記録です。");
   const brief = result?.brief ?? comparison?.backgroundBrief;
   if (!brief) {
-    addEmpty(board, "まだ仕上げ結果がありません。比較から背景生成briefを送るとここに表示されます。");
+    addEmpty(board, "仕上げ結果はまだありません。比較からbackground briefを作ると、ここに表示されます。");
     return board;
   }
 
@@ -238,7 +232,7 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
   addText(beforeAfter, "適用前", 28, 20, { size: 13, bold: true });
   addText(beforeAfter, "適用後", 426, 20, { size: 13, bold: true });
   addPreviewBox(beforeAfter, 28, 52, "背景適用前");
-  addPreviewBox(beforeAfter, 426, 52, result ? `最終案 / ${result.styleName}` : "背景生成待ち");
+  addPreviewBox(beforeAfter, 426, 52, result ? `最終案 / ${result.styleName}` : "背景生成後");
   y += 206;
   if (result) addKeyValueCard(board, 28, y, "成功メッセージ", result.message ?? "背景レイヤーを適用できます。");
   return board;
@@ -280,7 +274,7 @@ function createCard(x: number, y: number, width: number, height: number): FrameN
 }
 
 function addKeyValueCard(parent: FrameNode, x: number, y: number, label: string, value: string): number {
-  const height = Math.max(74, Math.ceil(value.length / 60) * 20 + 48);
+  const height = Math.max(74, Math.ceil((value || "").length / 60) * 20 + 48);
   const card = createCard(x, y, 784, height);
   parent.appendChild(card);
   addText(card, label, 18, 14, { size: 11, color: COLORS.blue, bold: true, width: 720 });
@@ -314,7 +308,7 @@ function addPreviewBox(parent: FrameNode, x: number, y: number, label: string): 
   addText(box, label, 20, 42, { size: 14, bold: true, color: COLORS.blue, width: 280 });
 }
 
-function addPill(parent: FrameNode, x: number, y: number, text: string, fill: RGB, width = 240): void {
+function addPill(parent: FrameNode, x: number, y: number, text: string, fill: RGB, width = 240, textColor: RGB = { r: 1, g: 1, b: 1 }): void {
   const pill = figma.createFrame();
   pill.name = `Pill / ${text}`;
   pill.x = x;
@@ -323,7 +317,7 @@ function addPill(parent: FrameNode, x: number, y: number, text: string, fill: RG
   pill.cornerRadius = 14;
   pill.fills = [{ type: "SOLID", color: fill }];
   parent.appendChild(pill);
-  addText(pill, text, 12, 7, { size: 10, color: { r: 1, g: 1, b: 1 }, bold: true, width: width - 24, height: 14 });
+  addText(pill, text, 12, 7, { size: 10, color: textColor, bold: true, width: width - 24, height: 14 });
 }
 
 function addText(parent: FrameNode, characters: string, x: number, y: number, options: TextOptions = {}): TextNode {
@@ -347,6 +341,27 @@ async function loadFonts(): Promise<void> {
   await Promise.all([figma.loadFontAsync(FONT_REGULAR), figma.loadFontAsync(FONT_BOLD)]);
 }
 
+function placeStandalone(board: FrameNode): void {
+  board.x = figma.viewport.center.x - 400;
+  board.y = figma.viewport.center.y - 300;
+  figma.currentPage.appendChild(board);
+  figma.currentPage.selection = [board];
+  figma.viewport.scrollAndZoomIntoView([board]);
+}
+
 function findFrameName(result: ComparisonResult, frameId: string): string {
   return result.frames.find((frame) => frame.id === frameId)?.name ?? frameId;
+}
+
+function getBestFor(direction: Direction): string {
+  const note = direction.copy.notes?.find((item) => item.startsWith("向いている用途:"));
+  if (note) return note.replace("向いている用途:", "").trim();
+  const map: Record<string, string> = {
+    problem_to_cta: "初心者向け",
+    benefit_first: "申込重視",
+    practical_blocks: "実務者向け",
+    trust_editorial: "企業向け",
+    beginner_friendly: "初学者向け",
+  };
+  return map[direction.layoutType] ?? "比較用";
 }

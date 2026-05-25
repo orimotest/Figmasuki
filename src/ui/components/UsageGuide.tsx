@@ -5,7 +5,7 @@ type UsageGuideProps = {
 };
 
 const defaultSteps = [
-  "探索でDemoフローを開始",
+  "探索でDemoサンプルを読み込む",
   "5案をFigmaに配置",
   "1案を選択して診断",
   "2〜5案を選択して比較",

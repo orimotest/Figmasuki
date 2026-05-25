@@ -101,7 +101,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
 
   function handleRenderDiagnosisBoard() {
     if (!diagnosis) {
-      setError("診断ボードを追加するには、先に診断を実行してください。");
+      setError("診断結果をFigmaに記録するには、先に診断を実行してください。");
       return;
     }
     postToPlugin({ type: "RENDER_DIAGNOSIS_BOARD", payload: diagnosis });
@@ -132,7 +132,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
           {isDiagnosing ? "診断中..." : "選択中のフレームを診断"}
         </button>
         <button className="secondary-button" type="button" disabled={!diagnosis} onClick={handleRenderDiagnosisBoard}>
-          診断ボードをFigmaに追加
+          診断結果をFigmaに記録
         </button>
         {error && <ErrorMessage title="診断を実行できませんでした" detail={error} action="Figma上でフレームを1つだけ選択してから、もう一度実行してください。" />}
         {diagnosis && <SuccessMessage title="診断が完了しました" detail="強い点、気になる点、最初に直す場所を確認できます。" />}

@@ -1,5 +1,6 @@
 import type { Direction } from "../../schemas/direction";
 import type { SvgCandidate } from "../../schemas/svg";
+import { getSvgCandidateDescription } from "../presentation/directionPresentation";
 
 type SvgPreviewCardProps = {
   candidate: SvgCandidate;
@@ -16,14 +17,14 @@ export function SvgPreviewCard({ candidate, direction, onInsert, onDiagnose, onF
         <div className="svg-preview" dangerouslySetInnerHTML={{ __html: candidate.svg }} />
         <div className="preview-copy">
           <strong>{direction?.title ?? candidate.previewLabel ?? candidate.name}</strong>
-          <span>{direction?.summary ?? candidate.name}</span>
+          <span>{getSvgCandidateDescription(candidate, direction)}</span>
         </div>
       </div>
       <div className="preview-actions">
         <span className={candidate.validation.valid ? "validation-badge valid" : "validation-badge invalid"}>
           {candidate.validation.valid ? (candidate.validation.warnings.length > 0 ? "SVG確認OK / 注意あり" : "SVG確認OK") : "SVG確認NG"}
         </span>
-        {candidate.meta.fallbackUsed && <span className="validation-badge invalid">demo表示</span>}
+        {candidate.meta.fallbackUsed && <span className="validation-badge invalid">Demo表示</span>}
         <button className="primary-button compact" type="button" disabled={!candidate.validation.valid} onClick={() => onInsert?.(candidate)}>
           この案をFigmaに配置
         </button>
