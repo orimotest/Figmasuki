@@ -42,7 +42,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     if (message.type === "PLACE_EXPLORE_PACKAGE") {
       const nodes = placeProjectCandidates(message.payload);
       const board = await renderProcessBoard(message.payload, {
-        x: figma.viewport.center.x - 4040,
+        x: figma.viewport.center.x - 4250,
         y: figma.viewport.center.y + 360,
         zoom: false,
       });

@@ -428,11 +428,11 @@
   async function renderProcessBoard(project, options = {}) {
     var _a, _b, _c, _d, _e;
     await loadFonts();
-    const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8080, 1540, COLORS.canvas);
+    const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8500, 1540, COLORS.canvas);
     root.cornerRadius = 28;
     root.strokes = [{ type: "SOLID", color: COLORS.border }];
     root.strokeWeight = 1;
-    root.x = (_a = options.x) != null ? _a : figma.viewport.center.x - 4040;
+    root.x = (_a = options.x) != null ? _a : figma.viewport.center.x - root.width / 2;
     root.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
     addText(root, "AI Cover Studio / Process Board", 40, 34, { size: 34, bold: true, width: 720 });
     addText(root, "30\u6848\u63A2\u7D22\u304B\u3089\u6700\u7D42\u6848\u307E\u3067\u3001AI\u304C\u691C\u8A0E\u3057\u305F\u904E\u7A0B\u3092Figma\u4E0A\u3067\u30EC\u30D3\u30E5\u30FC\u3059\u308B\u305F\u3081\u306E\u6A2A\u9577\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 82, {
@@ -440,17 +440,17 @@
       color: COLORS.muted,
       width: 980
     });
-    addPill(root, 7780, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
+    addPill(root, root.width - 300, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
     const workflow = project.stageWorkflow;
     const boards = [
       renderProjectHeaderBoard(root, project, 40, 150),
       renderIdeaExploreBoard(root, (_c = workflow == null ? void 0 : workflow.ideaDirections) != null ? _c : [], 700, 150),
-      renderTypographyDraftBoard(root, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], 1720, 150),
-      renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3180, 150),
-      renderDiagnosisBoardPanel(root, project.diagnosisResults, 4580, 150),
-      renderCompareBoardPanel(root, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, 5380, 150),
-      renderBackgroundVariationsBoard(root, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, 6320, 150),
-      renderFinalCandidateBoard(root, project, 7240, 150)
+      renderTypographyDraftBoard(root, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], 1960, 150),
+      renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3420, 150),
+      renderDiagnosisBoardPanel(root, project.diagnosisResults, 4820, 150),
+      renderCompareBoardPanel(root, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, 5620, 150),
+      renderBackgroundVariationsBoard(root, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, 6560, 150),
+      renderFinalCandidateBoard(root, project, 7480, 150)
     ];
     boards.slice(0, -1).forEach((board, index) => renderArrow(root, board.x + board.width + 16, 492, index === 2 ? 20 : 28));
     figma.currentPage.appendChild(root);
@@ -507,14 +507,14 @@
     addText(brief, (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 18, 202, { size: 12, width: width - 36 });
   }
   function renderIdeaExploreBoard(parent2, ideas, x, y) {
-    const board = createSection("30 Ideas Explore", "\u30B3\u30D4\u30FC\u30FB\u8A34\u6C42\u8EF8\u30FB\u30C8\u30FC\u30F3\u3092\u5E83\u3052\u308B\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 980, 720);
+    const board = createSection("30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u65B9\u5411\u306B\u6574\u7406\u3057\u300115\u6848\u306E\u6587\u5B57\u7D44\u307F\u3078\u9032\u3081\u308B\u5019\u88DC\u3092\u898B\u3048\u308B\u5316\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 1220, 900);
     parent2.appendChild(board);
     addStageStats(board, [
       ["\u63A2\u7D22", "30\u6848"],
       ["Typography\u3078", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}\u6848`],
       ["\u7D71\u5408/\u4FDD\u7559", `${ideas.filter((idea) => idea.status !== "selected_for_typography").length}\u6848`]
     ]);
-    renderIdeaGrid(board, ideas, 24, 142, 932);
+    renderIdeaGrid(board, ideas, 24, 142, 1172);
     return board;
   }
   function renderTypographyDraftBoard(parent2, drafts, x, y) {
@@ -587,17 +587,66 @@
       addEmpty(parent2, "30\u6848\u63A2\u7D22\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
       return;
     }
-    const cardWidth = (width - 40) / 5;
-    ideas.slice(0, 30).forEach((idea, index) => {
-      const col = index % 5;
-      const row = Math.floor(index / 5);
-      const card = createCard(x + col * (cardWidth + 10), y + row * 86, cardWidth, 74);
-      parent2.appendChild(card);
-      const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
-      addText(card, `${String(index + 1).padStart(2, "0")} ${idea.name}`, 10, 8, { size: 9, bold: true, color: statusColor, width: cardWidth - 20 });
-      addText(card, idea.mainCopy.replace(/\n/g, " / "), 10, 26, { size: 8, bold: true, width: cardWidth - 20, height: 18 });
-      addText(card, idea.layoutHint, 10, 50, { size: 7, color: COLORS.muted, width: cardWidth - 20, height: 14 });
+    const groups = chunk(ideas.slice(0, 30), 6);
+    const groupWidth = (width - 24) / 2;
+    groups.slice(0, 5).forEach((group, groupIndex) => {
+      const col = groupIndex % 2;
+      const rowIndex = Math.floor(groupIndex / 2);
+      const groupFrame = createCard(x + col * (groupWidth + 24), y + rowIndex * 238, groupWidth, 218);
+      parent2.appendChild(groupFrame);
+      const selectedCount = group.filter((idea) => idea.status === "selected_for_typography").length;
+      addText(groupFrame, getIdeaGroupTitle(groupIndex), 16, 14, { size: 14, bold: true, color: COLORS.blue, width: groupWidth - 160 });
+      addPill(groupFrame, groupWidth - 132, 12, `${selectedCount}\u6848\u3092\u63A1\u7528`, COLORS.green, 112);
+      addText(groupFrame, getIdeaGroupDescription(groupIndex), 16, 40, { size: 9, color: COLORS.muted, width: groupWidth - 32 });
+      group.forEach((idea, ideaIndex) => {
+        const itemCol = ideaIndex % 2;
+        const itemRow = Math.floor(ideaIndex / 2);
+        const itemWidth = (groupWidth - 42) / 2;
+        const row = createFrame(
+          `Idea / ${idea.name}`,
+          16 + itemCol * (itemWidth + 10),
+          68 + itemRow * 46,
+          itemWidth,
+          38,
+          idea.status === "selected_for_typography" ? COLORS.paleBlue : COLORS.board
+        );
+        row.cornerRadius = 8;
+        row.strokes = [{ type: "SOLID", color: idea.status === "selected_for_typography" ? COLORS.blue : COLORS.border }];
+        row.strokeWeight = idea.status === "selected_for_typography" ? 1.5 : 1;
+        groupFrame.appendChild(row);
+        const statusLabel = idea.status === "selected_for_typography" ? "\u6B8B\u3059" : idea.status === "merged" ? "\u7D71\u5408" : "\u4FDD\u7559";
+        const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
+        addText(row, `${String(groupIndex * 6 + ideaIndex + 1).padStart(2, "0")} ${idea.name}`, 8, 7, {
+          size: 8,
+          bold: true,
+          color: statusColor,
+          width: itemWidth - 58
+        });
+        addPill(row, itemWidth - 52, 6, statusLabel, statusColor, 40);
+        addText(row, idea.mainCopy.replace(/\n/g, " / "), 8, 22, { size: 7, bold: true, width: itemWidth - 16, height: 12 });
+      });
     });
+  }
+  function getIdeaGroupTitle(index) {
+    var _a;
+    return (_a = ["\u8AB2\u984C\u5171\u611F", "\u53C2\u52A0\u30E1\u30EA\u30C3\u30C8", "\u5B9F\u52D9\u30CE\u30A6\u30CF\u30A6", "\u4FE1\u983C\u611F", "\u521D\u5FC3\u8005\u6B53\u8FCE"][index]) != null ? _a : `\u65B9\u5411 ${index + 1}`;
+  }
+  function getIdeaGroupDescription(index) {
+    var _a;
+    return (_a = [
+      "\u4E0D\u5B89\u3084\u8FF7\u3044\u306B\u5BC4\u308A\u6DFB\u3044\u3001\u6700\u521D\u306E\u4E00\u6B69\u3092\u898B\u305B\u308B\u65B9\u5411\u3067\u3059\u3002",
+      "\u53C2\u52A0\u5F8C\u306B\u5F97\u3089\u308C\u308B\u4FA1\u5024\u3092\u5148\u306B\u4F1D\u3048\u3001\u7533\u3057\u8FBC\u307F\u5224\u65AD\u3092\u52A9\u3051\u307E\u3059\u3002",
+      "\u73FE\u5834\u3067\u4F7F\u3048\u308B\u5177\u4F53\u6027\u3092\u524D\u9762\u306B\u51FA\u3057\u3001\u5B9F\u52D9\u8005\u306B\u5C4A\u304D\u3084\u3059\u304F\u3057\u307E\u3059\u3002",
+      "BtoB\u5411\u3051\u306B\u843D\u3061\u7740\u304D\u3068\u4FE1\u983C\u611F\u3092\u512A\u5148\u3057\u3066\u6574\u7406\u3057\u307E\u3059\u3002",
+      "\u5C02\u9580\u77E5\u8B58\u306A\u3057\u3067\u3082\u53C2\u52A0\u3057\u3084\u3059\u3044\u5B89\u5FC3\u611F\u3092\u4F5C\u308A\u307E\u3059\u3002"
+    ][index]) != null ? _a : "\u63A2\u7D22\u3057\u305F\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u3067\u3059\u3002";
+  }
+  function chunk(items, size) {
+    const groups = [];
+    for (let index = 0; index < items.length; index += size) {
+      groups.push(items.slice(index, index + size));
+    }
+    return groups;
   }
   function renderDraftGrid(parent2, drafts, x, y, width) {
     if (drafts.length === 0) {
@@ -929,7 +978,7 @@
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
         const nodes = placeProjectCandidates(message.payload);
         const board = await renderProcessBoard(message.payload, {
-          x: figma.viewport.center.x - 4040,
+          x: figma.viewport.center.x - 4250,
           y: figma.viewport.center.y + 360,
           zoom: false
         });

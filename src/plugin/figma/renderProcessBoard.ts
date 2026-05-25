@@ -38,11 +38,11 @@ type RenderOptions = {
 
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode> {
   await loadFonts();
-  const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8080, 1540, COLORS.canvas);
+  const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8500, 1540, COLORS.canvas);
   root.cornerRadius = 28;
   root.strokes = [{ type: "SOLID", color: COLORS.border }];
   root.strokeWeight = 1;
-  root.x = options.x ?? figma.viewport.center.x - 4040;
+  root.x = options.x ?? figma.viewport.center.x - root.width / 2;
   root.y = options.y ?? figma.viewport.center.y - 420;
 
   addText(root, "AI Cover Studio / Process Board", 40, 34, { size: 34, bold: true, width: 720 });
@@ -51,18 +51,18 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
     color: COLORS.muted,
     width: 980,
   });
-  addPill(root, 7780, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
+  addPill(root, root.width - 300, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
 
   const workflow = project.stageWorkflow;
   const boards = [
     renderProjectHeaderBoard(root, project, 40, 150),
     renderIdeaExploreBoard(root, workflow?.ideaDirections ?? [], 700, 150),
-    renderTypographyDraftBoard(root, workflow?.typographyDrafts ?? [], 1720, 150),
-    renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3180, 150),
-    renderDiagnosisBoardPanel(root, project.diagnosisResults, 4580, 150),
-    renderCompareBoardPanel(root, project.comparisonResult, workflow?.demoComparison, 5380, 150),
-    renderBackgroundVariationsBoard(root, workflow?.backgroundVariations ?? [], project.backgroundResult, 6320, 150),
-    renderFinalCandidateBoard(root, project, 7240, 150),
+    renderTypographyDraftBoard(root, workflow?.typographyDrafts ?? [], 1960, 150),
+    renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3420, 150),
+    renderDiagnosisBoardPanel(root, project.diagnosisResults, 4820, 150),
+    renderCompareBoardPanel(root, project.comparisonResult, workflow?.demoComparison, 5620, 150),
+    renderBackgroundVariationsBoard(root, workflow?.backgroundVariations ?? [], project.backgroundResult, 6560, 150),
+    renderFinalCandidateBoard(root, project, 7480, 150),
   ];
   boards.slice(0, -1).forEach((board, index) => renderArrow(root, board.x + board.width + 16, 492, index === 2 ? 20 : 28));
 
@@ -168,14 +168,14 @@ function renderProjectHeaderContent(parent: FrameNode, project: ProjectData, x: 
 }
 
 function renderIdeaExploreBoard(parent: FrameNode, ideas: IdeaDirection[], x: number, y: number): FrameNode {
-  const board = createSection("30 Ideas Explore", "コピー・訴求軸・トーンを広げる。ここではSVGは置きません。", x, y, 980, 720);
+  const board = createSection("30 Ideas Explore", "30案を5つの方向に整理し、15案の文字組みへ進める候補を見える化します。ここではSVGは置きません。", x, y, 1220, 900);
   parent.appendChild(board);
   addStageStats(board, [
     ["探索", "30案"],
     ["Typographyへ", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}案`],
     ["統合/保留", `${ideas.filter((idea) => idea.status !== "selected_for_typography").length}案`],
   ]);
-  renderIdeaGrid(board, ideas, 24, 142, 932);
+  renderIdeaGrid(board, ideas, 24, 142, 1172);
   return board;
 }
 
@@ -259,17 +259,68 @@ function renderIdeaGrid(parent: FrameNode, ideas: IdeaDirection[], x: number, y:
     addEmpty(parent, "30案探索はまだありません。Demoフローを読み込むと表示されます。", x, y, width);
     return;
   }
-  const cardWidth = (width - 40) / 5;
-  ideas.slice(0, 30).forEach((idea, index) => {
-    const col = index % 5;
-    const row = Math.floor(index / 5);
-    const card = createCard(x + col * (cardWidth + 10), y + row * 86, cardWidth, 74);
-    parent.appendChild(card);
-    const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
-    addText(card, `${String(index + 1).padStart(2, "0")} ${idea.name}`, 10, 8, { size: 9, bold: true, color: statusColor, width: cardWidth - 20 });
-    addText(card, idea.mainCopy.replace(/\n/g, " / "), 10, 26, { size: 8, bold: true, width: cardWidth - 20, height: 18 });
-    addText(card, idea.layoutHint, 10, 50, { size: 7, color: COLORS.muted, width: cardWidth - 20, height: 14 });
+  const groups = chunk(ideas.slice(0, 30), 6);
+  const groupWidth = (width - 24) / 2;
+  groups.slice(0, 5).forEach((group, groupIndex) => {
+    const col = groupIndex % 2;
+    const rowIndex = Math.floor(groupIndex / 2);
+    const groupFrame = createCard(x + col * (groupWidth + 24), y + rowIndex * 238, groupWidth, 218);
+    parent.appendChild(groupFrame);
+    const selectedCount = group.filter((idea) => idea.status === "selected_for_typography").length;
+    addText(groupFrame, getIdeaGroupTitle(groupIndex), 16, 14, { size: 14, bold: true, color: COLORS.blue, width: groupWidth - 160 });
+    addPill(groupFrame, groupWidth - 132, 12, `${selectedCount}案を採用`, COLORS.green, 112);
+    addText(groupFrame, getIdeaGroupDescription(groupIndex), 16, 40, { size: 9, color: COLORS.muted, width: groupWidth - 32 });
+
+    group.forEach((idea, ideaIndex) => {
+      const itemCol = ideaIndex % 2;
+      const itemRow = Math.floor(ideaIndex / 2);
+      const itemWidth = (groupWidth - 42) / 2;
+      const row = createFrame(
+        `Idea / ${idea.name}`,
+        16 + itemCol * (itemWidth + 10),
+        68 + itemRow * 46,
+        itemWidth,
+        38,
+        idea.status === "selected_for_typography" ? COLORS.paleBlue : COLORS.board,
+      );
+      row.cornerRadius = 8;
+      row.strokes = [{ type: "SOLID", color: idea.status === "selected_for_typography" ? COLORS.blue : COLORS.border }];
+      row.strokeWeight = idea.status === "selected_for_typography" ? 1.5 : 1;
+      groupFrame.appendChild(row);
+      const statusLabel = idea.status === "selected_for_typography" ? "残す" : idea.status === "merged" ? "統合" : "保留";
+      const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
+      addText(row, `${String(groupIndex * 6 + ideaIndex + 1).padStart(2, "0")} ${idea.name}`, 8, 7, {
+        size: 8,
+        bold: true,
+        color: statusColor,
+        width: itemWidth - 58,
+      });
+      addPill(row, itemWidth - 52, 6, statusLabel, statusColor, 40);
+      addText(row, idea.mainCopy.replace(/\n/g, " / "), 8, 22, { size: 7, bold: true, width: itemWidth - 16, height: 12 });
+    });
   });
+}
+
+function getIdeaGroupTitle(index: number): string {
+  return ["課題共感", "参加メリット", "実務ノウハウ", "信頼感", "初心者歓迎"][index] ?? `方向 ${index + 1}`;
+}
+
+function getIdeaGroupDescription(index: number): string {
+  return [
+    "不安や迷いに寄り添い、最初の一歩を見せる方向です。",
+    "参加後に得られる価値を先に伝え、申し込み判断を助けます。",
+    "現場で使える具体性を前面に出し、実務者に届きやすくします。",
+    "BtoB向けに落ち着きと信頼感を優先して整理します。",
+    "専門知識なしでも参加しやすい安心感を作ります。",
+  ][index] ?? "探索したコピー方向性です。";
+}
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const groups: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    groups.push(items.slice(index, index + size));
+  }
+  return groups;
 }
 
 function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number, y: number, width: number): void {

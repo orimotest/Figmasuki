@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ContentType } from "../../schemas/content";
 import type { Direction } from "../../schemas/direction";
 import type { FixedCopyInput, InputMode } from "../../schemas/input";
@@ -31,6 +31,8 @@ type ExploreScreenProps = {
   onProjectData: (project: ProjectData | null) => void;
 };
 
+type AutoStage = "idle" | "ideas" | "drafts" | "refined" | "placing" | "done";
+
 const sampleBriefs = {
   note_thumbnail: "AI時代にデザイナーが持つべき思考と、これからの制作フローについての記事サムネイル。",
   seminar_banner:
@@ -49,12 +51,12 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   const [briefText, setBriefText] = useState(sampleBriefs.seminar_banner);
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(defaultFixedCopy);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusLogs, setStatusLogs] = useState<string[]>(["探索画面を開いたため、Demoフローを自動読み込みします。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["要件を確認して、主ボタンを押すと自動で制作フローを開始します。"]);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
   const [svgCandidates, setSvgCandidates] = useState<SvgCandidate[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const didAutoRun = useRef(false);
+  const [autoStage, setAutoStage] = useState<AutoStage>("idle");
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -63,6 +65,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       if (message.type === "PLUGIN_SUCCESS") {
         setSuccess(message.payload.message);
         setStatusLogs((entries) => [...entries, message.payload.message]);
+        setAutoStage("done");
         setError(null);
       }
       if (message.type === "PLUGIN_ERROR") {
@@ -72,13 +75,6 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  useEffect(() => {
-    if (didAutoRun.current) return;
-    didAutoRun.current = true;
-    void runDemoSample("seminar_banner", { silent: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const directionsById = useMemo(() => {
@@ -101,9 +97,11 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setError(null);
     setSuccess(null);
     setIsGenerating(true);
+    setAutoStage("ideas");
     setStatusLogs(["Demoフローを読み込んでいます。", "30案探索、15文字組みドラフト、5高品質SVGを準備しています。"]);
 
     try {
+      await wait(350);
       const project = await createProjectFromInput({
         contentType: type,
         inputMode: "brief_text",
@@ -116,6 +114,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         "Demoフローの読み込みが完了しました。",
         "主ボタンを押すと、5つの実バナー案と横長プロセスボードをFigmaに配置します。",
       ]);
+      setAutoStage("done");
       if (!options?.silent) setSuccess("Demoフローを読み込みました。");
       return project;
     } catch (caught) {
@@ -139,21 +138,27 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     }
 
     setIsGenerating(true);
-    setStatusLogs(["段階型フローを生成しています。", "Figma配置用のプロセスボードをまとめています。"]);
+    setAutoStage("ideas");
+    setStatusLogs(["自動制作を開始しました。", "A1 / 30案探索: コピーと訴求軸を広げています。"]);
 
     try {
-      const project =
-        exploreResult && svgCandidates.length > 0 && projectData
-          ? projectData
-          : await createProjectFromInput({
-              contentType,
-              inputMode,
-              briefText: inputMode === "brief_text" ? briefText : undefined,
-              fixedCopy: inputMode === "fixed_copy" ? fixedCopy : undefined,
-              rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
-              targetAudience: contentType === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
-            });
+      await wait(500);
+      const project = await createProjectFromInput({
+        contentType,
+        inputMode,
+        briefText: inputMode === "brief_text" ? briefText : undefined,
+        fixedCopy: inputMode === "fixed_copy" ? fixedCopy : undefined,
+        rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
+        targetAudience: contentType === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
+      });
       if (!project) return;
+      setAutoStage("drafts");
+      setStatusLogs((entries) => [...entries, "A2 / 15案文字組みドラフト: 文字サイズ、余白、CTA位置を検討しています。"]);
+      await wait(650);
+      setAutoStage("refined");
+      setStatusLogs((entries) => [...entries, "A3 / 5案高品質SVG: 比較できる5案へ仕上げています。"]);
+      await wait(650);
+      setAutoStage("placing");
       setStatusLogs((entries) => [...entries, "Figmaへ5案とプロセスボードを連続配置しています。"]);
       postToPlugin({ type: "PLACE_EXPLORE_PACKAGE", payload: project });
     } catch (caught) {
@@ -173,7 +178,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
     }
 
-    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, "15案の文字組みドラフトを作成しました。", `${result.selectedCount}案を高品質SVGとして整理しました。`]);
+    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`]);
     const svgResult = await runGenerateSvgWorkflow(result);
     const project = buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs });
     setExploreResult(result);
@@ -196,6 +201,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     onProjectData(null);
     setError(null);
     setSuccess(null);
+    setAutoStage("idle");
     setStatusLogs(["結果をリセットしました。もう一度Demoフローを読み込むか、要件を入力してください。"]);
   }
 
@@ -210,10 +216,10 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         <div className="badge-row">
           <CanvasBadge />
           <span className="provider-badge warning">実行モード: Demo Mode対応</span>
-          {workflow && <span className="provider-badge">30 → 15 → 5</span>}
+          {autoStage !== "idle" && <span className="provider-badge">現在: {getStageLabel(autoStage)}</span>}
         </div>
-        <UsageGuide note="主ボタン1つで、5つの実バナー案と横長プロセスボードをFigmaにまとめて配置します。各フェーズの検討内容はボード内に記録されます。" />
-        <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(workflow), Boolean(error))} />
+        <UsageGuide note="主ボタン1つで自動制作を開始し、30案探索、15案文字組み、5案SVG、Figma記録まで順番に進みます。途中の検討内容はプロセスボードに残ります。" />
+        <ProcessTimeline steps={getExploreTimeline(autoStage, Boolean(error))} />
         {isGenerating && <LoadingState title="段階型フローを準備しています" description="30案探索、15文字組みドラフト、5高品質SVG、Figma用ボードをまとめています。" />}
 
         <div className="form-grid">
@@ -250,10 +256,10 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
 
         <ActionBar>
           <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerateAndPlace}>
-            {isGenerating ? "準備中..." : "一連のプロセスをFigmaに配置"}
+            {isGenerating ? `${getStageLabel(autoStage)}...` : "自動制作を開始"}
           </button>
           <button className="secondary-button" type="button" disabled={isGenerating} onClick={startDemoFlow}>
-            Demoフローを再読み込み
+            Demoデータだけ準備
           </button>
           <button className="ghost-button" type="button" onClick={handleReset}>
             リセット
@@ -315,13 +321,38 @@ function StageSummary({ count, label, emptyText, samples }: { count: number; lab
   );
 }
 
-function getExploreTimeline(isRunning: boolean, hasWorkflow: boolean, hasError: boolean): ProcessTimelineStep[] {
+function getExploreTimeline(stage: AutoStage, hasError: boolean): ProcessTimelineStep[] {
+  const order: AutoStage[] = ["ideas", "drafts", "refined", "placing", "done"];
+  const current = order.indexOf(stage);
+  const statusFor = (target: AutoStage): ProcessTimelineStep["status"] => {
+    if (hasError) return "error";
+    const targetIndex = order.indexOf(target);
+    if (stage === "done" || current > targetIndex) return "completed";
+    if (current === targetIndex) return "running";
+    return "pending";
+  };
   return [
-    { label: "30案探索", description: "コピーと訴求軸を広げる", status: hasError ? "error" : hasWorkflow || isRunning ? "completed" : "pending" },
-    { label: "15文字組み", description: "情報配置をSVGで比較", status: hasError ? "error" : hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
-    { label: "5高品質SVG", description: "比較できる5案へ仕上げ", status: hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
-    { label: "Figma記録", description: "実物案とプロセスボードを配置", status: hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
+    { label: "30案探索", description: "コピーと訴求軸を広げる", status: statusFor("ideas") },
+    { label: "15文字組み", description: "情報配置をSVGで比較", status: statusFor("drafts") },
+    { label: "5高品質SVG", description: "比較できる5案へ仕上げ", status: statusFor("refined") },
+    { label: "Figma記録", description: "実物案とプロセスボードを配置", status: statusFor("placing") },
   ];
+}
+
+function getStageLabel(stage: AutoStage): string {
+  const labels: Record<AutoStage, string> = {
+    idle: "待機中",
+    ideas: "30案探索",
+    drafts: "15文字組み",
+    refined: "5案SVG化",
+    placing: "Figma記録",
+    done: "完了",
+  };
+  return labels[stage];
+}
+
+function wait(ms: number): Promise<void> {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
 function validateInput(inputMode: InputMode, briefText: string, fixedCopy: FixedCopyInput, contentType: ContentType): string | null {
