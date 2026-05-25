@@ -12,23 +12,35 @@ const [html, css, js] = await Promise.all([
   readFile(jsPath, "utf8"),
 ]);
 
-const escapeScriptEnd = (value) => value.replace(/<\/script/gi, "<\\/script");
+const toBase64 = (value) => Buffer.from(value, "utf8").toString("base64");
 
-const jsonCss = escapeScriptEnd(JSON.stringify(css));
-const jsonJs = escapeScriptEnd(JSON.stringify(js));
+const cssBase64 = toBase64(css);
+const jsBase64 = toBase64(js);
+
+const decodeHelper = `
+const decodeUtf8Base64 = (base64) => {
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new TextDecoder("utf-8").decode(bytes);
+};`;
 
 const inlineCss = `<script>
 (() => {
+  ${decodeHelper}
   const style = document.createElement("style");
-  style.textContent = ${jsonCss};
+  style.textContent = decodeUtf8Base64("${cssBase64}");
   document.head.appendChild(style);
 })();
 </script>`;
 
 const inlineJs = `<script>
 (() => {
-  const source = ${jsonJs};
-  const blob = new Blob([source], { type: "text/javascript" });
+  ${decodeHelper}
+  const source = decodeUtf8Base64("${jsBase64}");
+  const blob = new Blob([source], { type: "text/javascript;charset=utf-8" });
   const script = document.createElement("script");
   script.src = URL.createObjectURL(blob);
   script.onload = () => URL.revokeObjectURL(script.src);

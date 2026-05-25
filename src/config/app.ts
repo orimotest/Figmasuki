@@ -1,5 +1,5 @@
 export const appConfig = {
   name: "AI Creative Assistant",
-  uiWidth: 400,
-  uiHeight: 680,
+  uiWidth: 960,
+  uiHeight: 720,
 } as const;

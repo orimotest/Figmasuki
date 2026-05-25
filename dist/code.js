@@ -23,8 +23,8 @@
   // src/config/app.ts
   var appConfig = {
     name: "AI Creative Assistant",
-    uiWidth: 400,
-    uiHeight: 680
+    uiWidth: 960,
+    uiHeight: 720
   };
 
   // src/plugin/figma/createSvgNode.ts
