@@ -227,23 +227,90 @@ function seminarBenefitSvg(): string {
 
 function seminarPracticalSvg(): string {
   return `<svg ${baseAttrs}>
-  <rect width="800" height="450" fill="#F8FAFC"/>
-  <rect x="48" y="40" width="704" height="370" rx="22" fill="#FFFFFF"/>
-  <rect x="86" y="78" width="628" height="74" rx="18" fill="#0F172A"/>
-  <rect x="86" y="260" width="178" height="86" rx="18" fill="#ECFEFF"/>
-  <rect x="312" y="260" width="178" height="86" rx="18" fill="#FFFBEB"/>
-  <rect x="536" y="260" width="178" height="86" rx="18" fill="#EFF6FF"/>
-  <g id="headline">
-    <text x="112" y="126" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="34" font-weight="850">明日から使える AI業務改善</text>
-    <text x="94" y="210" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="25" font-weight="750">現場で試せるプロンプト活用と導入ステップ</text>
+  <defs>
+    <linearGradient id="practical-bg-grad" x1="0" y1="0" x2="800" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F235C"/>
+      <stop offset="1" stop-color="#123C7C"/>
+    </linearGradient>
+    <linearGradient id="practical-cyan-grad" x1="250" y1="0" x2="560" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#67E8F9"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+    <filter id="practical-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="10" stdDeviation="18" flood-color="#020617" flood-opacity="0.24"/>
+    </filter>
+  </defs>
+  <g id="background">
+    <rect width="800" height="450" rx="24" fill="url(#practical-bg-grad)"/>
+    <rect x="24" y="24" width="752" height="402" rx="20" fill="#FFFFFF" fill-opacity="0.04" stroke="#FFFFFF" stroke-opacity="0.16"/>
+    <circle cx="138" cy="94" r="68" fill="#38BDF8" fill-opacity="0.12"/>
+    <circle cx="688" cy="346" r="96" fill="#67E8F9" fill-opacity="0.10"/>
+    <rect x="604" y="64" width="92" height="92" rx="28" fill="#FFFFFF" fill-opacity="0.06"/>
   </g>
-  <text x="100" y="304" fill="#0E7490" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="850">Prompt</text>
-  <text x="326" y="304" fill="#B45309" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="850">Process</text>
-  <text x="562" y="304" fill="#1D4ED8" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="850">Action</text>
-  <text x="96" y="382" fill="#475569" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">6.18 WED 14:00 / Online Seminar</text>
+  <g id="top-meta">
+    <rect x="56" y="46" width="188" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.20"/>
+    <circle cx="78" cy="65" r="7" fill="#67E8F9"/>
+    <text x="96" y="65" dominant-baseline="middle" fill="#E0F2FE" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実務ノウハウ型</text>
+    <text x="642" y="65" text-anchor="middle" dominant-baseline="middle" fill="#BAE6FD" font-size="14" font-weight="700" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Online Seminar</text>
+  </g>
+  <g id="headline">
+    <text x="400" y="154" text-anchor="middle" fill="#FFFFFF" font-size="54" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">明日から使える</text>
+    <text x="400" y="238" text-anchor="middle" fill="url(#practical-cyan-grad)" font-size="82" font-weight="850" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">AI業務改善</text>
+    <line x1="276" y1="254" x2="524" y2="254" stroke="#FACC15" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <g id="subcopy">
+    <text x="400" y="294" text-anchor="middle" fill="#DCEBFF" font-size="23" font-weight="650" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">現場で試せるプロンプト活用と導入ステップ</text>
+  </g>
+  <g id="learning-points">
+    <g transform="translate(104 318)">
+      <rect width="176" height="54" rx="16" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.16"/>
+      <circle cx="26" cy="27" r="14" fill="#67E8F9" fill-opacity="0.16"/>
+      <path d="M21 27H31" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M26 22V32" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round"/>
+      <text x="52" y="24" fill="#FFFFFF" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">基本を整理</text>
+      <text x="52" y="42" fill="#BAE6FD" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">まず何を知るべきか</text>
+    </g>
+    <g transform="translate(312 318)">
+      <rect width="176" height="54" rx="16" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.16"/>
+      <circle cx="26" cy="27" r="14" fill="#67E8F9" fill-opacity="0.16"/>
+      <path d="M20 31L25 24L30 28L35 20" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="24" fill="#FFFFFF" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実例で理解</text>
+      <text x="52" y="42" fill="#BAE6FD" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">業務での使い方を見る</text>
+    </g>
+    <g transform="translate(520 318)">
+      <rect width="176" height="54" rx="16" fill="#FFFFFF" fill-opacity="0.08" stroke="#FFFFFF" stroke-opacity="0.16"/>
+      <circle cx="26" cy="27" r="14" fill="#67E8F9" fill-opacity="0.16"/>
+      <path d="M20 33H34" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M22 29L27 24L31 27L35 21" stroke="#67E8F9" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="24" fill="#FFFFFF" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">小さく実践</text>
+      <text x="52" y="42" fill="#BAE6FD" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">明日から試せる</text>
+    </g>
+  </g>
+  <g id="footer" filter="url(#practical-shadow)">
+    <rect x="56" y="392" width="688" height="40" rx="16" fill="#FFFFFF"/>
+    <g transform="translate(76 402)">
+      <rect x="0" y="3" width="18" height="18" rx="4" stroke="#2563EB" stroke-width="2"/>
+      <line x1="0" y1="10" x2="18" y2="10" stroke="#2563EB" stroke-width="2"/>
+      <text x="30" y="20" fill="#163B7A" font-size="13" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">6.18 WED</text>
+    </g>
+    <line x1="178" y1="401" x2="178" y2="423" stroke="#D8E4F5"/>
+    <g transform="translate(194 402)">
+      <circle cx="9" cy="12" r="8" stroke="#2563EB" stroke-width="2"/>
+      <path d="M9 8V12H13" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="30" y="20" fill="#163B7A" font-size="13" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">14:00〜15:00</text>
+    </g>
+    <line x1="326" y1="401" x2="326" y2="423" stroke="#D8E4F5"/>
+    <g transform="translate(342 402)">
+      <rect x="0" y="5" width="20" height="13" rx="2" stroke="#2563EB" stroke-width="2"/>
+      <line x1="7" y1="22" x2="13" y2="22" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="34" y="20" fill="#163B7A" font-size="13" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Online Seminar</text>
+    </g>
+  </g>
   <g id="cta">
-    <rect x="552" y="365" width="156" height="42" rx="21" fill="#06B6D4"/>
-    <text x="580" y="392" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="800">無料で視聴する</text>
+    <rect x="562" y="386" width="182" height="52" rx="26" fill="#16A34A"/>
+    <text x="640" y="412" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="16" font-weight="850" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">無料で視聴する</text>
+    <circle cx="718" cy="412" r="11" fill="#FFFFFF" opacity="0.18"/>
+    <path d="M714 408L719 412L714 416" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>`;
 }

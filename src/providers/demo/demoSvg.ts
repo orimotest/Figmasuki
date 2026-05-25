@@ -48,7 +48,7 @@ function injectDirectionCopy(svg: string, direction: Direction): string {
 }
 
 function shouldUseSampleAsIs(directionId: string): boolean {
-  return directionId === "seminar_problem_01" || directionId === "seminar_benefit_02";
+  return directionId === "seminar_problem_01" || directionId === "seminar_benefit_02" || directionId === "seminar_practical_03";
 }
 
 function renderHeadlineGroup(direction: Direction): string {
