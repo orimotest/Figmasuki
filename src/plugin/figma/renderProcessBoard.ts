@@ -35,6 +35,12 @@ type RenderOptions = {
   zoom?: boolean;
 };
 
+type ExplorationIdea = {
+  directionTitle: string;
+  angle: string;
+  copy: string;
+};
+
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode> {
   await loadFonts();
   const root = createFrame(`AI Cover Studio / Process Board / ${project.projectName}`, 0, 0, 1840, 1720, COLORS.canvas);
@@ -47,7 +53,7 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
   renderHeader(root, project);
   renderCopySection(root, project.copyDirections);
   renderLayoutSection(root, project);
-  renderCandidateSection(root, project.svgCandidates, project.copyDirections);
+  renderExplorationSection(root, project.copyDirections);
   renderInsightSection(root, project);
 
   figma.currentPage.appendChild(root);
@@ -102,7 +108,7 @@ export function renderLayoutBoard(project: ProjectData): FrameNode {
 }
 
 export function renderCandidateBoard(candidates: SvgCandidate[], directions: Direction[]): FrameNode {
-  const board = createStandaloneBoard("SVG Candidate Board", "SVG候補をまとめたボードです。", 900, 900);
+  const board = createStandaloneBoard("SVG Candidate Board", "SVG候補をまとめた単体ボードです。", 900, 900);
   renderCandidateGrid(board, candidates, directions, 32, 120, 836);
   return board;
 }
@@ -127,7 +133,7 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
 
 function renderHeader(parent: FrameNode, project: ProjectData): void {
   addText(parent, "AI Cover Studio / Process Board", 40, 34, { size: 30, bold: true, width: 900 });
-  addText(parent, "AIが探索したコピー、レイアウト、SVG候補、診断・比較・仕上げ判断を1枚にまとめたレビュー用ボードです。", 40, 76, {
+  addText(parent, "AIが探索したコピー、レイアウト方針、診断、比較、仕上げ判断をまとめたレビュー用ボードです。", 40, 76, {
     size: 14,
     color: COLORS.muted,
     width: 1160,
@@ -139,7 +145,7 @@ function renderHeader(parent: FrameNode, project: ProjectData): void {
   addMetric(info, "プロジェクト名", project.projectName, 24, 22, 360);
   addMetric(info, "用途", project.contentType === "seminar_banner" ? "セミナー / ウェビナーバナー" : "note / ブログサムネイル", 420, 22, 300);
   addMetric(info, "サイズ", `${project.canvasSize.width} x ${project.canvasSize.height}`, 760, 22, 220);
-  addMetric(info, "入力", project.inputMode === "fixed_copy" ? "確定コピーから作成" : "要件から作成", 1020, 22, 240);
+  addMetric(info, "入力タイプ", project.inputMode === "fixed_copy" ? "確定コピーから作る" : "要件から作る", 1020, 22, 240);
   addMetric(info, "作成日時", new Date(project.createdAt).toLocaleString("ja-JP"), 1300, 22, 360);
   addMetric(info, "ターゲット", project.inputSummary.targetAudience ?? "未指定", 24, 88, 520);
   addMetric(info, "ゴール", project.inputSummary.goal ?? "未指定", 580, 88, 520);
@@ -147,25 +153,63 @@ function renderHeader(parent: FrameNode, project: ProjectData): void {
 }
 
 function renderCopySection(parent: FrameNode, directions: Direction[]): void {
-  const section = createSection("Copy Direction", "30案を探索して抽出した5つのコピー方向性", 40, 314, 560, 760);
+  const section = createSection("5方向に整理", "30案の探索から、人が選びやすい5つのコピー方向性へ整理します。", 40, 314, 560, 760);
   parent.appendChild(section);
   renderCopyCards(section, directions, 20, 78, 520);
 }
 
 function renderLayoutSection(parent: FrameNode, project: ProjectData): void {
-  const section = createSection("Layout Strategy", "各方向性に対応する構図・優先順位・背景方針", 640, 314, 560, 760);
+  const section = createSection("レイアウト方針", "各方向性に対応する構図、優先順位、背景方針を整理します。", 640, 314, 560, 760);
   parent.appendChild(section);
   renderLayoutCards(section, project, 20, 78, 520);
 }
 
-function renderCandidateSection(parent: FrameNode, candidates: SvgCandidate[], directions: Direction[]): void {
-  const section = createSection("SVG Candidates", "生成された5案。上部の実物フレームと対応します。", 1240, 314, 560, 760);
+function renderExplorationSection(parent: FrameNode, directions: Direction[]): void {
+  const section = createSection("30案を探索", "コピーと訴求軸を広げるデモ探索ログです。SVG本体はボード外に5案として配置します。", 1240, 314, 560, 760);
   parent.appendChild(section);
-  renderCandidateGrid(section, candidates, directions, 20, 78, 520);
+
+  const summary = createCard(20, 78, 520, 86);
+  section.appendChild(summary);
+  addText(summary, "30案 → 5方向へ抽出", 18, 14, { size: 18, bold: true, color: COLORS.blue, width: 300 });
+  addText(summary, "Demo Modeでも、AIがいきなり5案を出したのではなく、複数の切り口を広げてから方向性を絞った流れとして確認できます。", 18, 44, {
+    size: 10,
+    color: COLORS.muted,
+    width: 484,
+    height: 34,
+  });
+
+  const ideas = createExplorationIdeas(directions);
+  if (ideas.length === 0) {
+    addEmpty(section, "Demoサンプルを読み込むか、探索を開始すると30案の探索ログが表示されます。", 20, 188, 520);
+    return;
+  }
+
+  ideas.slice(0, 30).forEach((idea, index) => {
+    const col = index % 3;
+    const row = Math.floor(index / 3);
+    const cardWidth = 160;
+    const card = createFrame(`Idea ${index + 1}`, 20 + col * 180, 190 + row * 54, cardWidth, 44, index % 2 === 0 ? COLORS.card : COLORS.paleBlue);
+    card.cornerRadius = 10;
+    card.strokes = [{ type: "SOLID", color: COLORS.border }];
+    card.strokeWeight = 1;
+    section.appendChild(card);
+    addText(card, `${String(index + 1).padStart(2, "0")} ${idea.directionTitle.slice(0, 7)} / ${idea.angle}`, 10, 8, {
+      size: 8,
+      bold: true,
+      color: COLORS.blue,
+      width: cardWidth - 20,
+    });
+    addText(card, idea.copy, 10, 24, { size: 8, color: COLORS.muted, width: cardWidth - 20, height: 14 });
+  });
+
+  addText(section, "抽出された5方向", 20, 736, { size: 10, bold: true, color: COLORS.blue, width: 140 });
+  directions.slice(0, 5).forEach((direction, index) => {
+    addPill(section, 132 + index * 82, 730, direction.title.slice(0, 7), COLORS.blue, 74);
+  });
 }
 
 function renderInsightSection(parent: FrameNode, project: ProjectData): void {
-  const section = createSection("Review Notes", "診断・比較・仕上げの結果がある場合はここに追記されます。", 40, 1118, 1760, 548);
+  const section = createSection("レビュー記録", "診断、比較、仕上げの結果がある場合はここに追記されます。", 40, 1118, 1760, 548);
   parent.appendChild(section);
   renderDiagnosisContent(section, project.diagnosisResults, 24, 82, 520);
   renderCompareContent(section, project.comparisonResult, 620, 82, 520);
@@ -174,7 +218,7 @@ function renderInsightSection(parent: FrameNode, project: ProjectData): void {
 
 function renderCopyCards(parent: FrameNode, directions: Direction[], x: number, y: number, width: number): void {
   if (directions.length === 0) {
-    addEmpty(parent, "コピー方向性はまだありません。", x, y, width);
+    addEmpty(parent, "コピー方向性はまだありません。Demoサンプルを読み込むか、探索を開始してください。", x, y, width);
     return;
   }
   directions.slice(0, 5).forEach((direction, index) => {
@@ -190,7 +234,7 @@ function renderCopyCards(parent: FrameNode, directions: Direction[], x: number, 
 
 function renderLayoutCards(parent: FrameNode, project: ProjectData, x: number, y: number, width: number): void {
   if (project.layoutStrategies.length === 0) {
-    addEmpty(parent, "レイアウト方針はまだありません。", x, y, width);
+    addEmpty(parent, "レイアウト方針はまだありません。Demoサンプルを読み込むか、探索を開始してください。", x, y, width);
     return;
   }
   project.layoutStrategies.slice(0, 5).forEach((strategy, index) => {
@@ -206,7 +250,7 @@ function renderLayoutCards(parent: FrameNode, project: ProjectData, x: number, y
 
 function renderCandidateGrid(parent: FrameNode, candidates: SvgCandidate[], directions: Direction[], x: number, y: number, width: number): void {
   if (candidates.length === 0) {
-    addEmpty(parent, "SVG候補はまだありません。", x, y, width);
+    addEmpty(parent, "SVG候補はまだありません。Demoサンプルを読み込むか、探索を開始してください。", x, y, width);
     return;
   }
   const byDirection = new Map(directions.map((direction) => [direction.id, direction]));
@@ -232,9 +276,13 @@ function renderDiagnosisContent(parent: FrameNode, results: DiagnosisResult[], x
   const result = results[results.length - 1];
   const card = createCard(x, y, width, 420);
   parent.appendChild(card);
-  addText(card, "Diagnosis", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+  addText(card, "診断", 16, 14, { size: 16, bold: true, color: COLORS.blue });
   if (!result) {
-    addText(card, "診断結果はまだありません。1案を選択して診断するとここに記録されます。", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+    addText(card, "診断結果はまだありません。Figma上で1案を選択して診断すると、ここに記録されます。", 16, 48, {
+      size: 11,
+      color: COLORS.muted,
+      width: width - 32,
+    });
     return;
   }
   addText(card, `対象: ${result.frameName}`, 16, 46, { size: 11, bold: true, width: width - 32 });
@@ -247,13 +295,22 @@ function renderDiagnosisContent(parent: FrameNode, results: DiagnosisResult[], x
 function renderCompareContent(parent: FrameNode, result: ComparisonResult | undefined, x: number, y: number, width: number): void {
   const card = createCard(x, y, width, 420);
   parent.appendChild(card);
-  addText(card, "Compare", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+  addText(card, "比較", 16, 14, { size: 16, bold: true, color: COLORS.blue });
   if (!result) {
-    addText(card, "比較結果はまだありません。2〜5案を選択して比較するとここに記録されます。", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+    addText(card, "比較結果はまだありません。2から5案を選択して比較すると、ここに記録されます。", 16, 48, {
+      size: 11,
+      color: COLORS.muted,
+      width: width - 32,
+    });
     return;
   }
   addText(card, result.comparisonSummary, 16, 46, { size: 10, width: width - 32, height: 48 });
-  addText(card, `ベース候補: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 104, { size: 11, bold: true, color: COLORS.green, width: width - 32 });
+  addText(card, `ベース候補: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 104, {
+    size: 11,
+    bold: true,
+    color: COLORS.green,
+    width: width - 32,
+  });
   addText(card, `次点候補: ${result.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : "なし"}`, 16, 128, {
     size: 10,
     color: COLORS.muted,
@@ -278,16 +335,76 @@ function renderFinishContent(parent: FrameNode, result: BackgroundResult | undef
   const brief = result?.brief ?? comparison?.backgroundBrief;
   const card = createCard(x, y, width, 420);
   parent.appendChild(card);
-  addText(card, "Finish", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+  addText(card, "仕上げ", 16, 14, { size: 16, bold: true, color: COLORS.blue });
   if (!brief) {
-    addText(card, "仕上げ結果はまだありません。比較から背景briefを作るとここに記録されます。", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+    addText(card, "仕上げ結果はまだありません。比較からbackground briefを作ると、ここに記録されます。", 16, 48, {
+      size: 11,
+      color: COLORS.muted,
+      width: width - 32,
+    });
     return;
   }
   addText(card, `対象: ${brief.targetFrameName}`, 16, 46, { size: 11, bold: true, width: width - 32 });
   addText(card, brief.promptText, 16, 72, { size: 10, width: width - 32, height: 58 });
   addText(card, `背景スタイル: ${brief.mood} / ${brief.style}`, 16, 140, { size: 9, color: COLORS.muted, width: width - 32 });
   addList(card, "避けること", brief.avoid, 16, 180, width - 32);
-  addPreviewBox(card, 16, 306, result ? `最終案 / ${result.styleName}` : "背景生成後の確認欄", width - 32, 78);
+  addPreviewBox(card, 16, 306, result ? `最終案 / ${result.styleName}` : "背景生成後に確認", width - 32, 78);
+}
+
+function createExplorationIdeas(directions: Direction[]): ExplorationIdea[] {
+  const fallbackAngles = ["問い", "価値", "実務", "安心", "信頼", "CTA"];
+  const demoAngles: Record<string, Array<{ angle: string; copy: string }>> = {
+    seminar_problem_01: [
+      { angle: "不安", copy: "AI活用、何から始める？" },
+      { angle: "最初の壁", copy: "ツール選びより先に知ること" },
+      { angle: "共感", copy: "忙しくても始められるAI入門" },
+      { angle: "導入", copy: "明日から使える実践ステップ" },
+      { angle: "安心", copy: "専門知識なしで最初の一歩" },
+      { angle: "CTA", copy: "無料で参加する" },
+    ],
+    seminar_benefit_02: [
+      { angle: "時短", copy: "60分でわかるAI活用の第一歩" },
+      { angle: "成果", copy: "業務改善に使える考え方" },
+      { angle: "理解", copy: "実例でわかるAI活用" },
+      { angle: "整理", copy: "要点だけを短時間で学ぶ" },
+      { angle: "判断", copy: "参加後に何を試すか見える" },
+      { angle: "CTA", copy: "今すぐ申し込む" },
+    ],
+    seminar_practical_03: [
+      { angle: "実務", copy: "明日から使えるAI業務改善" },
+      { angle: "プロンプト", copy: "現場で試せる活用ステップ" },
+      { angle: "導入", copy: "小さく始める業務改善" },
+      { angle: "具体性", copy: "実例で学ぶAI活用" },
+      { angle: "持ち帰り", copy: "すぐ試せる型を整理" },
+      { angle: "CTA", copy: "無料で視聴する" },
+    ],
+    seminar_trust_04: [
+      { angle: "信頼", copy: "現場で使えるAI活用セミナー" },
+      { angle: "BtoB", copy: "導入前の不安を整理する" },
+      { angle: "共有", copy: "社内で説明しやすいAI入門" },
+      { angle: "堅実", copy: "実践までつなげる基本設計" },
+      { angle: "安心", copy: "落ち着いて学べる導入講座" },
+      { angle: "CTA", copy: "詳細を見る" },
+    ],
+    seminar_beginner_05: [
+      { angle: "歓迎", copy: "AI初心者のための実践ウェビナー" },
+      { angle: "やさしさ", copy: "専門知識なしではじめる" },
+      { angle: "入口", copy: "最初の一歩を一緒に整理" },
+      { angle: "不安解消", copy: "難しそうをほどく60分" },
+      { angle: "参加感", copy: "初学者でも置いていかない" },
+      { angle: "CTA", copy: "無料で参加する" },
+    ],
+  };
+
+  return directions.slice(0, 5).flatMap((direction, directionIndex) => {
+    const ideas =
+      demoAngles[direction.id] ??
+      fallbackAngles.map((angle, index) => ({
+        angle,
+        copy: index === 0 ? direction.copy.main.replace(/\n/g, " ") : index === 1 ? direction.copy.sub : direction.intent,
+      }));
+    return ideas.map((idea) => ({ directionTitle: direction.title, ...idea }));
+  });
 }
 
 function createStandaloneBoard(title: string, description: string, width: number, height: number): FrameNode {

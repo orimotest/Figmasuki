@@ -437,7 +437,7 @@
     renderHeader(root, project);
     renderCopySection(root, project.copyDirections);
     renderLayoutSection(root, project);
-    renderCandidateSection(root, project.svgCandidates, project.copyDirections);
+    renderExplorationSection(root, project.copyDirections);
     renderInsightSection(root, project);
     figma.currentPage.appendChild(root);
     if (options.zoom !== false) {
@@ -470,7 +470,7 @@
   function renderHeader(parent2, project) {
     var _a, _b;
     addText(parent2, "AI Cover Studio / Process Board", 40, 34, { size: 30, bold: true, width: 900 });
-    addText(parent2, "AI\u304C\u63A2\u7D22\u3057\u305F\u30B3\u30D4\u30FC\u3001\u30EC\u30A4\u30A2\u30A6\u30C8\u3001SVG\u5019\u88DC\u3001\u8A3A\u65AD\u30FB\u6BD4\u8F03\u30FB\u4ED5\u4E0A\u3052\u5224\u65AD\u30921\u679A\u306B\u307E\u3068\u3081\u305F\u30EC\u30D3\u30E5\u30FC\u7528\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 76, {
+    addText(parent2, "AI\u304C\u63A2\u7D22\u3057\u305F\u30B3\u30D4\u30FC\u3001\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD\u3001\u8A3A\u65AD\u3001\u6BD4\u8F03\u3001\u4ED5\u4E0A\u3052\u5224\u65AD\u3092\u307E\u3068\u3081\u305F\u30EC\u30D3\u30E5\u30FC\u7528\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 76, {
       size: 14,
       color: COLORS.muted,
       width: 1160
@@ -481,29 +481,63 @@
     addMetric(info, "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u540D", project.projectName, 24, 22, 360);
     addMetric(info, "\u7528\u9014", project.contentType === "seminar_banner" ? "\u30BB\u30DF\u30CA\u30FC / \u30A6\u30A7\u30D3\u30CA\u30FC\u30D0\u30CA\u30FC" : "note / \u30D6\u30ED\u30B0\u30B5\u30E0\u30CD\u30A4\u30EB", 420, 22, 300);
     addMetric(info, "\u30B5\u30A4\u30BA", `${project.canvasSize.width} x ${project.canvasSize.height}`, 760, 22, 220);
-    addMetric(info, "\u5165\u529B", project.inputMode === "fixed_copy" ? "\u78BA\u5B9A\u30B3\u30D4\u30FC\u304B\u3089\u4F5C\u6210" : "\u8981\u4EF6\u304B\u3089\u4F5C\u6210", 1020, 22, 240);
+    addMetric(info, "\u5165\u529B\u30BF\u30A4\u30D7", project.inputMode === "fixed_copy" ? "\u78BA\u5B9A\u30B3\u30D4\u30FC\u304B\u3089\u4F5C\u308B" : "\u8981\u4EF6\u304B\u3089\u4F5C\u308B", 1020, 22, 240);
     addMetric(info, "\u4F5C\u6210\u65E5\u6642", new Date(project.createdAt).toLocaleString("ja-JP"), 1300, 22, 360);
     addMetric(info, "\u30BF\u30FC\u30B2\u30C3\u30C8", (_a = project.inputSummary.targetAudience) != null ? _a : "\u672A\u6307\u5B9A", 24, 88, 520);
     addMetric(info, "\u30B4\u30FC\u30EB", (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 580, 88, 520);
     addMetric(info, "\u5165\u529B\u5185\u5BB9", project.inputSummary.brief, 1140, 88, 580);
   }
   function renderCopySection(parent2, directions) {
-    const section = createSection("Copy Direction", "30\u6848\u3092\u63A2\u7D22\u3057\u3066\u62BD\u51FA\u3057\u305F5\u3064\u306E\u30B3\u30D4\u30FC\u65B9\u5411\u6027", 40, 314, 560, 760);
+    const section = createSection("5\u65B9\u5411\u306B\u6574\u7406", "30\u6848\u306E\u63A2\u7D22\u304B\u3089\u3001\u4EBA\u304C\u9078\u3073\u3084\u3059\u30445\u3064\u306E\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u3078\u6574\u7406\u3057\u307E\u3059\u3002", 40, 314, 560, 760);
     parent2.appendChild(section);
     renderCopyCards(section, directions, 20, 78, 520);
   }
   function renderLayoutSection(parent2, project) {
-    const section = createSection("Layout Strategy", "\u5404\u65B9\u5411\u6027\u306B\u5BFE\u5FDC\u3059\u308B\u69CB\u56F3\u30FB\u512A\u5148\u9806\u4F4D\u30FB\u80CC\u666F\u65B9\u91DD", 640, 314, 560, 760);
+    const section = createSection("\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD", "\u5404\u65B9\u5411\u6027\u306B\u5BFE\u5FDC\u3059\u308B\u69CB\u56F3\u3001\u512A\u5148\u9806\u4F4D\u3001\u80CC\u666F\u65B9\u91DD\u3092\u6574\u7406\u3057\u307E\u3059\u3002", 640, 314, 560, 760);
     parent2.appendChild(section);
     renderLayoutCards(section, project, 20, 78, 520);
   }
-  function renderCandidateSection(parent2, candidates, directions) {
-    const section = createSection("SVG Candidates", "\u751F\u6210\u3055\u308C\u305F5\u6848\u3002\u4E0A\u90E8\u306E\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u3068\u5BFE\u5FDC\u3057\u307E\u3059\u3002", 1240, 314, 560, 760);
+  function renderExplorationSection(parent2, directions) {
+    const section = createSection("30\u6848\u3092\u63A2\u7D22", "\u30B3\u30D4\u30FC\u3068\u8A34\u6C42\u8EF8\u3092\u5E83\u3052\u308B\u30C7\u30E2\u63A2\u7D22\u30ED\u30B0\u3067\u3059\u3002SVG\u672C\u4F53\u306F\u30DC\u30FC\u30C9\u5916\u306B5\u6848\u3068\u3057\u3066\u914D\u7F6E\u3057\u307E\u3059\u3002", 1240, 314, 560, 760);
     parent2.appendChild(section);
-    renderCandidateGrid(section, candidates, directions, 20, 78, 520);
+    const summary = createCard(20, 78, 520, 86);
+    section.appendChild(summary);
+    addText(summary, "30\u6848 \u2192 5\u65B9\u5411\u3078\u62BD\u51FA", 18, 14, { size: 18, bold: true, color: COLORS.blue, width: 300 });
+    addText(summary, "Demo Mode\u3067\u3082\u3001AI\u304C\u3044\u304D\u306A\u308A5\u6848\u3092\u51FA\u3057\u305F\u306E\u3067\u306F\u306A\u304F\u3001\u8907\u6570\u306E\u5207\u308A\u53E3\u3092\u5E83\u3052\u3066\u304B\u3089\u65B9\u5411\u6027\u3092\u7D5E\u3063\u305F\u6D41\u308C\u3068\u3057\u3066\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 18, 44, {
+      size: 10,
+      color: COLORS.muted,
+      width: 484,
+      height: 34
+    });
+    const ideas = createExplorationIdeas(directions);
+    if (ideas.length === 0) {
+      addEmpty(section, "Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3059\u308B\u306830\u6848\u306E\u63A2\u7D22\u30ED\u30B0\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002", 20, 188, 520);
+      return;
+    }
+    ideas.slice(0, 30).forEach((idea, index) => {
+      const col = index % 3;
+      const row = Math.floor(index / 3);
+      const cardWidth = 160;
+      const card = createFrame(`Idea ${index + 1}`, 20 + col * 180, 190 + row * 54, cardWidth, 44, index % 2 === 0 ? COLORS.card : COLORS.paleBlue);
+      card.cornerRadius = 10;
+      card.strokes = [{ type: "SOLID", color: COLORS.border }];
+      card.strokeWeight = 1;
+      section.appendChild(card);
+      addText(card, `${String(index + 1).padStart(2, "0")} ${idea.directionTitle.slice(0, 7)} / ${idea.angle}`, 10, 8, {
+        size: 8,
+        bold: true,
+        color: COLORS.blue,
+        width: cardWidth - 20
+      });
+      addText(card, idea.copy, 10, 24, { size: 8, color: COLORS.muted, width: cardWidth - 20, height: 14 });
+    });
+    addText(section, "\u62BD\u51FA\u3055\u308C\u305F5\u65B9\u5411", 20, 736, { size: 10, bold: true, color: COLORS.blue, width: 140 });
+    directions.slice(0, 5).forEach((direction, index) => {
+      addPill(section, 132 + index * 82, 730, direction.title.slice(0, 7), COLORS.blue, 74);
+    });
   }
   function renderInsightSection(parent2, project) {
-    const section = createSection("Review Notes", "\u8A3A\u65AD\u30FB\u6BD4\u8F03\u30FB\u4ED5\u4E0A\u3052\u306E\u7D50\u679C\u304C\u3042\u308B\u5834\u5408\u306F\u3053\u3053\u306B\u8FFD\u8A18\u3055\u308C\u307E\u3059\u3002", 40, 1118, 1760, 548);
+    const section = createSection("\u30EC\u30D3\u30E5\u30FC\u8A18\u9332", "\u8A3A\u65AD\u3001\u6BD4\u8F03\u3001\u4ED5\u4E0A\u3052\u306E\u7D50\u679C\u304C\u3042\u308B\u5834\u5408\u306F\u3053\u3053\u306B\u8FFD\u8A18\u3055\u308C\u307E\u3059\u3002", 40, 1118, 1760, 548);
     parent2.appendChild(section);
     renderDiagnosisContent(section, project.diagnosisResults, 24, 82, 520);
     renderCompareContent(section, project.comparisonResult, 620, 82, 520);
@@ -511,7 +545,7 @@
   }
   function renderCopyCards(parent2, directions, x, y, width) {
     if (directions.length === 0) {
-      addEmpty(parent2, "\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002", x, y, width);
+      addEmpty(parent2, "\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044\u3002", x, y, width);
       return;
     }
     directions.slice(0, 5).forEach((direction, index) => {
@@ -526,7 +560,7 @@
   }
   function renderLayoutCards(parent2, project, x, y, width) {
     if (project.layoutStrategies.length === 0) {
-      addEmpty(parent2, "\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002", x, y, width);
+      addEmpty(parent2, "\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044\u3002", x, y, width);
       return;
     }
     project.layoutStrategies.slice(0, 5).forEach((strategy, index) => {
@@ -539,37 +573,17 @@
       addText(card, `\u80CC\u666F: ${strategy.background}`, 16, 90, { size: 9, color: COLORS.muted, width: width - 32 });
     });
   }
-  function renderCandidateGrid(parent2, candidates, directions, x, y, width) {
-    if (candidates.length === 0) {
-      addEmpty(parent2, "SVG\u5019\u88DC\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002", x, y, width);
-      return;
-    }
-    const byDirection = new Map(directions.map((direction) => [direction.id, direction]));
-    candidates.slice(0, 5).forEach((candidate, index) => {
-      var _a, _b;
-      const col = index % 2;
-      const row = Math.floor(index / 2);
-      const cardWidth = (width - 16) / 2;
-      const card = createCard(x + col * (cardWidth + 16), y + row * 202, cardWidth, 188);
-      parent2.appendChild(card);
-      const direction = byDirection.get(candidate.directionId);
-      addText(card, (_a = direction == null ? void 0 : direction.title) != null ? _a : candidate.name, 12, 10, { size: 12, bold: true, width: cardWidth - 24 });
-      const svgNode = figma.createNodeFromSvg(candidate.svg);
-      svgNode.name = candidate.name;
-      svgNode.x = 12;
-      svgNode.y = 34;
-      svgNode.resize(cardWidth - 24, 112);
-      card.appendChild(svgNode);
-      addText(card, (_b = direction == null ? void 0 : direction.summary) != null ? _b : candidate.name, 12, 154, { size: 8, color: COLORS.muted, width: cardWidth - 24, height: 24 });
-    });
-  }
   function renderDiagnosisContent(parent2, results, x, y, width) {
     const result = results[results.length - 1];
     const card = createCard(x, y, width, 420);
     parent2.appendChild(card);
-    addText(card, "Diagnosis", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+    addText(card, "\u8A3A\u65AD", 16, 14, { size: 16, bold: true, color: COLORS.blue });
     if (!result) {
-      addText(card, "\u8A3A\u65AD\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u30021\u6848\u3092\u9078\u629E\u3057\u3066\u8A3A\u65AD\u3059\u308B\u3068\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+      addText(card, "\u8A3A\u65AD\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Figma\u4E0A\u30671\u6848\u3092\u9078\u629E\u3057\u3066\u8A3A\u65AD\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, {
+        size: 11,
+        color: COLORS.muted,
+        width: width - 32
+      });
       return;
     }
     addText(card, `\u5BFE\u8C61: ${result.frameName}`, 16, 46, { size: 11, bold: true, width: width - 32 });
@@ -581,13 +595,22 @@
   function renderCompareContent(parent2, result, x, y, width) {
     const card = createCard(x, y, width, 420);
     parent2.appendChild(card);
-    addText(card, "Compare", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+    addText(card, "\u6BD4\u8F03", 16, 14, { size: 16, bold: true, color: COLORS.blue });
     if (!result) {
-      addText(card, "\u6BD4\u8F03\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u30022\u301C5\u6848\u3092\u9078\u629E\u3057\u3066\u6BD4\u8F03\u3059\u308B\u3068\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+      addText(card, "\u6BD4\u8F03\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u30022\u304B\u30895\u6848\u3092\u9078\u629E\u3057\u3066\u6BD4\u8F03\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, {
+        size: 11,
+        color: COLORS.muted,
+        width: width - 32
+      });
       return;
     }
     addText(card, result.comparisonSummary, 16, 46, { size: 10, width: width - 32, height: 48 });
-    addText(card, `\u30D9\u30FC\u30B9\u5019\u88DC: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 104, { size: 11, bold: true, color: COLORS.green, width: width - 32 });
+    addText(card, `\u30D9\u30FC\u30B9\u5019\u88DC: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 104, {
+      size: 11,
+      bold: true,
+      color: COLORS.green,
+      width: width - 32
+    });
     addText(card, `\u6B21\u70B9\u5019\u88DC: ${result.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : "\u306A\u3057"}`, 16, 128, {
       size: 10,
       color: COLORS.muted,
@@ -612,16 +635,73 @@
     const brief = (_a = result == null ? void 0 : result.brief) != null ? _a : comparison == null ? void 0 : comparison.backgroundBrief;
     const card = createCard(x, y, width, 420);
     parent2.appendChild(card);
-    addText(card, "Finish", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+    addText(card, "\u4ED5\u4E0A\u3052", 16, 14, { size: 16, bold: true, color: COLORS.blue });
     if (!brief) {
-      addText(card, "\u4ED5\u4E0A\u3052\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6BD4\u8F03\u304B\u3089\u80CC\u666Fbrief\u3092\u4F5C\u308B\u3068\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, { size: 11, color: COLORS.muted, width: width - 32 });
+      addText(card, "\u4ED5\u4E0A\u3052\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6BD4\u8F03\u304B\u3089background brief\u3092\u4F5C\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, {
+        size: 11,
+        color: COLORS.muted,
+        width: width - 32
+      });
       return;
     }
     addText(card, `\u5BFE\u8C61: ${brief.targetFrameName}`, 16, 46, { size: 11, bold: true, width: width - 32 });
     addText(card, brief.promptText, 16, 72, { size: 10, width: width - 32, height: 58 });
     addText(card, `\u80CC\u666F\u30B9\u30BF\u30A4\u30EB: ${brief.mood} / ${brief.style}`, 16, 140, { size: 9, color: COLORS.muted, width: width - 32 });
     addList(card, "\u907F\u3051\u308B\u3053\u3068", brief.avoid, 16, 180, width - 32);
-    addPreviewBox(card, 16, 306, result ? `\u6700\u7D42\u6848 / ${result.styleName}` : "\u80CC\u666F\u751F\u6210\u5F8C\u306E\u78BA\u8A8D\u6B04", width - 32, 78);
+    addPreviewBox(card, 16, 306, result ? `\u6700\u7D42\u6848 / ${result.styleName}` : "\u80CC\u666F\u751F\u6210\u5F8C\u306B\u78BA\u8A8D", width - 32, 78);
+  }
+  function createExplorationIdeas(directions) {
+    const fallbackAngles = ["\u554F\u3044", "\u4FA1\u5024", "\u5B9F\u52D9", "\u5B89\u5FC3", "\u4FE1\u983C", "CTA"];
+    const demoAngles = {
+      seminar_problem_01: [
+        { angle: "\u4E0D\u5B89", copy: "AI\u6D3B\u7528\u3001\u4F55\u304B\u3089\u59CB\u3081\u308B\uFF1F" },
+        { angle: "\u6700\u521D\u306E\u58C1", copy: "\u30C4\u30FC\u30EB\u9078\u3073\u3088\u308A\u5148\u306B\u77E5\u308B\u3053\u3068" },
+        { angle: "\u5171\u611F", copy: "\u5FD9\u3057\u304F\u3066\u3082\u59CB\u3081\u3089\u308C\u308BAI\u5165\u9580" },
+        { angle: "\u5C0E\u5165", copy: "\u660E\u65E5\u304B\u3089\u4F7F\u3048\u308B\u5B9F\u8DF5\u30B9\u30C6\u30C3\u30D7" },
+        { angle: "\u5B89\u5FC3", copy: "\u5C02\u9580\u77E5\u8B58\u306A\u3057\u3067\u6700\u521D\u306E\u4E00\u6B69" },
+        { angle: "CTA", copy: "\u7121\u6599\u3067\u53C2\u52A0\u3059\u308B" }
+      ],
+      seminar_benefit_02: [
+        { angle: "\u6642\u77ED", copy: "60\u5206\u3067\u308F\u304B\u308BAI\u6D3B\u7528\u306E\u7B2C\u4E00\u6B69" },
+        { angle: "\u6210\u679C", copy: "\u696D\u52D9\u6539\u5584\u306B\u4F7F\u3048\u308B\u8003\u3048\u65B9" },
+        { angle: "\u7406\u89E3", copy: "\u5B9F\u4F8B\u3067\u308F\u304B\u308BAI\u6D3B\u7528" },
+        { angle: "\u6574\u7406", copy: "\u8981\u70B9\u3060\u3051\u3092\u77ED\u6642\u9593\u3067\u5B66\u3076" },
+        { angle: "\u5224\u65AD", copy: "\u53C2\u52A0\u5F8C\u306B\u4F55\u3092\u8A66\u3059\u304B\u898B\u3048\u308B" },
+        { angle: "CTA", copy: "\u4ECA\u3059\u3050\u7533\u3057\u8FBC\u3080" }
+      ],
+      seminar_practical_03: [
+        { angle: "\u5B9F\u52D9", copy: "\u660E\u65E5\u304B\u3089\u4F7F\u3048\u308BAI\u696D\u52D9\u6539\u5584" },
+        { angle: "\u30D7\u30ED\u30F3\u30D7\u30C8", copy: "\u73FE\u5834\u3067\u8A66\u305B\u308B\u6D3B\u7528\u30B9\u30C6\u30C3\u30D7" },
+        { angle: "\u5C0E\u5165", copy: "\u5C0F\u3055\u304F\u59CB\u3081\u308B\u696D\u52D9\u6539\u5584" },
+        { angle: "\u5177\u4F53\u6027", copy: "\u5B9F\u4F8B\u3067\u5B66\u3076AI\u6D3B\u7528" },
+        { angle: "\u6301\u3061\u5E30\u308A", copy: "\u3059\u3050\u8A66\u305B\u308B\u578B\u3092\u6574\u7406" },
+        { angle: "CTA", copy: "\u7121\u6599\u3067\u8996\u8074\u3059\u308B" }
+      ],
+      seminar_trust_04: [
+        { angle: "\u4FE1\u983C", copy: "\u73FE\u5834\u3067\u4F7F\u3048\u308BAI\u6D3B\u7528\u30BB\u30DF\u30CA\u30FC" },
+        { angle: "BtoB", copy: "\u5C0E\u5165\u524D\u306E\u4E0D\u5B89\u3092\u6574\u7406\u3059\u308B" },
+        { angle: "\u5171\u6709", copy: "\u793E\u5185\u3067\u8AAC\u660E\u3057\u3084\u3059\u3044AI\u5165\u9580" },
+        { angle: "\u5805\u5B9F", copy: "\u5B9F\u8DF5\u307E\u3067\u3064\u306A\u3052\u308B\u57FA\u672C\u8A2D\u8A08" },
+        { angle: "\u5B89\u5FC3", copy: "\u843D\u3061\u7740\u3044\u3066\u5B66\u3079\u308B\u5C0E\u5165\u8B1B\u5EA7" },
+        { angle: "CTA", copy: "\u8A73\u7D30\u3092\u898B\u308B" }
+      ],
+      seminar_beginner_05: [
+        { angle: "\u6B53\u8FCE", copy: "AI\u521D\u5FC3\u8005\u306E\u305F\u3081\u306E\u5B9F\u8DF5\u30A6\u30A7\u30D3\u30CA\u30FC" },
+        { angle: "\u3084\u3055\u3057\u3055", copy: "\u5C02\u9580\u77E5\u8B58\u306A\u3057\u3067\u306F\u3058\u3081\u308B" },
+        { angle: "\u5165\u53E3", copy: "\u6700\u521D\u306E\u4E00\u6B69\u3092\u4E00\u7DD2\u306B\u6574\u7406" },
+        { angle: "\u4E0D\u5B89\u89E3\u6D88", copy: "\u96E3\u3057\u305D\u3046\u3092\u307B\u3069\u304F60\u5206" },
+        { angle: "\u53C2\u52A0\u611F", copy: "\u521D\u5B66\u8005\u3067\u3082\u7F6E\u3044\u3066\u3044\u304B\u306A\u3044" },
+        { angle: "CTA", copy: "\u7121\u6599\u3067\u53C2\u52A0\u3059\u308B" }
+      ]
+    };
+    return directions.slice(0, 5).flatMap((direction, directionIndex) => {
+      var _a;
+      const ideas = (_a = demoAngles[direction.id]) != null ? _a : fallbackAngles.map((angle, index) => ({
+        angle,
+        copy: index === 0 ? direction.copy.main.replace(/\n/g, " ") : index === 1 ? direction.copy.sub : direction.intent
+      }));
+      return ideas.map((idea) => __spreadValues({ directionTitle: direction.title }, idea));
+    });
   }
   function createStandaloneBoard(title, description, width, height) {
     const board = createFrame(title, 0, 0, width, height, COLORS.board);
