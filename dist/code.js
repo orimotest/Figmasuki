@@ -22,7 +22,7 @@
 
   // src/config/app.ts
   var appConfig = {
-    name: "AI Creative Assistant",
+    name: "AI Cover Studio",
     uiWidth: 960,
     uiHeight: 720
   };

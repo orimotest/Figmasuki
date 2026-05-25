@@ -43,20 +43,28 @@ export default function App() {
     postToPlugin({ type: "RENDER_PROCESS_BOARD", payload: projectData });
   }
 
+  function handleHeaderAction() {
+    if (activeTab === "Explore") {
+      window.dispatchEvent(new Event("START_AUTO_PRODUCTION"));
+      return;
+    }
+    handleRenderFullProcess();
+  }
+
   return (
     <main className="app-shell">
       <header className="plugin-header app-header">
         <div className="header-copy">
           <p className="eyebrow">AI Creative Process Board</p>
-          <h1>{tabLabels[activeTab].label}</h1>
-          <p className="header-description">{tabLabels[activeTab].description}</p>
+          <h1>AI Cover Studio</h1>
+          <p className="header-description">{activeTab === "Explore" ? "要件入力からFinal Candidateまで、AI制作ジョブとして自動進行します。" : tabLabels[activeTab].description}</p>
         </div>
         <div className="header-meta">
           <CanvasBadge />
           <span className="provider-badge warning">実行モード: Demo Mode</span>
           <ProviderBadge label="provider" provider={providers.copy} />
-          <button className="header-button" type="button" disabled={!projectData} onClick={handleRenderFullProcess}>
-            {"\u4e00\u9023\u306e\u30d7\u30ed\u30bb\u30b9\u3092Figma\u306b\u51fa\u529b"}
+          <button className="header-button" type="button" disabled={activeTab !== "Explore" && !projectData} onClick={handleHeaderAction}>
+            {activeTab === "Explore" ? "\u81ea\u52d5\u5236\u4f5c\u3092\u958b\u59cb" : "\u4e00\u9023\u306e\u30d7\u30ed\u30bb\u30b9\u3092Figma\u306b\u51fa\u529b"}
           </button>
         </div>
       </header>

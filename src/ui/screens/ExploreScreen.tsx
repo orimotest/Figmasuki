@@ -1,6 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import type { ContentType } from "../../schemas/content";
-import type { Direction } from "../../schemas/direction";
 import type { FixedCopyInput, InputMode } from "../../schemas/input";
 import type { ProjectData } from "../../schemas/project";
 import type { ProviderConfig } from "../../schemas/provider";
@@ -15,10 +14,8 @@ import { runGenerateSvgWorkflow } from "../../workflows/generateSvgWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
 import { CanvasBadge } from "../components/CanvasBadge";
-import { DirectionList } from "../components/DirectionList";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { EmptyState } from "../components/EmptyState";
-import { InputModeSelector } from "../components/InputModeSelector";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
 import { ProductionTimeline, type ProductionTimelineItem } from "../components/ProductionTimeline";
@@ -26,7 +23,6 @@ import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
-import { SvgPreviewCard } from "../components/SvgPreviewCard";
 import { UsageGuide } from "../components/UsageGuide";
 
 type ExploreScreenProps = {
@@ -52,6 +48,10 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   const [inputMode, setInputMode] = useState<InputMode>("brief_text");
   const [briefText, setBriefText] = useState(sampleBriefs.seminar_banner);
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(defaultFixedCopy);
+  const [targetAudience, setTargetAudience] = useState("忙しいビジネスパーソン");
+  const [appealPoint, setAppealPoint] = useState("60分で学べる / 明日から使える");
+  const [toneValue, setToneValue] = useState("信頼感 + 親しみやすさ");
+  const [ctaText, setCtaText] = useState(defaultFixedCopy.cta ?? "無料で参加する");
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusLogs, setStatusLogs] = useState<string[]>(["要件を確認して、主ボタンを押すと自動で制作フローを開始します。"]);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
@@ -79,14 +79,18 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     return () => window.removeEventListener("message", handleMessage);
   }, []);
 
-  const directionsById = useMemo(() => {
-    const map = new Map<string, Direction>();
-    exploreResult?.directions.forEach((direction) => map.set(direction.id, direction));
-    return map;
-  }, [exploreResult]);
+  useEffect(() => {
+    const handleHeaderStart = () => {
+      if (!isGenerating) void runFullAutoProduction();
+    };
+    window.addEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
+    return () => window.removeEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
+  }, [isGenerating, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText]);
 
   const workflow = projectData?.stageWorkflow;
-  const canShowCta = contentType === "seminar_banner";
+  const visibleSvgCandidates = svgCandidates.length ? svgCandidates : projectData?.svgCandidates ?? [];
+  const primaryCandidate =
+    visibleSvgCandidates.find((candidate) => candidate.id === projectData?.comparisonResult?.recommendation.primaryFrameId) ?? visibleSvgCandidates[0];
 
   function startDemoFlow() {
     void runDemoSample("seminar_banner");
@@ -96,6 +100,10 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setContentType(type);
     setInputMode("brief_text");
     setBriefText(sampleBriefs[type]);
+    setTargetAudience(type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー / 編集者 / 個人クリエイター");
+    setAppealPoint(type === "seminar_banner" ? "60分で学べる / 明日から使える" : "AI時代の制作判断を考える");
+    setToneValue(type === "seminar_banner" ? "信頼感 + 親しみやすさ" : "知的 + 静かな編集感");
+    setCtaText(type === "seminar_banner" ? "無料で参加する" : "");
     setError(null);
     setSuccess(null);
     setIsGenerating(true);
@@ -109,7 +117,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         inputMode: "brief_text",
         briefText: sampleBriefs[type],
         rawInput: sampleBriefs[type],
-        targetAudience: type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
+        targetAudience: type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー / 編集者 / 個人クリエイター",
       });
       setStatusLogs((entries) => [
         ...entries,
@@ -151,9 +159,12 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         contentType,
         inputMode,
         briefText: inputMode === "brief_text" ? briefText : undefined,
-        fixedCopy: inputMode === "fixed_copy" ? fixedCopy : undefined,
-        rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
-        targetAudience: contentType === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
+        fixedCopy: inputMode === "fixed_copy" ? { ...fixedCopy, cta: ctaText } : undefined,
+        rawInput:
+          inputMode === "brief_text"
+            ? `${briefText}\nターゲット: ${targetAudience}\n訴求ポイント: ${appealPoint}\nトーン: ${toneValue}\nCTA: ${ctaText}`
+            : `${fixedCopy.main}\n${fixedCopy.sub}\n${ctaText}`,
+        targetAudience,
       });
       setExploreResult(exploreResult);
       setStatusLogs((entries) => [...entries, `${exploreResult.exploredCount}案を探索しました。`]);
@@ -280,14 +291,6 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     return project;
   }
 
-  function handleInsert(candidate: SvgCandidate) {
-    if (!candidate.validation.valid) {
-      setError(`SVG確認に失敗しました: ${candidate.validation.errors.join(" ")}`);
-      return;
-    }
-    postToPlugin({ type: "INSERT_SVG", payload: { svg: candidate.svg, name: candidate.name } });
-  }
-
   function handleReset() {
     setExploreResult(null);
     setSvgCandidates([]);
@@ -296,138 +299,206 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setSuccess(null);
     setProductionStage("input_ready");
     setFigmaOutputs([]);
+    setContentType("seminar_banner");
+    setInputMode("brief_text");
+    setBriefText(sampleBriefs.seminar_banner);
+    setTargetAudience("忙しいビジネスパーソン");
+    setAppealPoint("60分で学べる / 明日から使える");
+    setToneValue("信頼感 + 親しみやすさ");
+    setCtaText(defaultFixedCopy.cta ?? "無料で参加する");
     setStatusLogs(["結果をリセットしました。もう一度Demoフローを読み込むか、要件を入力してください。"]);
   }
 
   return (
-    <div className="explore-layout">
-      <section className="panel explore-controls">
-        <SectionHeader
-          title="段階型Explore"
-          description="30案探索、15案の文字組みドラフト、5案の高品質SVGまでをDemo Modeで確認できます。"
-          aside={<ProviderBadge label="SVG" provider={providers.svg} />}
-        />
-        <div className="badge-row">
-          <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo Mode対応</span>
-          <span className="provider-badge">現在: {getProductionStageLabel(productionStage)}</span>
-        </div>
-        <UsageGuide note="主ボタン1つで自動制作ジョブを開始し、30案探索、15案文字組み、5案SVG、比較、背景3案、最終候補まで順番に進みます。各工程の結果はFigmaに記録されます。" />
-        <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
-        {isGenerating && <LoadingState title={getProductionStageLabel(productionStage)} description={getProductionStageMessage(productionStage)} />}
-        {productionStage === "completed" && (
-          <SuccessMessage title="制作プロセスが完了しました" detail="30案探索、15案文字組みドラフト、5案高品質SVG、比較結果、背景3案、最終候補をFigmaに記録しました。" />
-        )}
-        {figmaOutputs.length > 0 && (
-          <div className="result-card">
-            <div className="result-card-header">
-              <strong>Figmaへの記録</strong>
-              <span>{figmaOutputs.length}工程</span>
-            </div>
-            <ul className="compact-list">
-              {figmaOutputs.map((output) => (
-                <li key={`${output.stage}-${output.placedAt}`}>{getProcessBoardLabel(output.stage)} を記録済み</li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        <div className="form-grid">
+    <div className="explore-layout auto-production-grid">
+      <section className="panel requirement-panel">
+        <SectionHeader title="要件入力" description="制作ジョブの起点です。入力後は自動制作が最終候補まで進みます。" />
+        <div className="requirement-form">
           <PresetSelector value={contentType} onChange={setContentType} />
-          <InputModeSelector value={inputMode} onChange={setInputMode} />
-          {inputMode === "brief_text" && (
-            <label className="field full-width">
-              <span>要件</span>
-              <textarea value={briefText} onChange={(event) => setBriefText(event.target.value)} placeholder={sampleBriefs[contentType]} />
-            </label>
-          )}
-          {inputMode === "fixed_copy" && (
-            <div className="fixed-copy-fields full-width">
-              <label className="field">
-                <span>メインコピー</span>
-                <textarea value={fixedCopy.main} onChange={(event) => setFixedCopy({ ...fixedCopy, main: event.target.value })} />
-              </label>
-              <label className="field">
-                <span>サブコピー</span>
-                <input value={fixedCopy.sub} onChange={(event) => setFixedCopy({ ...fixedCopy, sub: event.target.value })} />
-              </label>
-              {canShowCta && (
-                <label className="field">
-                  <span>CTA</span>
-                  <input value={fixedCopy.cta ?? ""} onChange={(event) => setFixedCopy({ ...fixedCopy, cta: event.target.value })} />
-                </label>
-              )}
-            </div>
-          )}
+          <label className="field full-width">
+            <span>内容</span>
+            <textarea value={briefText} onChange={(event) => setBriefText(event.target.value)} placeholder={sampleBriefs[contentType]} />
+          </label>
+          <label className="field">
+            <span>ターゲット</span>
+            <input value={targetAudience} onChange={(event) => setTargetAudience(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>訴求ポイント</span>
+            <input value={appealPoint} onChange={(event) => setAppealPoint(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>トーン</span>
+            <input value={toneValue} onChange={(event) => setToneValue(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>CTA</span>
+            <input value={ctaText} onChange={(event) => setCtaText(event.target.value)} placeholder="無料で参加する" />
+          </label>
         </div>
-
-        {error && <ErrorMessage title="生成と配置を実行できませんでした" detail={error} action="Demoフローを再読み込みするか、入力内容を確認してください。" />}
-        {success && <SuccessMessage title={success} detail="Figma上で5案と横長プロセスボードを確認できます。" />}
-
+        <UsageGuide note="AIが入力内容をもとに、探索 → 文字組み → 高品質SVG → 比較 → 背景生成まで自動で進行します。" />
         <ActionBar>
           <button className="primary-button" type="button" disabled={isGenerating} onClick={runFullAutoProduction}>
-            {isGenerating ? "制作中..." : productionStage === "completed" ? "最初からやり直す" : "自動制作を開始"}
+            {isGenerating ? "制作中..." : productionStage === "completed" ? "再実行" : "自動制作を開始"}
           </button>
           <button className="secondary-button" type="button" disabled={isGenerating} onClick={startDemoFlow}>
-            Demoデータだけ準備
+            Demoデータを読み込む
           </button>
           <button className="ghost-button" type="button" onClick={handleReset}>
             リセット
           </button>
         </ActionBar>
-        <StatusLog entries={statusLogs} />
       </section>
 
-      <section className="panel explore-results">
-        <SectionHeader title="A1 30案探索" description="コピー、訴求軸、トーン、レイアウト方向を広げます。Figmaボードでは30案すべてを小カードで記録します。" />
-        <StageSummary
-          count={workflow?.ideaDirections.length ?? 0}
-          label="ideaDirections"
-          emptyText="Demoフローを読み込むと30案が表示されます。"
-          samples={workflow?.ideaDirections.slice(0, 6).map((idea) => `${idea.name}: ${idea.mainCopy}`) ?? []}
+      <section className="panel production-panel">
+        <SectionHeader
+          title="段階型Explore / 自動制作フロー"
+          description="タブを順番に押すのではなく、制作ジョブとしてFinal Candidateまで進行します。"
+          aside={<ProviderBadge label="SVG" provider={providers.svg} />}
         />
-        <SectionHeader title="A2 15案文字組みドラフト" description="完成デザインではなく、文字サイズ、余白、CTA位置、日時情報の見え方を検討するSVGです。" />
-        <StageSummary
-          count={workflow?.typographyDrafts.length ?? 0}
-          label="typographyDrafts"
-          emptyText="Demoフローを読み込むと15案の文字組みドラフトが表示されます。"
-          samples={workflow?.typographyDrafts.slice(0, 6).map((draft) => `${draft.name}: ${draft.layoutType}`) ?? []}
-        />
-        <SectionHeader title="5方向に整理" description="高品質SVGへ進める前の代表方向です。" />
-        <DirectionList directions={exploreResult?.directions ?? []} onLoadDemo={startDemoFlow} />
-      </section>
-
-      <section className="panel explore-previews">
-        <SectionHeader title="A3 5案高品質SVG" description="Figmaキャンバス上に実物として配置する5案です。各案は比較しやすいよう方向性を変えています。" />
-        <div className="preview-list">
-          {svgCandidates.map((candidate) => (
-            <SvgPreviewCard key={candidate.id} candidate={candidate} direction={directionsById.get(candidate.directionId)} onInsert={handleInsert} />
-          ))}
-          {svgCandidates.length === 0 && (
-            <EmptyState title="高品質SVGはまだありません" body="通常は数秒でDemo候補が自動表示されます。表示されない場合は再読み込みできます。" actionLabel="Demoフローを再読み込み" onAction={startDemoFlow} />
-          )}
+        <div className="badge-row">
+          <CanvasBadge />
+          <span className="provider-badge warning">実行モード: Demo</span>
+          <ProviderBadge label="provider" provider={providers.copy} />
+          <span className="provider-badge">現在: {getProductionStageLabel(productionStage)}</span>
         </div>
+        <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
+        {isGenerating && <LoadingState title={getProductionStageLabel(productionStage)} description={getProductionStageMessage(productionStage)} />}
+        {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="API未設定時はDemo Modeで再実行できます。入力内容を確認してください。" />}
+        {productionStage === "completed" && (
+          <SuccessMessage
+            title="制作プロセスが完了しました"
+            detail="30案探索、15案文字組みドラフト、5案高品質SVG、比較結果、背景3案、最終候補をFigmaに記録しました。"
+          />
+        )}
+        {success && productionStage !== "completed" && <SuccessMessage title={success} detail="Figma上で工程ごとの記録ボードを確認できます。" />}
+        <div className="production-bottom-grid">
+          <div className="result-card compact-card">
+            <div className="result-card-header">
+              <strong>処理ログ</strong>
+              <span>{statusLogs.length}件</span>
+            </div>
+            <StatusLog entries={statusLogs.slice(-5)} />
+          </div>
+          <FigmaOutputStatus outputs={figmaOutputs} />
+        </div>
+      </section>
+
+      <section className="panel current-results-panel">
+        <SectionHeader title="現在の成果" description="自動制作が進むほど、右側に成果が積み上がります。" />
+        <IdeaSummaryCard count={workflow?.ideaDirections.length ?? 0} />
+        <PreviewShelf
+          title="15案文字組みドラフト"
+          count={workflow?.typographyDrafts.length ?? 0}
+          items={workflow?.typographyDrafts.slice(0, 5).map((draft) => ({ id: draft.id, name: draft.name, svg: draft.svg })) ?? []}
+          emptyTitle="Typography Draftを生成中"
+        />
+        <PreviewShelf
+          title="5案高品質SVG"
+          count={visibleSvgCandidates.length}
+          items={visibleSvgCandidates.slice(0, 3).map((candidate) => ({ id: candidate.id, name: candidate.name, svg: candidate.svg }))}
+          emptyTitle="高品質SVGを生成中"
+        />
+        <FinalCandidatePreview candidate={primaryCandidate} completed={productionStage === "completed"} />
       </section>
     </div>
   );
 }
 
-function StageSummary({ count, label, emptyText, samples }: { count: number; label: string; emptyText: string; samples: string[] }) {
-  if (count === 0) {
-    return <EmptyState title={`${label} はまだありません`} body={emptyText} />;
-  }
+function FigmaOutputStatus({ outputs }: { outputs: FigmaOutputRecord[] }) {
+  const stages: ProcessBoardStage[] = ["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations", "final_candidate"];
   return (
-    <div className="result-card">
+    <div className="result-card compact-card">
       <div className="result-card-header">
-        <strong>{count}件</strong>
-        <span>{label}</span>
+        <strong>Figmaへの記録</strong>
+        <span>{outputs.length}/7</span>
       </div>
-      <ul className="compact-list">
-        {samples.map((sample) => (
-          <li key={sample}>{sample}</li>
+      <ul className="figma-output-list">
+        {stages.map((stage) => {
+          const output = outputs.find((item) => item.stage === stage);
+          return (
+            <li key={stage} className={output ? "placed" : "pending"}>
+              <span>{getProcessBoardLabel(stage)}</span>
+              <em>{output ? "記録済み" : "待機"}</em>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function IdeaSummaryCard({ count }: { count: number }) {
+  const rows = [
+    ["AI活用のメリット訴求", 12],
+    ["時間価値（60分で学べる）", 8],
+    ["明日から使える実用性", 6],
+    ["信頼感・専門性の表現", 4],
+  ];
+  return (
+    <div className="result-card summary-card">
+      <div className="result-card-header">
+        <strong>30案探索サマリー</strong>
+        <span>{count || 30}案</span>
+      </div>
+      <ul className="summary-breakdown">
+        {rows.map(([label, value]) => (
+          <li key={label}>
+            <span># {label}</span>
+            <strong>{value}案</strong>
+          </li>
         ))}
       </ul>
     </div>
+  );
+}
+
+function PreviewShelf({ title, count, items, emptyTitle }: { title: string; count: number; items: { id: string; name: string; svg: string }[]; emptyTitle: string }) {
+  return (
+    <div className="result-card preview-shelf">
+      <div className="result-card-header">
+        <strong>{title}</strong>
+        <span>{count ? `${count}件` : "待機"}</span>
+      </div>
+      {items.length > 0 ? (
+        <div className="mini-preview-row">
+          {items.map((item) => (
+            <MiniSvgPreview key={item.id} svg={item.svg} label={item.name} />
+          ))}
+          {count > items.length && <span className="more-count">+{count - items.length}</span>}
+        </div>
+      ) : (
+        <EmptyState title={emptyTitle} body="自動制作を開始すると、この欄にサムネイルが表示されます。" />
+      )}
+    </div>
+  );
+}
+
+function FinalCandidatePreview({ candidate, completed }: { candidate?: SvgCandidate; completed: boolean }) {
+  return (
+    <div className="result-card final-preview-card">
+      <div className="result-card-header">
+        <strong>最終候補</strong>
+        <span>{completed ? "Primary候補" : "生成中"}</span>
+      </div>
+      {candidate ? (
+        <>
+          <MiniSvgPreview svg={candidate.svg} label={candidate.name} large />
+          <p>比較結果で選ばれたPrimary案をベースに、背景3案とFinal CandidateをFigmaに記録します。</p>
+        </>
+      ) : (
+        <EmptyState title="Final Candidateを生成中" body="5案比較と背景生成が完了すると、ここに最終候補が表示されます。" />
+      )}
+    </div>
+  );
+}
+
+function MiniSvgPreview({ svg, label, large = false }: { svg: string; label: string; large?: boolean }) {
+  return (
+    <figure className={large ? "mini-svg-preview large" : "mini-svg-preview"}>
+      <div className="mini-svg-canvas" dangerouslySetInnerHTML={{ __html: svg }} />
+      <figcaption>{label}</figcaption>
+    </figure>
   );
 }
 

@@ -471,9 +471,164 @@ input {
 .explore-layout {
   min-height: 100%;
   display: grid;
-  grid-template-columns: 292px 1fr 258px;
-  gap: 8px;
+  grid-template-columns: minmax(230px, 0.82fr) minmax(340px, 1.28fr) minmax(250px, 0.95fr);
+  gap: 12px;
   align-items: start;
+}
+
+.auto-production-grid {
+  align-items: stretch;
+}
+
+.requirement-panel,
+.production-panel,
+.current-results-panel {
+  display: grid;
+  align-content: start;
+  gap: 12px;
+  min-height: 100%;
+}
+
+.requirement-form {
+  display: grid;
+  gap: 10px;
+  padding-top: 2px;
+}
+
+.requirement-form .field textarea {
+  min-height: 108px;
+}
+
+.production-panel .production-timeline {
+  max-height: 436px;
+  margin: 0;
+  padding: 14px;
+}
+
+.production-bottom-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 12px;
+}
+
+.compact-card {
+  min-height: 0;
+}
+
+.compact-card .status-log {
+  max-height: 150px;
+  overflow: auto;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+
+.figma-output-list,
+.summary-breakdown {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.figma-output-list li,
+.summary-breakdown li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  min-height: 30px;
+  padding: 6px 8px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 11px;
+}
+
+.figma-output-list li.placed {
+  border-color: #bbf7d0;
+  color: #166534;
+  background: #f0fdf4;
+}
+
+.figma-output-list em,
+.summary-breakdown strong {
+  font-style: normal;
+  font-size: 10px;
+  font-weight: 900;
+}
+
+.preview-shelf,
+.summary-card,
+.final-preview-card {
+  display: grid;
+  gap: 10px;
+}
+
+.mini-preview-row {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.mini-svg-preview {
+  display: grid;
+  gap: 5px;
+  width: 86px;
+  min-width: 86px;
+  margin: 0;
+}
+
+.mini-svg-preview.large {
+  width: 100%;
+  min-width: 0;
+}
+
+.mini-svg-canvas {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.mini-svg-canvas svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.mini-svg-preview figcaption {
+  overflow: hidden;
+  color: #475569;
+  font-size: 10px;
+  font-weight: 800;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.more-count {
+  display: inline-grid;
+  place-items: center;
+  min-width: 48px;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  color: #64748b;
+  background: #f8fafc;
+  font-weight: 900;
+}
+
+.final-preview-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.5;
 }
 
 .diagnose-layout {

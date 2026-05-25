@@ -5,9 +5,9 @@ import type { AppTab } from "./components/TabNav";
 
 export const tabLabels: Record<AppTab, { label: string; description: string; shortDescription: string }> = {
   Explore: {
-    label: "\u63a2\u7d22",
-    description: "\u8981\u4ef6\u3084\u78ba\u5b9a\u30b3\u30d4\u30fc\u304b\u3089\u3001\u30b3\u30d4\u30fc\u65b9\u5411\u6027\u3068\u30ec\u30a4\u30a2\u30a6\u30c8\u5019\u88dc\u3092\u6574\u7406\u3057\u307e\u3059\u3002",
-    shortDescription: "\u65b9\u5411\u6027\u3092\u5e83\u3052\u308b",
+    label: "\u81ea\u52d5\u5236\u4f5c",
+    description: "\u8981\u4ef6\u5165\u529b\u304b\u3089Final Candidate\u307e\u3067\u3001AI\u5236\u4f5c\u30b8\u30e7\u30d6\u3068\u3057\u3066\u81ea\u52d5\u9032\u884c\u3057\u307e\u3059\u3002",
+    shortDescription: "\u6700\u7d42\u5019\u88dc\u307e\u3067",
   },
   Diagnose: {
     label: "\u8a3a\u65ad",
