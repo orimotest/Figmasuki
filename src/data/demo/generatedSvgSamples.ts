@@ -115,23 +115,112 @@ function seminarProblemSvg(): string {
 
 function seminarBenefitSvg(): string {
   return `<svg ${baseAttrs}>
-  <rect width="800" height="450" fill="#0F172A"/>
-  <rect x="58" y="54" width="476" height="342" rx="22" fill="#FFFFFF"/>
-  <rect x="560" y="54" width="182" height="342" rx="22" fill="#22C55E"/>
-  <line x1="596" y1="146" x2="706" y2="146" stroke="#FFFFFF" stroke-width="2" opacity="0.55"/>
-  <g id="headline">
-    <text x="94" y="154" fill="#0F172A" font-family="Inter, Arial, sans-serif" font-size="46" font-weight="850">
-      <tspan x="94" dy="0">60分でわかる</tspan>
-      <tspan x="94" dy="58">AI活用の第一歩</tspan>
-    </text>
-    <text x="98" y="278" fill="#334155" font-family="Inter, Arial, sans-serif" font-size="21" font-weight="650">業務改善に使える考え方と実践例を紹介</text>
+  <defs>
+    <linearGradient id="benefit-bg-grad" x1="0" y1="0" x2="800" y2="450" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F7FAFF"/>
+      <stop offset="1" stop-color="#EEF5FF"/>
+    </linearGradient>
+    <linearGradient id="benefit-blue-grad" x1="64" y1="0" x2="520" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#2563EB"/>
+      <stop offset="1" stop-color="#0EA5E9"/>
+    </linearGradient>
+    <filter id="benefit-card-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="8" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.08"/>
+    </filter>
+  </defs>
+  <g id="background">
+    <rect width="800" height="450" rx="24" fill="url(#benefit-bg-grad)"/>
+    <rect x="24" y="24" width="752" height="402" rx="20" fill="#FFFFFF" stroke="#D8E4F5"/>
+    <circle cx="696" cy="86" r="70" fill="#EAF3FF"/>
+    <circle cx="732" cy="390" r="92" fill="#F0F7FF"/>
+    <rect x="590" y="56" width="130" height="130" rx="32" fill="#F7FBFF" stroke="#E0ECFA"/>
   </g>
-  <text x="596" y="116" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="28" font-weight="900">6.18</text>
-  <text x="596" y="178" fill="#DCFCE7" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">WED 14:00</text>
-  <text x="596" y="214" fill="#DCFCE7" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="700">Online Seminar</text>
+  <g id="top-label">
+    <rect x="56" y="46" width="210" height="40" rx="20" fill="#EFF6FF" stroke="#BCD7FF"/>
+    <circle cx="77" cy="66" r="8" fill="#2563EB"/>
+    <text x="96" y="66" dominant-baseline="middle" fill="#1D4ED8" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">参加メリット型</text>
+    <text x="212" y="66" dominant-baseline="middle" fill="#64748B" font-size="13" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Webinar</text>
+  </g>
+  <g id="headline">
+    <text x="56" y="152" fill="#0F235C" font-size="64" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">60分でわかる</text>
+    <text x="56" y="226" fill="url(#benefit-blue-grad)" font-size="70" font-weight="850" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">AI活用の第一歩</text>
+    <line x1="58" y1="240" x2="378" y2="240" stroke="#FFD24D" stroke-width="8" stroke-linecap="round"/>
+  </g>
+  <g id="subcopy">
+    <text x="56" y="286" fill="#334155" font-size="24" font-weight="650" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">業務改善に使える考え方と実践例を紹介</text>
+  </g>
+  <g id="benefit-cards">
+    <g transform="translate(56 316)">
+      <rect width="156" height="58" rx="16" fill="#F8FBFF" stroke="#D8E4F5"/>
+      <circle cx="28" cy="29" r="14" fill="#EFF6FF"/>
+      <path d="M22 29L27 34L36 23" stroke="#2563EB" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="25" fill="#1E3A8A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">要点を整理</text>
+      <text x="52" y="43" fill="#64748B" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">迷わず始める</text>
+    </g>
+    <g transform="translate(224 316)">
+      <rect width="156" height="58" rx="16" fill="#F8FBFF" stroke="#D8E4F5"/>
+      <circle cx="28" cy="29" r="14" fill="#EFF6FF"/>
+      <rect x="20" y="22" width="16" height="16" rx="4" stroke="#2563EB" stroke-width="2"/>
+      <path d="M23 30H33" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <path d="M28 25V35" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="52" y="25" fill="#1E3A8A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実例で理解</text>
+      <text x="52" y="43" fill="#64748B" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">使い方が見える</text>
+    </g>
+    <g transform="translate(392 316)">
+      <rect width="156" height="58" rx="16" fill="#F8FBFF" stroke="#D8E4F5"/>
+      <circle cx="28" cy="29" r="14" fill="#EFF6FF"/>
+      <path d="M20 34H36" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round"/>
+      <path d="M22 30L27 25L31 29L36 22" stroke="#2563EB" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="52" y="25" fill="#1E3A8A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">明日から実践</text>
+      <text x="52" y="43" fill="#64748B" font-size="11" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">小さく試せる</text>
+    </g>
+  </g>
+  <g id="right-panel" filter="url(#benefit-card-shadow)">
+    <rect x="576" y="118" width="168" height="174" rx="24" fill="#FFFFFF" stroke="#D8E4F5"/>
+    <text x="604" y="154" fill="#1E3A8A" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">このセミナーで</text>
+    <text x="604" y="178" fill="#1E3A8A" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">わかること</text>
+    <g transform="translate(604 198)">
+      <circle cx="8" cy="8" r="8" fill="#DBEAFE"/>
+      <path d="M5 8L8 11L12 5" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="24" y="12" fill="#334155" font-size="12" font-weight="650" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">AI活用の全体像</text>
+    </g>
+    <g transform="translate(604 226)">
+      <circle cx="8" cy="8" r="8" fill="#DBEAFE"/>
+      <path d="M5 8L8 11L12 5" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="24" y="12" fill="#334155" font-size="12" font-weight="650" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">業務改善の始め方</text>
+    </g>
+    <g transform="translate(604 254)">
+      <circle cx="8" cy="8" r="8" fill="#DBEAFE"/>
+      <path d="M5 8L8 11L12 5" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      <text x="24" y="12" fill="#334155" font-size="12" font-weight="650" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実践ステップ</text>
+    </g>
+  </g>
+  <g id="footer">
+    <rect x="56" y="390" width="688" height="40" rx="14" fill="#FFFFFF" stroke="#D8E4F5"/>
+    <g transform="translate(72 399)">
+      <rect x="0" y="4" width="18" height="18" rx="4" stroke="#2563EB" stroke-width="2"/>
+      <line x1="0" y1="11" x2="18" y2="11" stroke="#2563EB" stroke-width="2"/>
+      <text x="30" y="21" fill="#163B7A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">6.18 WED</text>
+    </g>
+    <line x1="178" y1="399" x2="178" y2="421" stroke="#D8E4F5"/>
+    <g transform="translate(194 399)">
+      <circle cx="9" cy="13" r="9" stroke="#2563EB" stroke-width="2"/>
+      <path d="M9 8V13H14" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="30" y="21" fill="#163B7A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">14:00〜15:00</text>
+    </g>
+    <line x1="326" y1="399" x2="326" y2="421" stroke="#D8E4F5"/>
+    <g transform="translate(342 399)">
+      <rect x="0" y="5" width="20" height="14" rx="2" stroke="#2563EB" stroke-width="2"/>
+      <line x1="7" y1="23" x2="13" y2="23" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <line x1="10" y1="19" x2="10" y2="23" stroke="#2563EB" stroke-width="2" stroke-linecap="round"/>
+      <text x="32" y="21" fill="#163B7A" font-size="14" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Online Seminar</text>
+    </g>
+  </g>
   <g id="cta">
-    <rect x="98" y="322" width="170" height="48" rx="24" fill="#60A5FA"/>
-    <text x="124" y="353" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">今すぐ申し込む</text>
+    <rect x="556" y="354" width="188" height="50" rx="25" fill="#16A34A"/>
+    <text x="638" y="379" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="17" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">今すぐ申し込む</text>
+    <circle cx="718" cy="379" r="12" fill="#FFFFFF" opacity="0.18"/>
+    <path d="M714 375L720 379L714 383" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>`;
 }
