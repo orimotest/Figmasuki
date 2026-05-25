@@ -9,7 +9,7 @@ export async function demoGenerateSvg(direction: Direction): Promise<SvgCandidat
     throw new Error(`Demo SVG was not found for direction: ${direction.id}`);
   }
 
-  const svg = injectDirectionCopy(sample, direction);
+  const svg = shouldUseSampleAsIs(direction.id) ? sample : injectDirectionCopy(sample, direction);
   const name = createGeneratedNodeName(direction);
   return {
     id: `svg_${direction.id}`,
@@ -45,6 +45,10 @@ function injectDirectionCopy(svg: string, direction: Direction): string {
   }
 
   return withHeadline;
+}
+
+function shouldUseSampleAsIs(directionId: string): boolean {
+  return directionId === "seminar_problem_01";
 }
 
 function renderHeadlineGroup(direction: Direction): string {
