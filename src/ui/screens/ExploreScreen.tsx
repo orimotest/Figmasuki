@@ -32,15 +32,15 @@ type ExploreScreenProps = {
 };
 
 const sampleBriefs = {
-  note_thumbnail: "AI時代にデザイナーが持つべき思考と、これからの制作フローについての記事サムネイル",
+  note_thumbnail: "AI時代にデザイナーが持つべき思考と、これからの制作フローについての記事サムネイル。",
   seminar_banner:
     "オンラインセミナー集客用のバナー。時間のないビジネスパーソンに向けて、短時間で学べる価値を伝えたい。信頼感と親しみやすさを両立したい。",
 } satisfies Record<ContentType, string>;
 
 const defaultFixedCopy: FixedCopyInput = {
-  main: "AI時代、\nデザイナーは何を持つべきか",
-  sub: "制作から判断へ。これからの働き方を考える",
-  cta: "無料で参加する",
+  main: "60分でわかる\nAI活用の第一歩",
+  sub: "業務改善に使える考え方と実践例を紹介",
+  cta: "今すぐ申し込む",
 };
 
 export function ExploreScreen({ providers, projectData, onProjectData }: ExploreScreenProps) {
@@ -49,7 +49,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   const [briefText, setBriefText] = useState(sampleBriefs.seminar_banner);
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(defaultFixedCopy);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusLogs, setStatusLogs] = useState<string[]>(["探索画面を開いたため、Demoサンプルを自動読み込みします。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["探索画面を開いたため、Demoフローを自動読み込みします。"]);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
   const [svgCandidates, setSvgCandidates] = useState<SvgCandidate[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +87,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     return map;
   }, [exploreResult]);
 
+  const workflow = projectData?.stageWorkflow;
   const canShowCta = contentType === "seminar_banner";
 
   function startDemoFlow() {
@@ -100,7 +101,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setError(null);
     setSuccess(null);
     setIsGenerating(true);
-    setStatusLogs(["Demoサンプルを読み込んでいます。", "コピー方向性5件を用意しています。", "SVG候補5件を生成しています。"]);
+    setStatusLogs(["Demoフローを読み込んでいます。", "30案探索、15文字組みドラフト、5高品質SVGを準備しています。"]);
 
     try {
       const project = await createProjectFromInput({
@@ -110,11 +111,15 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         rawInput: sampleBriefs[type],
         targetAudience: type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター",
       });
-      setStatusLogs((entries) => [...entries, "Demoサンプルの読み込みが完了しました。", "主ボタンを押すと、5案とプロセスボードをFigmaにまとめて配置します。"]);
-      if (!options?.silent) setSuccess("Demoサンプルを読み込みました。");
+      setStatusLogs((entries) => [
+        ...entries,
+        "Demoフローの読み込みが完了しました。",
+        "主ボタンを押すと、5つの実バナー案と横長プロセスボードをFigmaに配置します。",
+      ]);
+      if (!options?.silent) setSuccess("Demoフローを読み込みました。");
       return project;
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Demoサンプルの読み込みに失敗しました。";
+      const message = caught instanceof Error ? caught.message : "Demoフローの読み込みに失敗しました。";
       setError(message);
       setStatusLogs((entries) => [...entries, message]);
       return null;
@@ -134,7 +139,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     }
 
     setIsGenerating(true);
-    setStatusLogs(["生成と配置を開始します。", "コピー方向性とSVG候補を整理しています。"]);
+    setStatusLogs(["段階型フローを生成しています。", "Figma配置用のプロセスボードをまとめています。"]);
 
     try {
       const project =
@@ -168,7 +173,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
     }
 
-    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, `${result.selectedCount}方向に整理しました。`, "SVG候補を生成しています。"]);
+    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, "15案の文字組みドラフトを作成しました。", `${result.selectedCount}案を高品質SVGとして整理しました。`]);
     const svgResult = await runGenerateSvgWorkflow(result);
     const project = buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs });
     setExploreResult(result);
@@ -191,25 +196,25 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     onProjectData(null);
     setError(null);
     setSuccess(null);
-    setStatusLogs(["結果をリセットしました。もう一度Demoサンプルを読み込むか、要件を入力してください。"]);
+    setStatusLogs(["結果をリセットしました。もう一度Demoフローを読み込むか、要件を入力してください。"]);
   }
 
   return (
     <div className="explore-layout">
       <section className="panel explore-controls">
         <SectionHeader
-          title="探索の入力"
-          description="Demo候補は自動で読み込みます。主ボタンを押すと、生成結果をFigmaへ連続配置します。"
+          title="段階型Explore"
+          description="30案探索、15案の文字組みドラフト、5案の高品質SVGまでをDemo Modeで確認できます。"
           aside={<ProviderBadge label="SVG" provider={providers.svg} />}
         />
         <div className="badge-row">
           <CanvasBadge />
           <span className="provider-badge warning">実行モード: Demo Mode対応</span>
-          {exploreResult && <span className="provider-badge">30案から5方向</span>}
+          {workflow && <span className="provider-badge">30 → 15 → 5</span>}
         </div>
-        <UsageGuide note="主ボタン1つで、5案の配置とプロセスボード作成まで進みます。個別配置は候補カードから必要な時だけ使えます。" />
-        <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(exploreResult), Boolean(error))} />
-        {isGenerating && <LoadingState title="生成と配置の準備中です" description="コピー方向性、SVG候補、Figma用プロセスボードをまとめています。" />}
+        <UsageGuide note="主ボタン1つで、5つの実バナー案と横長プロセスボードをFigmaにまとめて配置します。各フェーズの検討内容はボード内に記録されます。" />
+        <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(workflow), Boolean(error))} />
+        {isGenerating && <LoadingState title="段階型フローを準備しています" description="30案探索、15文字組みドラフト、5高品質SVG、Figma用ボードをまとめています。" />}
 
         <div className="form-grid">
           <PresetSelector value={contentType} onChange={setContentType} />
@@ -240,15 +245,15 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
           )}
         </div>
 
-        {error && <ErrorMessage title="生成と配置を実行できませんでした" detail={error} action="数秒待って自動読み込みが終わるか、Demoサンプルを再読み込みしてください。" />}
-        {success && <SuccessMessage title={success} detail="Figma上で5案とプロセスボードを確認できます。" />}
+        {error && <ErrorMessage title="生成と配置を実行できませんでした" detail={error} action="Demoフローを再読み込みするか、入力内容を確認してください。" />}
+        {success && <SuccessMessage title={success} detail="Figma上で5案と横長プロセスボードを確認できます。" />}
 
         <ActionBar>
           <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerateAndPlace}>
-            {isGenerating ? "準備中..." : "生成してFigmaに配置"}
+            {isGenerating ? "準備中..." : "一連のプロセスをFigmaに配置"}
           </button>
           <button className="secondary-button" type="button" disabled={isGenerating} onClick={startDemoFlow}>
-            Demoを再読み込み
+            Demoフローを再読み込み
           </button>
           <button className="ghost-button" type="button" onClick={handleReset}>
             リセット
@@ -258,23 +263,32 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       </section>
 
       <section className="panel explore-results">
-        <SectionHeader title="コピー方向性" description="30案から抽出した5方向です。意図、懸念、向いている用途まで確認できます。" />
+        <SectionHeader title="A1 30案探索" description="コピー、訴求軸、トーン、レイアウト方向を広げます。Figmaボードでは30案すべてを小カードで記録します。" />
+        <StageSummary
+          count={workflow?.ideaDirections.length ?? 0}
+          label="ideaDirections"
+          emptyText="Demoフローを読み込むと30案が表示されます。"
+          samples={workflow?.ideaDirections.slice(0, 6).map((idea) => `${idea.name}: ${idea.mainCopy}`) ?? []}
+        />
+        <SectionHeader title="A2 15案文字組みドラフト" description="完成デザインではなく、文字サイズ、余白、CTA位置、日時情報の見え方を検討するSVGです。" />
+        <StageSummary
+          count={workflow?.typographyDrafts.length ?? 0}
+          label="typographyDrafts"
+          emptyText="Demoフローを読み込むと15案の文字組みドラフトが表示されます。"
+          samples={workflow?.typographyDrafts.slice(0, 6).map((draft) => `${draft.name}: ${draft.layoutType}`) ?? []}
+        />
+        <SectionHeader title="5方向に整理" description="高品質SVGへ進める前の代表方向です。" />
         <DirectionList directions={exploreResult?.directions ?? []} onLoadDemo={startDemoFlow} />
       </section>
 
       <section className="panel explore-previews">
-        <SectionHeader title="SVG候補" description="主ボタンで5案まとめて配置できます。個別に見たい時だけカード内の配置ボタンを使ってください。" />
+        <SectionHeader title="A3 5案高品質SVG" description="Figmaキャンバス上に実物として配置する5案です。各案は比較しやすいよう方向性を変えています。" />
         <div className="preview-list">
           {svgCandidates.map((candidate) => (
             <SvgPreviewCard key={candidate.id} candidate={candidate} direction={directionsById.get(candidate.directionId)} onInsert={handleInsert} />
           ))}
           {svgCandidates.length === 0 && (
-            <EmptyState
-              title="候補案はまだありません"
-              body="通常は数秒でDemo候補が自動表示されます。表示されない場合は再読み込みできます。"
-              actionLabel="Demoを再読み込み"
-              onAction={startDemoFlow}
-            />
+            <EmptyState title="高品質SVGはまだありません" body="通常は数秒でDemo候補が自動表示されます。表示されない場合は再読み込みできます。" actionLabel="Demoフローを再読み込み" onAction={startDemoFlow} />
           )}
         </div>
       </section>
@@ -282,12 +296,31 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   );
 }
 
-function getExploreTimeline(isRunning: boolean, hasResult: boolean, hasError: boolean): ProcessTimelineStep[] {
+function StageSummary({ count, label, emptyText, samples }: { count: number; label: string; emptyText: string; samples: string[] }) {
+  if (count === 0) {
+    return <EmptyState title={`${label} はまだありません`} body={emptyText} />;
+  }
+  return (
+    <div className="result-card">
+      <div className="result-card-header">
+        <strong>{count}件</strong>
+        <span>{label}</span>
+      </div>
+      <ul className="compact-list">
+        {samples.map((sample) => (
+          <li key={sample}>{sample}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function getExploreTimeline(isRunning: boolean, hasWorkflow: boolean, hasError: boolean): ProcessTimelineStep[] {
   return [
-    { label: "入力内容を確認", description: "用途と入力タイプを整理", status: hasError ? "error" : hasResult || isRunning ? "completed" : "pending" },
-    { label: "30案を探索", description: "コピーと訴求軸を広げる", status: hasError ? "error" : hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "5方向に整理", description: "代表的な方向性を抽出", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "Figmaへ配置", description: "5案とプロセスボードを連続配置", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
+    { label: "30案探索", description: "コピーと訴求軸を広げる", status: hasError ? "error" : hasWorkflow || isRunning ? "completed" : "pending" },
+    { label: "15文字組み", description: "情報配置をSVGで比較", status: hasError ? "error" : hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
+    { label: "5高品質SVG", description: "比較できる5案へ仕上げ", status: hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
+    { label: "Figma記録", description: "実物案とプロセスボードを配置", status: hasWorkflow ? "completed" : isRunning ? "running" : "pending" },
   ];
 }
 

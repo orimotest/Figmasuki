@@ -7,6 +7,7 @@ import type { Direction } from "./direction";
 import type { InputMode } from "./input";
 import type { ProviderMeta } from "./provider";
 import type { SvgCandidate } from "./svg";
+import type { StageWorkflowData } from "./workflow";
 
 export type InputSummary = {
   brief: string;
@@ -51,6 +52,7 @@ export type ProjectData = {
   diagnosisResults: DiagnosisResult[];
   comparisonResult?: ComparisonResult;
   backgroundResult?: BackgroundResult;
+  stageWorkflow?: StageWorkflowData;
   createdAt: string;
   providerMeta: ProjectProviderMeta;
 };

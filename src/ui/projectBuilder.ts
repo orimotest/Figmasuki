@@ -1,5 +1,6 @@
 import { CANVAS_SIZE } from "../config/canvas";
 import { providerConfig } from "../config/providers";
+import { createDemoStageWorkflow } from "../data/demo/stagedWorkflowDemo";
 import type { BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
 import type { DiagnosisResult } from "../schemas/diagnosis";
@@ -37,6 +38,7 @@ export function buildProjectData(params: {
     diagnosisResults,
     comparisonResult,
     backgroundResult,
+    stageWorkflow: createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, backgroundResult }),
     createdAt: new Date().toISOString(),
     providerMeta: {
       mode: createProviderMode(svgCandidates),

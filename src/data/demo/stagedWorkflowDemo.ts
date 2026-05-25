@@ -1,0 +1,297 @@
+import type { BackgroundResult } from "../../schemas/background";
+import type { Direction } from "../../schemas/direction";
+import type { SvgCandidate } from "../../schemas/svg";
+import type { BackgroundVariation, DemoComparison, FinalCandidate, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
+
+const layouts = [
+  "左寄せ",
+  "中央配置",
+  "左右分割",
+  "上下分割",
+  "CTA強調",
+  "メタ情報強調",
+  "余白型",
+  "濃色背景",
+  "白背景",
+  "カード型",
+  "斜めリズム",
+  "見出し一点突破",
+  "情報整理型",
+  "導入ステップ型",
+  "安心訴求型",
+];
+
+const ideaSeeds: Record<string, Array<Pick<IdeaDirection, "name" | "mainCopy" | "subCopy" | "cta" | "intent" | "tone" | "layoutHint" | "risk" | "bestFor">>> = {
+  seminar_problem_01: [
+    idea("最初の壁をほどく", "AI活用、何から始める？", "明日から使える実践ステップを60分で解説", "無料で参加する", "不安を入口にして参加の心理的ハードルを下げる。", "やさしい / 共感", "左寄せで問いを大きく見せる", "一般的に見える可能性", "初心者向け"),
+    idea("忙しい人の一歩", "忙しくても始められるAI活用", "要点だけを60分で整理", "無料で参加する", "時間がない人に短時間の価値を伝える。", "親しみ / 時短", "余白型で情報を絞る", "具体性が弱くなる可能性", "ビジネスパーソン"),
+    idea("導入前の不安整理", "AI導入前に知っておきたいこと", "最初につまずくポイントをやさしく解説", "無料で参加する", "導入前の不安を言語化して安心感を出す。", "安心 / 丁寧", "カード型で不安と解決を並べる", "少し堅く見える可能性", "初学者"),
+    idea("はじめの質問", "AI活用、まず何を知るべき？", "現場で迷わない基本を60分で", "参加する", "問いかけで自分ごと化する。", "問い / 実用", "中央配置で問いを強く見せる", "問いだけだと弱い可能性", "導入検討者"),
+    idea("ツール選び以前", "ツール選びの前に、AI活用の型を知る", "実践例から学ぶ最初のステップ", "無料で視聴する", "ツールではなく考え方を学ぶ価値を出す。", "実務 / 誠実", "左右分割で型と実例を分ける", "文字量が増える可能性", "実務担当者"),
+    idea("小さく試す", "AI活用は、小さく始めればいい", "明日から試せる業務改善のヒント", "無料で参加する", "大きな導入ではなく小さな実践として見せる。", "前向き / 低負荷", "CTA強調で行動につなげる", "軽く見える可能性", "未経験者"),
+  ],
+  seminar_benefit_02: [
+    idea("60分価値", "60分でわかるAI活用の第一歩", "業務改善に使える考え方と実践例を紹介", "今すぐ申し込む", "参加メリットを短く明確に伝える。", "明快 / 告知", "左寄せでベネフィットを大きく置く", "広告感が強くなる可能性", "申込重視"),
+    idea("得られる内容", "この60分で、AI活用の全体像が見える", "要点、実例、始め方をまとめて整理", "申し込む", "得られる内容を具体的に見せる。", "整理 / 実利", "右側にチェックリストを置く", "説明的になりすぎる可能性", "比較検討中"),
+    idea("明日から実践", "明日から使えるAI活用入門", "まず試すべき業務改善ステップ", "無料で参加する", "即実践できる価値を見せる。", "実践 / 前向き", "CTA強調型", "やや定番に見える可能性", "実務者"),
+    idea("短時間学習", "短時間で学ぶAI業務改善", "忙しい人のための実践セミナー", "今すぐ申し込む", "忙しさに配慮した参加理由を作る。", "時短 / 効率", "メタ情報強調型", "急ぎすぎた印象", "多忙な担当者"),
+    idea("参加後の一歩", "参加後に、最初の一手が見える", "AI活用を業務に落とし込む考え方", "詳細を見る", "学んだ後の行動を想像させる。", "納得 / 具体", "上下分割でBefore/Afterを見せる", "抽象的になる可能性", "導入担当者"),
+    idea("迷わない導入", "迷わず始めるAI活用の基本", "実例でわかる導入ステップ", "無料で視聴する", "迷いを減らすメリットを出す。", "安心 / 実用", "カード型で3ポイントを並べる", "少し硬い可能性", "BtoB担当者"),
+  ],
+  seminar_practical_03: [
+    idea("業務改善", "明日から使えるAI業務改善", "現場で試せるプロンプト活用と導入ステップ", "無料で視聴する", "実務メリットを強く出す。", "実務 / 具体", "濃色背景で専門性を出す", "情報量が多くなる可能性", "実務者"),
+    idea("プロンプト活用", "プロンプト活用、まずはここから", "現場で使える考え方と実践例", "参加する", "具体的なテーマで参加理由を作る。", "具体 / 技術", "中央配置でテーマを強調", "専門的に見えすぎる可能性", "現場担当者"),
+    idea("導入ステップ", "AI導入を小さく進める3ステップ", "業務改善につなげる実践ウェビナー", "無料で参加する", "手順がある安心感を出す。", "整理 / 実践", "導入ステップ型", "説明量が増える可能性", "導入推進者"),
+    idea("実例中心", "実例でわかるAI業務改善", "明日から試せる使い方を紹介", "無料で視聴する", "実例があることで学習価値を高める。", "実例 / 信頼", "左右分割で実例カードを置く", "見た目が資料っぽくなる可能性", "実務者"),
+    idea("現場で試す", "現場で試せるAI活用の型", "小さく始める業務改善のヒント", "詳細を見る", "抽象論ではなく現場での使い方を示す。", "現場 / 誠実", "白背景で資料感を出す", "地味に見える可能性", "BtoB担当者"),
+    idea("使える入門", "使えるAI入門、60分で整理", "プロンプトと導入の基本をまとめて解説", "申し込む", "実用性と短時間を両立する。", "実用 / 時短", "CTA強調型", "広告感が強い可能性", "申込重視"),
+  ],
+  seminar_trust_04: [
+    idea("信頼導入", "現場で使えるAI活用セミナー", "導入前の不安を整理し、実践までつなげる", "詳細を見る", "BtoB向けの安心感を出す。", "信頼 / 落ち着き", "余白型で堅実に見せる", "印象が弱くなる可能性", "企業向け"),
+    idea("社内共有", "社内で説明しやすいAI活用の基本", "導入前に整理したいポイントを解説", "詳細を見る", "社内共有しやすいテーマにする。", "堅実 / 共有", "資料風カード型", "やや硬い可能性", "管理職"),
+    idea("導入判断", "AI活用の導入判断に必要なこと", "不安と実践ステップを60分で整理", "無料で参加する", "判断材料としての価値を見せる。", "判断 / 信頼", "左右分割で課題と判断軸を出す", "参加ハードルが上がる可能性", "管理職"),
+    idea("安心設計", "不安を整理して始めるAI活用", "実践までつなげる導入セミナー", "詳細を見る", "不安解消と実践の両方を見せる。", "安心 / 実践", "上品なブルー基調", "弱く見える可能性", "BtoB担当者"),
+    idea("現場視点", "現場視点で考えるAI活用", "業務改善につなげる基本と実例", "参加する", "現場で使えることを信頼材料にする。", "現場 / 信頼", "白背景で読みやすく整理", "面白みに欠ける可能性", "実務責任者"),
+    idea("堅実ウェビナー", "堅実に始めるAI活用ウェビナー", "導入前の疑問を60分で整理", "申し込む", "落ち着いた参加理由を作る。", "堅実 / 丁寧", "メタ情報強調型", "地味に見える可能性", "企業研修"),
+  ],
+  seminar_beginner_05: [
+    idea("初心者歓迎", "AI初心者のための実践ウェビナー", "専門知識なしではじめる、最初の一歩", "無料で参加する", "初心者でも参加しやすい安心感を出す。", "やさしい / 入門", "丸みのあるカード型", "差別化が弱い可能性", "未経験者"),
+    idea("専門知識なし", "専門知識なしで始めるAI活用", "はじめの一歩をやさしく解説", "無料で視聴する", "参加ハードルを下げる。", "安心 / やさしい", "柔らかい色の中央配置", "軽く見える可能性", "初学者"),
+    idea("はじめの一歩", "AI活用、はじめの一歩", "まず知るべき基本を60分で", "参加する", "最初の一歩としてわかりやすくする。", "入門 / 明快", "見出し一点突破", "ありきたりな印象", "初心者"),
+    idea("置いていかない", "初めてでも置いていかないAI入門", "基本から実践までやさしく整理", "無料で参加する", "心理的安全性を訴求する。", "安心 / 丁寧", "余白大きめ", "やや長い", "未経験者"),
+    idea("やさしい実践", "やさしく学ぶAI業務改善", "専門用語を抑えて実例で解説", "詳細を見る", "難しさを抑えて実務価値を出す。", "やさしい / 実務", "上下分割", "実務感が弱い可能性", "初学者"),
+    idea("入門ウェビナー", "AI活用入門ウェビナー", "今日から試せる基本を学ぶ", "無料で視聴する", "短く覚えやすい訴求にする。", "入門 / 軽快", "CTA強調型", "情報が少ない可能性", "広い初心者層"),
+  ],
+};
+
+export function createDemoStageWorkflow(params: {
+  directions: Direction[];
+  refinedSvgCandidates: SvgCandidate[];
+  backgroundResult?: BackgroundResult;
+}): StageWorkflowData {
+  const ideaDirections = createIdeaDirections(params.directions);
+  const typographyDrafts = createTypographyDrafts(ideaDirections);
+  const refinedSvgCandidates = params.refinedSvgCandidates.map((candidate, index) => ({
+    ...candidate,
+    sourceDraftId: typographyDrafts.filter((draft) => draft.selectedForRefine)[index]?.id,
+    strength: getStrength(index),
+    concern: getConcern(index),
+  }));
+  const backgroundVariations = createBackgroundVariations(params.backgroundResult);
+  const finalCandidate: FinalCandidate = {
+    id: "final_demo_01",
+    name: "Final Candidate / Demo",
+    refinedCandidateId: refinedSvgCandidates[0]?.id ?? "seminar_problem_01",
+    selectedBackgroundId: backgroundVariations.find((variation) => variation.selected)?.id,
+    reason: "課題共感型は初心者向けセミナーの入口として分かりやすく、背景を加えても文字とCTAを編集可能に保ちやすいため。",
+    editableLayers: ["見出しテキスト", "サブコピー", "CTA", "日時情報", "背景レイヤー"],
+    nextAdjustments: ["開催日時を実データに差し替える", "ブランドカラーへ寄せる", "CTA文言を申し込み導線に合わせる"],
+  };
+
+  return {
+    ideaDirections,
+    typographyDrafts,
+    refinedSvgCandidates,
+    demoComparison: createDemoComparison(),
+    backgroundVariations,
+    finalCandidate,
+  };
+}
+
+function createIdeaDirections(directions: Direction[]): IdeaDirection[] {
+  return directions.flatMap((direction) => {
+    const seeds = ideaSeeds[direction.id] ?? [];
+    return seeds.map((seed, index) => ({
+      id: `idea_${direction.id}_${index + 1}`,
+      ...seed,
+      status: index < 3 ? "selected_for_typography" : index === 3 ? "merged" : "rejected",
+      selectionReason: index < 3 ? "方向性の違いが明確で、文字組み検証に残す価値がある。" : index === 3 ? "近い訴求に統合。" : "5案比較では差が弱いため保留。",
+    }));
+  });
+}
+
+function createTypographyDrafts(ideas: IdeaDirection[]): TypographyDraft[] {
+  return ideas
+    .filter((idea) => idea.status === "selected_for_typography")
+    .slice(0, 15)
+    .map((idea, index) => ({
+      id: `draft_${String(index + 1).padStart(2, "0")}`,
+      sourceIdeaId: idea.id,
+      name: `Draft ${String(index + 1).padStart(2, "0")}`,
+      directionName: idea.name,
+      layoutType: layouts[index],
+      svg: createDraftSvg(idea, layouts[index], index),
+      evaluationMemo: index % 3 === 0 ? "主見出しが残りやすい。" : index % 3 === 1 ? "CTAと日時の位置関係を比較しやすい。" : "余白と情報量のバランスを検討しやすい。",
+      selectedForRefine: [0, 4, 8, 11, 14].includes(index),
+    }));
+}
+
+function createDraftSvg(idea: IdeaDirection, layout: string, index: number): string {
+  const dark = layout === "濃色背景";
+  const bg = dark ? "#0F235C" : index % 2 === 0 ? "#F8FAFC" : "#FFFFFF";
+  const text = dark ? "#FFFFFF" : "#0F172A";
+  const muted = dark ? "#BAE6FD" : "#475569";
+  const accent = dark ? "#67E8F9" : "#2563EB";
+  const safeMain = escapeXml(idea.mainCopy);
+  const safeSub = escapeXml(idea.subCopy);
+  const safeCta = escapeXml(idea.cta ?? "詳細を見る");
+
+  if (layout === "中央配置" || layout === "見出し一点突破") {
+    return baseDraftSvg(bg, `
+      <text x="400" y="150" text-anchor="middle" fill="${text}" font-size="50" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
+      <text x="400" y="220" text-anchor="middle" fill="${muted}" font-size="24" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+      <rect x="300" y="292" width="200" height="48" rx="24" fill="${accent}"/>
+      <text x="400" y="323" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
+      <text x="400" y="382" text-anchor="middle" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED / 14:00 Online</text>
+    `);
+  }
+
+  if (layout === "左右分割" || layout === "カード型") {
+    return baseDraftSvg(bg, `
+      <rect x="430" y="72" width="290" height="250" rx="24" fill="${dark ? "rgba(255,255,255,0.08)" : "#EFF6FF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#BFDBFE"}"/>
+      <text x="64" y="136" fill="${text}" font-size="46" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
+      <text x="64" y="204" fill="${muted}" font-size="22" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+      <text x="464" y="132" fill="${accent}" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">見るポイント</text>
+      <text x="464" y="174" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">文字優先順位</text>
+      <text x="464" y="212" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">CTAの見つけやすさ</text>
+      <text x="464" y="250" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">余白バランス</text>
+      <rect x="64" y="320" width="190" height="48" rx="24" fill="${accent}"/>
+      <text x="159" y="351" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
+    `);
+  }
+
+  return baseDraftSvg(bg, `
+    <text x="64" y="128" fill="${text}" font-size="48" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeMain}</text>
+    <line x1="64" y1="154" x2="356" y2="154" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
+    <text x="64" y="210" fill="${muted}" font-size="24" font-weight="600" font-family="Inter, 'Noto Sans JP', sans-serif">${safeSub}</text>
+    <rect x="64" y="278" width="168" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
+    <text x="88" y="306" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED</text>
+    <rect x="254" y="278" width="194" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
+    <text x="278" y="306" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">14:00 Online</text>
+    <rect x="550" y="328" width="184" height="52" rx="26" fill="${accent}"/>
+    <text x="642" y="361" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
+  `);
+}
+
+function baseDraftSvg(bg: string, content: string): string {
+  return `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <rect width="800" height="450" rx="24" fill="${bg}"/>
+    <rect x="24" y="24" width="752" height="402" rx="20" fill="none" stroke="#D8E4F5"/>
+    ${content}
+  </svg>`;
+}
+
+function createBackgroundVariations(backgroundResult?: BackgroundResult): BackgroundVariation[] {
+  const target = backgroundResult?.brief.targetFrameName ?? "Primary案";
+  return [
+    {
+      id: "bg_soft_tech",
+      name: "Soft Tech Gradient",
+      direction: `${target} の文字領域を邪魔しない、淡いブルーのテック系背景。`,
+      svg: createBackgroundSvg("#EFF6FF", "#DBEAFE", "#93C5FD"),
+      selected: true,
+    },
+    {
+      id: "bg_geometry",
+      name: "Subtle Geometry",
+      direction: "右側に控えめな幾何学パターンを置き、中央の文字可読性を保つ。",
+      svg: createBackgroundSvg("#F8FAFC", "#E0F2FE", "#38BDF8"),
+      selected: false,
+    },
+    {
+      id: "bg_editorial",
+      name: "Editorial Texture",
+      direction: "紙面感のある薄い質感で、セミナー告知を落ち着いて見せる。",
+      svg: createBackgroundSvg("#FAFAF7", "#E5E7EB", "#2563EB"),
+      selected: false,
+    },
+  ];
+}
+
+function createDemoComparison(): DemoComparison {
+  return {
+    summary: "5案は、初心者向けの入口、参加メリット、実務性、BtoB信頼感、やさしい参加感で役割が分かれています。Demoでは課題共感型をPrimary、参加メリット型をSecondaryとして扱います。",
+    primaryName: "課題共感型",
+    secondaryName: "参加メリット型",
+    selectionReason: "初心者向けセミナーの最初の接点として、参加前の不安に寄り添う課題共感型が最も自然に見えるため。",
+    rows: [
+      {
+        name: "課題共感型",
+        role: "入口を作る",
+        layout: "左寄せ / やさしい導入",
+        strength: "不安のある人が自分ごと化しやすい。",
+        concern: "一般的に見えないよう背景で個性を足したい。",
+        bestFor: "初心者向け導入セミナー",
+      },
+      {
+        name: "参加メリット型",
+        role: "申込を促す",
+        layout: "左右分割 / 告知感強め",
+        strength: "60分で得られる内容が明確。",
+        concern: "広告感が強くなりすぎる可能性。",
+        bestFor: "申込重視の告知",
+      },
+      {
+        name: "実務ノウハウ型",
+        role: "実用性を示す",
+        layout: "中央配置 / 濃色背景",
+        strength: "業務改善に使える印象が強い。",
+        concern: "情報量が増えると読みづらい。",
+        bestFor: "実務者向け",
+      },
+      {
+        name: "信頼感型",
+        role: "社内共有しやすい",
+        layout: "余白型 / BtoB",
+        strength: "落ち着いていて企業向けに使いやすい。",
+        concern: "やや地味に見える可能性。",
+        bestFor: "企業向け・管理職向け",
+      },
+      {
+        name: "初心者歓迎型",
+        role: "参加ハードルを下げる",
+        layout: "やわらかい色 / 丸み",
+        strength: "初学者が安心して参加しやすい。",
+        concern: "差別化が弱くなる可能性。",
+        bestFor: "未経験者・初学者",
+      },
+    ],
+  };
+}
+
+function createBackgroundSvg(start: string, end: string, accent: string): string {
+  return `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" fill="none">
+    <defs><linearGradient id="g" x1="0" y1="0" x2="800" y2="450" gradientUnits="userSpaceOnUse"><stop offset="0" stop-color="${start}"/><stop offset="1" stop-color="${end}"/></linearGradient></defs>
+    <rect width="800" height="450" rx="24" fill="url(#g)"/>
+    <circle cx="680" cy="110" r="82" fill="${accent}" opacity="0.16"/>
+    <circle cx="720" cy="360" r="120" fill="${accent}" opacity="0.10"/>
+    <rect x="590" y="70" width="120" height="120" rx="28" fill="#FFFFFF" opacity="0.22"/>
+    <text x="56" y="398" fill="#64748B" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">Background only / text layers remain editable</text>
+  </svg>`;
+}
+
+function idea(
+  name: string,
+  mainCopy: string,
+  subCopy: string,
+  cta: string,
+  intent: string,
+  tone: string,
+  layoutHint: string,
+  risk: string,
+  bestFor: string,
+) {
+  return { name, mainCopy, subCopy, cta, intent, tone, layoutHint, risk, bestFor };
+}
+
+function getStrength(index: number): string {
+  return ["初心者向けの入口が分かりやすい。", "参加メリットが明確で申込導線に向く。", "実務感が強く、学ぶ内容が伝わる。", "BtoB向けに信頼感がある。", "やわらかく参加ハードルが低い。"][index] ?? "比較しやすい方向性です。";
+}
+
+function getConcern(index: number): string {
+  return ["一般的に見えないよう、背景で少し個性を足したい。", "広告感が強くなりすぎないよう余白を保ちたい。", "情報量が多いため文字サイズに注意。", "地味になりすぎないようアクセントが必要。", "やさしすぎて弱くならないようCTAを明確にする。"][index] ?? "仕上げ時に可読性を確認したい。";
+}
+
+function escapeXml(value: string): string {
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}

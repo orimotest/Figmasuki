@@ -426,19 +426,33 @@
   var FONT_REGULAR = { family: "Inter", style: "Regular" };
   var FONT_BOLD = { family: "Inter", style: "Bold" };
   async function renderProcessBoard(project, options = {}) {
-    var _a, _b;
+    var _a, _b, _c, _d, _e;
     await loadFonts();
-    const root = createFrame(`AI Cover Studio / Process Board / ${project.projectName}`, 0, 0, 1840, 1720, COLORS.canvas);
+    const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8080, 1540, COLORS.canvas);
     root.cornerRadius = 28;
     root.strokes = [{ type: "SOLID", color: COLORS.border }];
     root.strokeWeight = 1;
-    root.x = (_a = options.x) != null ? _a : figma.viewport.center.x - 920;
-    root.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 760;
-    renderHeader(root, project);
-    renderCopySection(root, project.copyDirections);
-    renderLayoutSection(root, project);
-    renderExplorationSection(root, project.copyDirections);
-    renderInsightSection(root, project);
+    root.x = (_a = options.x) != null ? _a : figma.viewport.center.x - 4040;
+    root.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
+    addText(root, "AI Cover Studio / Process Board", 40, 34, { size: 34, bold: true, width: 720 });
+    addText(root, "30\u6848\u63A2\u7D22\u304B\u3089\u6700\u7D42\u6848\u307E\u3067\u3001AI\u304C\u691C\u8A0E\u3057\u305F\u904E\u7A0B\u3092Figma\u4E0A\u3067\u30EC\u30D3\u30E5\u30FC\u3059\u308B\u305F\u3081\u306E\u6A2A\u9577\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 82, {
+      size: 14,
+      color: COLORS.muted,
+      width: 980
+    });
+    addPill(root, 7780, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
+    const workflow = project.stageWorkflow;
+    const boards = [
+      renderProjectHeaderBoard(root, project, 40, 150),
+      renderIdeaExploreBoard(root, (_c = workflow == null ? void 0 : workflow.ideaDirections) != null ? _c : [], 700, 150),
+      renderTypographyDraftBoard(root, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], 1720, 150),
+      renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3180, 150),
+      renderDiagnosisBoardPanel(root, project.diagnosisResults, 4580, 150),
+      renderCompareBoardPanel(root, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, 5380, 150),
+      renderBackgroundVariationsBoard(root, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, 6320, 150),
+      renderFinalCandidateBoard(root, project, 7240, 150)
+    ];
+    boards.slice(0, -1).forEach((board, index) => renderArrow(root, board.x + board.width + 16, 492, index === 2 ? 20 : 28));
     figma.currentPage.appendChild(root);
     if (options.zoom !== false) {
       figma.currentPage.selection = [root];
@@ -467,117 +481,194 @@
     placeStandalone(board);
     return board;
   }
-  function renderHeader(parent2, project) {
+  function renderProjectHeaderBoard(parent2, project, x, y) {
+    const board = createSection("Project Header", "\u5236\u4F5C\u6761\u4EF6\u3068\u5B9F\u884C\u30E2\u30FC\u30C9", x, y, 620, 720);
+    parent2.appendChild(board);
+    renderProjectHeaderContent(board, project, 24, 92, 572);
+    return board;
+  }
+  function renderProjectHeaderContent(parent2, project, x, y, width) {
     var _a, _b;
-    addText(parent2, "AI Cover Studio / Process Board", 40, 34, { size: 30, bold: true, width: 900 });
-    addText(parent2, "AI\u304C\u63A2\u7D22\u3057\u305F\u30B3\u30D4\u30FC\u3001\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD\u3001\u8A3A\u65AD\u3001\u6BD4\u8F03\u3001\u4ED5\u4E0A\u3052\u5224\u65AD\u3092\u307E\u3068\u3081\u305F\u30EC\u30D3\u30E5\u30FC\u7528\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 76, {
-      size: 14,
+    const summary = createCard(x, y, width, 312);
+    parent2.appendChild(summary);
+    addMetric(summary, "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u540D", project.projectName, 20, 20, width - 40);
+    addMetric(summary, "\u7528\u9014", project.contentType === "seminar_banner" ? "\u30BB\u30DF\u30CA\u30FC / \u30A6\u30A7\u30D3\u30CA\u30FC\u30D0\u30CA\u30FC" : "note / \u30D6\u30ED\u30B0\u30B5\u30E0\u30CD\u30A4\u30EB", 20, 80, width - 40);
+    addMetric(summary, "\u30B5\u30A4\u30BA", `${project.canvasSize.width} x ${project.canvasSize.height}`, 20, 140, 180);
+    addMetric(summary, "\u5165\u529B\u30BF\u30A4\u30D7", project.inputMode === "fixed_copy" ? "\u78BA\u5B9A\u30B3\u30D4\u30FC\u304B\u3089\u4F5C\u308B" : "\u8981\u4EF6\u304B\u3089\u4F5C\u308B", 230, 140, 220);
+    addMetric(summary, "\u5B9F\u884C\u30E2\u30FC\u30C9", project.providerMeta.mode, 20, 200, width - 40);
+    addMetric(summary, "\u4F5C\u6210\u65E5\u6642", new Date(project.createdAt).toLocaleString("ja-JP"), 20, 260, width - 40);
+    const brief = createCard(x, y + 336, width, 238);
+    parent2.appendChild(brief);
+    addText(brief, "\u5165\u529B\u8981\u4EF6", 18, 18, { size: 14, bold: true, color: COLORS.blue });
+    addText(brief, project.inputSummary.brief, 18, 48, { size: 13, width: width - 36, height: 64 });
+    addText(brief, "\u30BF\u30FC\u30B2\u30C3\u30C8", 18, 128, { size: 10, bold: true, color: COLORS.blue });
+    addText(brief, (_a = project.inputSummary.targetAudience) != null ? _a : "\u672A\u6307\u5B9A", 18, 148, { size: 12, width: width - 36 });
+    addText(brief, "\u30B4\u30FC\u30EB", 18, 182, { size: 10, bold: true, color: COLORS.blue });
+    addText(brief, (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 18, 202, { size: 12, width: width - 36 });
+  }
+  function renderIdeaExploreBoard(parent2, ideas, x, y) {
+    const board = createSection("30 Ideas Explore", "\u30B3\u30D4\u30FC\u30FB\u8A34\u6C42\u8EF8\u30FB\u30C8\u30FC\u30F3\u3092\u5E83\u3052\u308B\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 980, 720);
+    parent2.appendChild(board);
+    addStageStats(board, [
+      ["\u63A2\u7D22", "30\u6848"],
+      ["Typography\u3078", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}\u6848`],
+      ["\u7D71\u5408/\u4FDD\u7559", `${ideas.filter((idea) => idea.status !== "selected_for_typography").length}\u6848`]
+    ]);
+    renderIdeaGrid(board, ideas, 24, 142, 932);
+    return board;
+  }
+  function renderTypographyDraftBoard(parent2, drafts, x, y) {
+    const board = createSection("15 Typography Drafts", "\u5B8C\u6210\u30C7\u30B6\u30A4\u30F3\u3067\u306F\u306A\u304F\u3001\u6587\u5B57\u7D44\u307F\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u691C\u8A0E\u3059\u308B\u8EFD\u91CFSVG\u3002", x, y, 1420, 1060);
+    parent2.appendChild(board);
+    addStageStats(board, [
+      ["\u30C9\u30E9\u30D5\u30C8", "15\u6848"],
+      ["Refine\u3078", `${drafts.filter((draft) => draft.selectedForRefine).length}\u6848`],
+      ["\u76EE\u7684", "\u6587\u5B57\u7D44\u307F\u78BA\u8A8D"]
+    ]);
+    renderDraftGrid(board, drafts, 24, 142, 1372);
+    return board;
+  }
+  function renderRefinedSvgBoard(parent2, workflow, candidates, x, y) {
+    const board = createSection("5 Refined SVGs", "Gemini\u3067\u4ED5\u4E0A\u3052\u308B\u60F3\u5B9A\u306E\u9AD8\u54C1\u8CEASVG\u3002\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u306F\u4E0A\u90E8\u306B\u3082\u914D\u7F6E\u3055\u308C\u307E\u3059\u3002", x, y, 1360, 1060);
+    parent2.appendChild(board);
+    addStageStats(board, [
+      ["\u9AD8\u54C1\u8CEASVG", "5\u6848"],
+      ["\u6BD4\u8F03\u8EF8", "\u65B9\u5411\u6027\u5DEE"],
+      ["\u7DE8\u96C6", "SVG text"]
+    ]);
+    renderRefinedGrid(board, workflow, candidates, [], 24, 142, 1312);
+    return board;
+  }
+  function renderDiagnosisBoardPanel(parent2, results, x, y) {
+    const board = createSection("Diagnosis", "1\u6848\u3092\u9078\u629E\u3057\u3066\u3001\u5F37\u307F\u30FB\u61F8\u5FF5\u30FB\u6700\u521D\u306B\u76F4\u3059\u70B9\u3092\u8A18\u9332\u3002", x, y, 760, 720);
+    parent2.appendChild(board);
+    renderDiagnosisContent(board, results, 24, 104, 712);
+    return board;
+  }
+  function renderCompareBoardPanel(parent2, result, demoComparison, x, y) {
+    const board = createSection("Compare", "5\u6848\u306E\u5F79\u5272\u3068\u5411\u304D\u4E0D\u5411\u304D\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3092\u6C7A\u3081\u308B\u3002", x, y, 900, 720);
+    parent2.appendChild(board);
+    renderCompareContent(board, result, 24, 104, 852, demoComparison);
+    return board;
+  }
+  function renderBackgroundVariationsBoard(parent2, variations, result, x, y) {
+    var _a;
+    const board = createSection("Background Variations", "Primary\u6848\u306B\u3060\u3051\u80CC\u666F3\u6848\u3092\u4F5C\u308B\u3002\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
+    parent2.appendChild(board);
+    addText(board, (_a = result == null ? void 0 : result.brief.promptText) != null ? _a : "\u6BD4\u8F03\u5F8C\u306Bbackground brief\u304C\u5165\u308A\u307E\u3059\u3002Demo\u3067\u306F\u80CC\u666F3\u6848\u306E\u65B9\u5411\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 24, 88, {
+      size: 11,
       color: COLORS.muted,
-      width: 1160
+      width: 820,
+      height: 36
     });
-    addPill(parent2, 1548, 42, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
-    const info = createCard(40, 126, 1760, 148);
-    parent2.appendChild(info);
-    addMetric(info, "\u30D7\u30ED\u30B8\u30A7\u30AF\u30C8\u540D", project.projectName, 24, 22, 360);
-    addMetric(info, "\u7528\u9014", project.contentType === "seminar_banner" ? "\u30BB\u30DF\u30CA\u30FC / \u30A6\u30A7\u30D3\u30CA\u30FC\u30D0\u30CA\u30FC" : "note / \u30D6\u30ED\u30B0\u30B5\u30E0\u30CD\u30A4\u30EB", 420, 22, 300);
-    addMetric(info, "\u30B5\u30A4\u30BA", `${project.canvasSize.width} x ${project.canvasSize.height}`, 760, 22, 220);
-    addMetric(info, "\u5165\u529B\u30BF\u30A4\u30D7", project.inputMode === "fixed_copy" ? "\u78BA\u5B9A\u30B3\u30D4\u30FC\u304B\u3089\u4F5C\u308B" : "\u8981\u4EF6\u304B\u3089\u4F5C\u308B", 1020, 22, 240);
-    addMetric(info, "\u4F5C\u6210\u65E5\u6642", new Date(project.createdAt).toLocaleString("ja-JP"), 1300, 22, 360);
-    addMetric(info, "\u30BF\u30FC\u30B2\u30C3\u30C8", (_a = project.inputSummary.targetAudience) != null ? _a : "\u672A\u6307\u5B9A", 24, 88, 520);
-    addMetric(info, "\u30B4\u30FC\u30EB", (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 580, 88, 520);
-    addMetric(info, "\u5165\u529B\u5185\u5BB9", project.inputSummary.brief, 1140, 88, 580);
+    renderBackgroundGrid(board, variations, 24, 146, 832);
+    return board;
   }
-  function renderCopySection(parent2, directions) {
-    const section = createSection("5\u65B9\u5411\u306B\u6574\u7406", "30\u6848\u306E\u63A2\u7D22\u304B\u3089\u3001\u4EBA\u304C\u9078\u3073\u3084\u3059\u30445\u3064\u306E\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u3078\u6574\u7406\u3057\u307E\u3059\u3002", 40, 314, 560, 760);
-    parent2.appendChild(section);
-    renderCopyCards(section, directions, 20, 78, 520);
+  function renderFinalCandidateBoard(parent2, project, x, y) {
+    var _a;
+    const board = createSection("Final Candidate", "\u9078\u3093\u3060\u6848\u3001\u9069\u7528\u80CC\u666F\u3001\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8\u3002", x, y, 760, 720);
+    parent2.appendChild(board);
+    const final = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate;
+    const card = createCard(24, 104, 712, 516);
+    board.appendChild(card);
+    if (!final) {
+      addText(card, "\u6700\u7D42\u6848\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6BD4\u8F03\u3068\u80CC\u666F\u4ED5\u4E0A\u3052\u306E\u5F8C\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 20, 24, { size: 13, color: COLORS.muted, width: 660 });
+      return board;
+    }
+    addText(card, final.name, 20, 22, { size: 20, bold: true, color: COLORS.blue, width: 660 });
+    addText(card, `\u63A1\u7528\u7406\u7531: ${final.reason}`, 20, 62, { size: 12, width: 660, height: 70 });
+    addList(card, "\u7DE8\u96C6\u53EF\u80FD\u306A\u30EC\u30A4\u30E4\u30FC", final.editableLayers, 20, 156, 660);
+    addList(card, "\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8", final.nextAdjustments, 20, 282, 660);
+    addPreviewBox(card, 20, 416, "\u6700\u7D42\u6848\u306F\u4E0A\u90E8\u306E\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u3067\u78BA\u8A8D", 660, 68);
+    return board;
   }
-  function renderLayoutSection(parent2, project) {
-    const section = createSection("\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD", "\u5404\u65B9\u5411\u6027\u306B\u5BFE\u5FDC\u3059\u308B\u69CB\u56F3\u3001\u512A\u5148\u9806\u4F4D\u3001\u80CC\u666F\u65B9\u91DD\u3092\u6574\u7406\u3057\u307E\u3059\u3002", 640, 314, 560, 760);
-    parent2.appendChild(section);
-    renderLayoutCards(section, project, 20, 78, 520);
-  }
-  function renderExplorationSection(parent2, directions) {
-    const section = createSection("30\u6848\u3092\u63A2\u7D22", "\u30B3\u30D4\u30FC\u3068\u8A34\u6C42\u8EF8\u3092\u5E83\u3052\u308B\u30C7\u30E2\u63A2\u7D22\u30ED\u30B0\u3067\u3059\u3002SVG\u672C\u4F53\u306F\u30DC\u30FC\u30C9\u5916\u306B5\u6848\u3068\u3057\u3066\u914D\u7F6E\u3057\u307E\u3059\u3002", 1240, 314, 560, 760);
-    parent2.appendChild(section);
-    const summary = createCard(20, 78, 520, 86);
-    section.appendChild(summary);
-    addText(summary, "30\u6848 \u2192 5\u65B9\u5411\u3078\u62BD\u51FA", 18, 14, { size: 18, bold: true, color: COLORS.blue, width: 300 });
-    addText(summary, "Demo Mode\u3067\u3082\u3001AI\u304C\u3044\u304D\u306A\u308A5\u6848\u3092\u51FA\u3057\u305F\u306E\u3067\u306F\u306A\u304F\u3001\u8907\u6570\u306E\u5207\u308A\u53E3\u3092\u5E83\u3052\u3066\u304B\u3089\u65B9\u5411\u6027\u3092\u7D5E\u3063\u305F\u6D41\u308C\u3068\u3057\u3066\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 18, 44, {
-      size: 10,
-      color: COLORS.muted,
-      width: 484,
-      height: 34
-    });
-    const ideas = createExplorationIdeas(directions);
+  function renderIdeaGrid(parent2, ideas, x, y, width) {
     if (ideas.length === 0) {
-      addEmpty(section, "Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3059\u308B\u306830\u6848\u306E\u63A2\u7D22\u30ED\u30B0\u304C\u8868\u793A\u3055\u308C\u307E\u3059\u3002", 20, 188, 520);
+      addEmpty(parent2, "30\u6848\u63A2\u7D22\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
       return;
     }
+    const cardWidth = (width - 40) / 5;
     ideas.slice(0, 30).forEach((idea, index) => {
-      const col = index % 3;
-      const row = Math.floor(index / 3);
-      const cardWidth = 160;
-      const card = createFrame(`Idea ${index + 1}`, 20 + col * 180, 190 + row * 54, cardWidth, 44, index % 2 === 0 ? COLORS.card : COLORS.paleBlue);
-      card.cornerRadius = 10;
-      card.strokes = [{ type: "SOLID", color: COLORS.border }];
-      card.strokeWeight = 1;
-      section.appendChild(card);
-      addText(card, `${String(index + 1).padStart(2, "0")} ${idea.directionTitle.slice(0, 7)} / ${idea.angle}`, 10, 8, {
-        size: 8,
-        bold: true,
-        color: COLORS.blue,
-        width: cardWidth - 20
+      const col = index % 5;
+      const row = Math.floor(index / 5);
+      const card = createCard(x + col * (cardWidth + 10), y + row * 86, cardWidth, 74);
+      parent2.appendChild(card);
+      const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
+      addText(card, `${String(index + 1).padStart(2, "0")} ${idea.name}`, 10, 8, { size: 9, bold: true, color: statusColor, width: cardWidth - 20 });
+      addText(card, idea.mainCopy.replace(/\n/g, " / "), 10, 26, { size: 8, bold: true, width: cardWidth - 20, height: 18 });
+      addText(card, idea.layoutHint, 10, 50, { size: 7, color: COLORS.muted, width: cardWidth - 20, height: 14 });
+    });
+  }
+  function renderDraftGrid(parent2, drafts, x, y, width) {
+    if (drafts.length === 0) {
+      addEmpty(parent2, "15\u6848\u306ETypography Draft\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
+      return;
+    }
+    const cardWidth = (width - 48) / 5;
+    drafts.slice(0, 15).forEach((draft, index) => {
+      const col = index % 5;
+      const row = Math.floor(index / 5);
+      const card = createCard(x + col * (cardWidth + 12), y + row * 292, cardWidth, 272);
+      parent2.appendChild(card);
+      addText(card, `${draft.name} / ${draft.layoutType}`, 12, 10, { size: 10, bold: true, color: draft.selectedForRefine ? COLORS.green : COLORS.blue, width: cardWidth - 24 });
+      addText(card, draft.directionName, 12, 30, { size: 8, color: COLORS.muted, width: cardWidth - 24 });
+      appendSvg(card, draft.svg, 12, 54, cardWidth - 24, 138, draft.name);
+      addText(card, draft.evaluationMemo, 12, 204, { size: 8, color: COLORS.muted, width: cardWidth - 24, height: 28 });
+      addPill(card, 12, 236, draft.selectedForRefine ? "5\u6848\u3078\u6B8B\u3059" : "\u6BD4\u8F03\u4FDD\u7559", draft.selectedForRefine ? COLORS.green : COLORS.muted, 90);
+    });
+  }
+  function renderRefinedGrid(parent2, workflow, candidates, directions, x, y, width) {
+    var _a;
+    if (candidates.length === 0) {
+      addEmpty(parent2, "5\u6848\u306E\u9AD8\u54C1\u8CEASVG\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
+      return;
+    }
+    const byDirection = new Map(directions.map((direction) => [direction.id, direction]));
+    const refined = (_a = workflow == null ? void 0 : workflow.refinedSvgCandidates) != null ? _a : candidates;
+    refined.slice(0, 5).forEach((candidate, index) => {
+      var _a2, _b, _c, _d, _e, _f, _g;
+      const col = index % 2;
+      const row = Math.floor(index / 2);
+      const cardWidth = (width - 20) / 2;
+      const card = createCard(x + col * (cardWidth + 20), y + row * 286, cardWidth, 266);
+      parent2.appendChild(card);
+      const direction = byDirection.get(candidate.directionId);
+      addText(card, `${index + 1}. ${(_a2 = direction == null ? void 0 : direction.title) != null ? _a2 : candidate.name}`, 14, 12, { size: 13, bold: true, color: COLORS.blue, width: cardWidth - 28 });
+      appendSvg(card, candidate.svg, 14, 40, 300, 170, candidate.name);
+      addText(card, (_d = (_c = (_b = workflow == null ? void 0 : workflow.refinedSvgCandidates[index]) == null ? void 0 : _b.strength) != null ? _c : direction == null ? void 0 : direction.summary) != null ? _d : "\u65B9\u5411\u6027\u306E\u9055\u3044\u3092\u6BD4\u8F03\u3067\u304D\u308B\u6848\u3067\u3059\u3002", 330, 54, {
+        size: 10,
+        width: cardWidth - 350,
+        height: 48
       });
-      addText(card, idea.copy, 10, 24, { size: 8, color: COLORS.muted, width: cardWidth - 20, height: 14 });
-    });
-    addText(section, "\u62BD\u51FA\u3055\u308C\u305F5\u65B9\u5411", 20, 736, { size: 10, bold: true, color: COLORS.blue, width: 140 });
-    directions.slice(0, 5).forEach((direction, index) => {
-      addPill(section, 132 + index * 82, 730, direction.title.slice(0, 7), COLORS.blue, 74);
+      addText(card, (_g = (_f = (_e = workflow == null ? void 0 : workflow.refinedSvgCandidates[index]) == null ? void 0 : _e.concern) != null ? _f : direction == null ? void 0 : direction.riskNote) != null ? _g : "\u4ED5\u4E0A\u3052\u6642\u306B\u53EF\u8AAD\u6027\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002", 330, 120, {
+        size: 9,
+        color: COLORS.muted,
+        width: cardWidth - 350,
+        height: 52
+      });
+      addPill(card, 330, 194, candidate.meta.layoutType, COLORS.blue, 152);
     });
   }
-  function renderInsightSection(parent2, project) {
-    const section = createSection("\u30EC\u30D3\u30E5\u30FC\u8A18\u9332", "\u8A3A\u65AD\u3001\u6BD4\u8F03\u3001\u4ED5\u4E0A\u3052\u306E\u7D50\u679C\u304C\u3042\u308B\u5834\u5408\u306F\u3053\u3053\u306B\u8FFD\u8A18\u3055\u308C\u307E\u3059\u3002", 40, 1118, 1760, 548);
-    parent2.appendChild(section);
-    renderDiagnosisContent(section, project.diagnosisResults, 24, 82, 520);
-    renderCompareContent(section, project.comparisonResult, 620, 82, 520);
-    renderFinishContent(section, project.backgroundResult, project.comparisonResult, 1216, 82, 520);
-  }
-  function renderCopyCards(parent2, directions, x, y, width) {
-    if (directions.length === 0) {
-      addEmpty(parent2, "\u30B3\u30D4\u30FC\u65B9\u5411\u6027\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044\u3002", x, y, width);
+  function renderBackgroundGrid(parent2, variations, x, y, width) {
+    if (variations.length === 0) {
+      addEmpty(parent2, "\u80CC\u666F3\u6848\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u6BD4\u8F03\u3067Primary\u6848\u3092\u9078\u3076\u3068\u751F\u6210\u65B9\u91DD\u304C\u5165\u308A\u307E\u3059\u3002", x, y, width);
       return;
     }
-    directions.slice(0, 5).forEach((direction, index) => {
-      const card = createCard(x, y + index * 126, width, 112);
+    const cardWidth = (width - 32) / 3;
+    variations.slice(0, 3).forEach((variation, index) => {
+      const card = createCard(x + index * (cardWidth + 16), y, cardWidth, 360);
       parent2.appendChild(card);
-      addText(card, `${index + 1}. ${direction.title}`, 16, 12, { size: 14, bold: true, width: width - 32 });
-      addText(card, direction.copy.main.replace(/\n/g, " / "), 16, 34, { size: 12, bold: true, color: COLORS.blue, width: width - 32 });
-      addText(card, direction.copy.sub, 16, 56, { size: 10, color: COLORS.muted, width: width - 32, height: 24 });
-      addText(card, `\u610F\u56F3: ${direction.intent}`, 16, 82, { size: 9, color: COLORS.muted, width: width - 32 });
-      if (direction.copy.cta) addPill(card, width - 146, 12, direction.copy.cta, COLORS.green, 126);
-    });
-  }
-  function renderLayoutCards(parent2, project, x, y, width) {
-    if (project.layoutStrategies.length === 0) {
-      addEmpty(parent2, "\u30EC\u30A4\u30A2\u30A6\u30C8\u65B9\u91DD\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30B5\u30F3\u30D7\u30EB\u3092\u8AAD\u307F\u8FBC\u3080\u304B\u3001\u63A2\u7D22\u3092\u958B\u59CB\u3057\u3066\u304F\u3060\u3055\u3044\u3002", x, y, width);
-      return;
-    }
-    project.layoutStrategies.slice(0, 5).forEach((strategy, index) => {
-      const card = createCard(x, y + index * 126, width, 112);
-      parent2.appendChild(card);
-      addText(card, `${index + 1}. ${strategy.directionName}`, 16, 12, { size: 14, bold: true, width: 260 });
-      addPill(card, width - 156, 10, strategy.layoutType, COLORS.blue, 136);
-      addText(card, `\u69CB\u56F3: ${strategy.composition}`, 16, 38, { size: 10, width: width - 32, height: 30 });
-      addText(card, `\u512A\u5148\u9806\u4F4D: ${strategy.hierarchy.join(" > ")}`, 16, 70, { size: 9, color: COLORS.muted, width: width - 32 });
-      addText(card, `\u80CC\u666F: ${strategy.background}`, 16, 90, { size: 9, color: COLORS.muted, width: width - 32 });
+      addText(card, variation.name, 12, 12, { size: 12, bold: true, color: variation.selected ? COLORS.green : COLORS.blue, width: cardWidth - 24 });
+      appendSvg(card, variation.svg, 12, 42, cardWidth - 24, 148, variation.name);
+      addText(card, variation.direction, 12, 212, { size: 9, color: COLORS.muted, width: cardWidth - 24, height: 60 });
+      addPill(card, 12, 306, variation.selected ? "\u9078\u629E\u4E2D" : `\u80CC\u666F\u6848 ${String.fromCharCode(65 + index)}`, variation.selected ? COLORS.green : COLORS.muted, 90);
     });
   }
   function renderDiagnosisContent(parent2, results, x, y, width) {
     const result = results[results.length - 1];
-    const card = createCard(x, y, width, 420);
+    const card = createCard(x, y, width, 500);
     parent2.appendChild(card);
-    addText(card, "\u8A3A\u65AD", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+    addText(card, "\u8A3A\u65AD\u7D50\u679C", 16, 14, { size: 16, bold: true, color: COLORS.blue });
     if (!result) {
       addText(card, "\u8A3A\u65AD\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Figma\u4E0A\u30671\u6848\u3092\u9078\u629E\u3057\u3066\u8A3A\u65AD\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, {
         size: 11,
@@ -589,14 +680,28 @@
     addText(card, `\u5BFE\u8C61: ${result.frameName}`, 16, 46, { size: 11, bold: true, width: width - 32 });
     addText(card, result.summary, 16, 70, { size: 10, width: width - 32, height: 46 });
     addText(card, `\u6700\u521D\u306B\u4F1D\u308F\u308B\u3053\u3068: ${result.firstImpression}`, 16, 124, { size: 9, color: COLORS.muted, width: width - 32, height: 48 });
-    addList(card, "\u5F37\u3044\u70B9", result.strengths, 16, 184, width - 32);
-    addList(card, "\u6C17\u306B\u306A\u308B\u70B9", result.concerns, 16, 282, width - 32);
+    addList(card, "\u5F37\u3044\u70B9", result.strengths, 16, 194, width - 32);
+    addList(card, "\u6C17\u306B\u306A\u308B\u70B9", result.concerns, 16, 308, width - 32);
   }
-  function renderCompareContent(parent2, result, x, y, width) {
-    const card = createCard(x, y, width, 420);
+  function renderCompareContent(parent2, result, x, y, width, demoComparison) {
+    const card = createCard(x, y, width, 500);
     parent2.appendChild(card);
-    addText(card, "\u6BD4\u8F03", 16, 14, { size: 16, bold: true, color: COLORS.blue });
+    addText(card, "\u6BD4\u8F03\u30FB\u8A55\u4FA1", 16, 14, { size: 16, bold: true, color: COLORS.blue });
     if (!result) {
+      if (demoComparison) {
+        addText(card, demoComparison.summary, 16, 46, { size: 10, width: width - 32, height: 54 });
+        addText(card, `Primary: ${demoComparison.primaryName}`, 16, 112, { size: 12, bold: true, color: COLORS.green, width: width - 32 });
+        addText(card, `Secondary: ${demoComparison.secondaryName}`, 16, 138, { size: 10, color: COLORS.muted, width: width - 32 });
+        addText(card, `\u9078\u5B9A\u7406\u7531: ${demoComparison.selectionReason}`, 16, 166, { size: 9, color: COLORS.muted, width: width - 32, height: 42 });
+        demoComparison.rows.slice(0, 5).forEach((row, index) => {
+          const yPos = 236 + index * 48;
+          addText(card, row.name, 16, yPos, { size: 9, bold: true, color: COLORS.blue, width: 120 });
+          addText(card, row.role, 146, yPos, { size: 8, width: 92 });
+          addText(card, row.layout, 250, yPos, { size: 8, color: COLORS.muted, width: 132 });
+          addText(card, row.strength, 398, yPos, { size: 8, color: COLORS.muted, width: width - 414, height: 30 });
+        });
+        return;
+      }
       addText(card, "\u6BD4\u8F03\u7D50\u679C\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u30022\u304B\u30895\u6848\u3092\u9078\u629E\u3057\u3066\u6BD4\u8F03\u3059\u308B\u3068\u3001\u3053\u3053\u306B\u8A18\u9332\u3055\u308C\u307E\u3059\u3002", 16, 48, {
         size: 11,
         color: COLORS.muted,
@@ -604,31 +709,25 @@
       });
       return;
     }
-    addText(card, result.comparisonSummary, 16, 46, { size: 10, width: width - 32, height: 48 });
-    addText(card, `\u30D9\u30FC\u30B9\u5019\u88DC: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 104, {
-      size: 11,
+    addText(card, result.comparisonSummary, 16, 46, { size: 10, width: width - 32, height: 46 });
+    addText(card, `Primary: ${findFrameName(result, result.recommendation.primaryFrameId)}`, 16, 106, {
+      size: 12,
       bold: true,
       color: COLORS.green,
       width: width - 32
     });
-    addText(card, `\u6B21\u70B9\u5019\u88DC: ${result.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : "\u306A\u3057"}`, 16, 128, {
+    addText(card, `Secondary: ${result.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : "\u306A\u3057"}`, 16, 132, {
       size: 10,
       color: COLORS.muted,
       width: width - 32
     });
-    addText(card, `\u9078\u5B9A\u7406\u7531: ${result.recommendation.primaryReason}`, 16, 154, { size: 9, color: COLORS.muted, width: width - 32, height: 46 });
-    addList(
-      card,
-      "background brief",
-      [
-        result.backgroundBrief.promptText,
-        `\u907F\u3051\u308B\u3053\u3068: ${result.backgroundBrief.avoid.join(", ")}`,
-        `\u6587\u5B57\u9818\u57DF: ${result.backgroundBrief.safeAreaHint}`
-      ],
-      16,
-      224,
-      width - 32
-    );
+    addText(card, `\u9078\u5B9A\u7406\u7531: ${result.recommendation.primaryReason}`, 16, 162, { size: 9, color: COLORS.muted, width: width - 32, height: 46 });
+    result.frameRoles.slice(0, 4).forEach((role, index) => {
+      const yPos = 238 + index * 54;
+      addText(card, role.frameName, 16, yPos, { size: 9, bold: true, color: COLORS.blue, width: 156 });
+      addText(card, role.role, 184, yPos, { size: 8, width: 132 });
+      addText(card, role.strength, 330, yPos, { size: 8, color: COLORS.muted, width: width - 350, height: 32 });
+    });
   }
   function renderFinishContent(parent2, result, comparison, x, y, width) {
     var _a;
@@ -650,58 +749,24 @@
     addList(card, "\u907F\u3051\u308B\u3053\u3068", brief.avoid, 16, 180, width - 32);
     addPreviewBox(card, 16, 306, result ? `\u6700\u7D42\u6848 / ${result.styleName}` : "\u80CC\u666F\u751F\u6210\u5F8C\u306B\u78BA\u8A8D", width - 32, 78);
   }
-  function createExplorationIdeas(directions) {
-    const fallbackAngles = ["\u554F\u3044", "\u4FA1\u5024", "\u5B9F\u52D9", "\u5B89\u5FC3", "\u4FE1\u983C", "CTA"];
-    const demoAngles = {
-      seminar_problem_01: [
-        { angle: "\u4E0D\u5B89", copy: "AI\u6D3B\u7528\u3001\u4F55\u304B\u3089\u59CB\u3081\u308B\uFF1F" },
-        { angle: "\u6700\u521D\u306E\u58C1", copy: "\u30C4\u30FC\u30EB\u9078\u3073\u3088\u308A\u5148\u306B\u77E5\u308B\u3053\u3068" },
-        { angle: "\u5171\u611F", copy: "\u5FD9\u3057\u304F\u3066\u3082\u59CB\u3081\u3089\u308C\u308BAI\u5165\u9580" },
-        { angle: "\u5C0E\u5165", copy: "\u660E\u65E5\u304B\u3089\u4F7F\u3048\u308B\u5B9F\u8DF5\u30B9\u30C6\u30C3\u30D7" },
-        { angle: "\u5B89\u5FC3", copy: "\u5C02\u9580\u77E5\u8B58\u306A\u3057\u3067\u6700\u521D\u306E\u4E00\u6B69" },
-        { angle: "CTA", copy: "\u7121\u6599\u3067\u53C2\u52A0\u3059\u308B" }
-      ],
-      seminar_benefit_02: [
-        { angle: "\u6642\u77ED", copy: "60\u5206\u3067\u308F\u304B\u308BAI\u6D3B\u7528\u306E\u7B2C\u4E00\u6B69" },
-        { angle: "\u6210\u679C", copy: "\u696D\u52D9\u6539\u5584\u306B\u4F7F\u3048\u308B\u8003\u3048\u65B9" },
-        { angle: "\u7406\u89E3", copy: "\u5B9F\u4F8B\u3067\u308F\u304B\u308BAI\u6D3B\u7528" },
-        { angle: "\u6574\u7406", copy: "\u8981\u70B9\u3060\u3051\u3092\u77ED\u6642\u9593\u3067\u5B66\u3076" },
-        { angle: "\u5224\u65AD", copy: "\u53C2\u52A0\u5F8C\u306B\u4F55\u3092\u8A66\u3059\u304B\u898B\u3048\u308B" },
-        { angle: "CTA", copy: "\u4ECA\u3059\u3050\u7533\u3057\u8FBC\u3080" }
-      ],
-      seminar_practical_03: [
-        { angle: "\u5B9F\u52D9", copy: "\u660E\u65E5\u304B\u3089\u4F7F\u3048\u308BAI\u696D\u52D9\u6539\u5584" },
-        { angle: "\u30D7\u30ED\u30F3\u30D7\u30C8", copy: "\u73FE\u5834\u3067\u8A66\u305B\u308B\u6D3B\u7528\u30B9\u30C6\u30C3\u30D7" },
-        { angle: "\u5C0E\u5165", copy: "\u5C0F\u3055\u304F\u59CB\u3081\u308B\u696D\u52D9\u6539\u5584" },
-        { angle: "\u5177\u4F53\u6027", copy: "\u5B9F\u4F8B\u3067\u5B66\u3076AI\u6D3B\u7528" },
-        { angle: "\u6301\u3061\u5E30\u308A", copy: "\u3059\u3050\u8A66\u305B\u308B\u578B\u3092\u6574\u7406" },
-        { angle: "CTA", copy: "\u7121\u6599\u3067\u8996\u8074\u3059\u308B" }
-      ],
-      seminar_trust_04: [
-        { angle: "\u4FE1\u983C", copy: "\u73FE\u5834\u3067\u4F7F\u3048\u308BAI\u6D3B\u7528\u30BB\u30DF\u30CA\u30FC" },
-        { angle: "BtoB", copy: "\u5C0E\u5165\u524D\u306E\u4E0D\u5B89\u3092\u6574\u7406\u3059\u308B" },
-        { angle: "\u5171\u6709", copy: "\u793E\u5185\u3067\u8AAC\u660E\u3057\u3084\u3059\u3044AI\u5165\u9580" },
-        { angle: "\u5805\u5B9F", copy: "\u5B9F\u8DF5\u307E\u3067\u3064\u306A\u3052\u308B\u57FA\u672C\u8A2D\u8A08" },
-        { angle: "\u5B89\u5FC3", copy: "\u843D\u3061\u7740\u3044\u3066\u5B66\u3079\u308B\u5C0E\u5165\u8B1B\u5EA7" },
-        { angle: "CTA", copy: "\u8A73\u7D30\u3092\u898B\u308B" }
-      ],
-      seminar_beginner_05: [
-        { angle: "\u6B53\u8FCE", copy: "AI\u521D\u5FC3\u8005\u306E\u305F\u3081\u306E\u5B9F\u8DF5\u30A6\u30A7\u30D3\u30CA\u30FC" },
-        { angle: "\u3084\u3055\u3057\u3055", copy: "\u5C02\u9580\u77E5\u8B58\u306A\u3057\u3067\u306F\u3058\u3081\u308B" },
-        { angle: "\u5165\u53E3", copy: "\u6700\u521D\u306E\u4E00\u6B69\u3092\u4E00\u7DD2\u306B\u6574\u7406" },
-        { angle: "\u4E0D\u5B89\u89E3\u6D88", copy: "\u96E3\u3057\u305D\u3046\u3092\u307B\u3069\u304F60\u5206" },
-        { angle: "\u53C2\u52A0\u611F", copy: "\u521D\u5B66\u8005\u3067\u3082\u7F6E\u3044\u3066\u3044\u304B\u306A\u3044" },
-        { angle: "CTA", copy: "\u7121\u6599\u3067\u53C2\u52A0\u3059\u308B" }
-      ]
-    };
-    return directions.slice(0, 5).flatMap((direction, directionIndex) => {
-      var _a;
-      const ideas = (_a = demoAngles[direction.id]) != null ? _a : fallbackAngles.map((angle, index) => ({
-        angle,
-        copy: index === 0 ? direction.copy.main.replace(/\n/g, " ") : index === 1 ? direction.copy.sub : direction.intent
-      }));
-      return ideas.map((idea) => __spreadValues({ directionTitle: direction.title }, idea));
+  function addStageStats(parent2, stats) {
+    stats.forEach(([label, value], index) => {
+      const card = createFrame(`Stat / ${label}`, 24 + index * 154, 82, 138, 44, COLORS.paleBlue);
+      card.cornerRadius = 12;
+      card.strokes = [{ type: "SOLID", color: COLORS.border }];
+      card.strokeWeight = 1;
+      parent2.appendChild(card);
+      addText(card, label, 12, 8, { size: 8, bold: true, color: COLORS.blue, width: 114 });
+      addText(card, value, 12, 22, { size: 11, bold: true, width: 114 });
     });
+  }
+  function appendSvg(parent2, svg, x, y, width, height, name) {
+    const svgNode = figma.createNodeFromSvg(svg);
+    svgNode.name = name;
+    svgNode.x = x;
+    svgNode.y = y;
+    svgNode.resize(width, height);
+    parent2.appendChild(svgNode);
   }
   function createStandaloneBoard(title, description, width, height) {
     const board = createFrame(title, 0, 0, width, height, COLORS.board);
@@ -717,8 +782,8 @@
     section.cornerRadius = 18;
     section.strokes = [{ type: "SOLID", color: COLORS.border }];
     section.strokeWeight = 1;
-    addText(section, title, 20, 18, { size: 20, bold: true, width: width - 40 });
-    addText(section, description, 20, 48, { size: 11, color: COLORS.muted, width: width - 40 });
+    addText(section, title, 24, 20, { size: 22, bold: true, width: width - 48 });
+    addText(section, description, 24, 54, { size: 11, color: COLORS.muted, width: width - 48 });
     return section;
   }
   function createFrame(name, x, y, width, height, fill) {
@@ -744,7 +809,7 @@
   }
   function addList(parent2, title, items, x, y, width) {
     addText(parent2, title, x, y, { size: 10, bold: true, color: COLORS.blue, width });
-    const visible = items.length > 0 ? items.slice(0, 3) : ["\u9805\u76EE\u306F\u3042\u308A\u307E\u305B\u3093\u3002"];
+    const visible = items.length > 0 ? items.slice(0, 4) : ["\u9805\u76EE\u306F\u3042\u308A\u307E\u305B\u3093\u3002"];
     visible.forEach((item, index) => addText(parent2, `- ${item}`, x, y + 20 + index * 24, { size: 9, color: COLORS.muted, width, height: 22 }));
   }
   function addEmpty(parent2, message, x, y, width) {
@@ -789,6 +854,25 @@
     parent2.appendChild(node);
     return node;
   }
+  function renderArrow(parent2, x, y, width) {
+    const line = figma.createLine();
+    line.name = "Process Arrow";
+    line.x = x;
+    line.y = y;
+    line.resize(width, 0);
+    line.strokes = [{ type: "SOLID", color: COLORS.blue }];
+    line.strokeWeight = 2;
+    parent2.appendChild(line);
+    const head = figma.createPolygon();
+    head.name = "Arrow Head";
+    head.pointCount = 3;
+    head.x = x + width - 2;
+    head.y = y - 5;
+    head.resize(10, 10);
+    head.rotation = 90;
+    head.fills = [{ type: "SOLID", color: COLORS.blue }];
+    parent2.appendChild(head);
+  }
   async function loadFonts() {
     await Promise.all([figma.loadFontAsync(FONT_REGULAR), figma.loadFontAsync(FONT_BOLD)]);
   }
@@ -831,7 +915,7 @@
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
         const nodes = placeProjectCandidates(message.payload);
         const board = await renderProcessBoard(message.payload, {
-          x: figma.viewport.center.x - 900,
+          x: figma.viewport.center.x - 4040,
           y: figma.viewport.center.y + 360,
           zoom: false
         });

@@ -1092,6 +1092,48 @@ input {
   gap: 10px;
 }
 
+.result-card {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.result-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: #64748b;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.result-card-header strong {
+  color: #155eef;
+  font-size: 14px;
+}
+
+.compact-list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.compact-list li {
+  padding: 7px 8px;
+  border-radius: 6px;
+  color: #334155;
+  background: #f8fafc;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
 .preview-copy {
   display: grid;
   gap: 3px;

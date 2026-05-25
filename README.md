@@ -1,15 +1,29 @@
-# AI Creative Assistant Figma Plugin
+# AI Cover Studio Figma Plugin
 
-AIが考えたコピー方向性、レイアウト方針、SVG候補、診断、比較、仕上げ方針を、Figma上にプロセスボードとして残すための制作支援プラグインです。完成バナーだけではなく、判断材料ごとレビューできる状態を目指しています。
+AI Cover Studioは、完成バナーを1枚だけ作るためのツールではありません。  
+AIが探索したコピー、文字組み、SVG案、比較、背景仕上げの過程をFigma上に記録し、デザイナーが判断できるようにするFigmaプラグインです。
 
-## A/B/C/D
+## 新しい制作フロー
 
-- A / 探索: 要件または確定コピーから30案を探索し、5方向のコピーとSVG候補に整理します。
-- B / 診断: Figma上で選択した1案を読み取り、強い点、気になる点、最初に直す点を整理します。
-- C / 比較: 2〜5案を比較し、ベース候補、次点候補、background briefを作ります。
-- D / 仕上げ: 選ばれた案だけに背景を生成・適用し、最終案として確認します。
+1. A1 / 30案探索  
+   Dify想定でコピー、訴求軸、トーン、レイアウト方向を30案広げます。
 
-## Setup
+2. A2 / 15案文字組みドラフト  
+   30案を整理し、15案のTypography Draft SVGを作ります。完成デザインではなく、文字サイズ、余白、CTA位置、日時情報の見え方を確認します。
+
+3. A3 / 5案高品質SVG  
+   15案から5案に絞り、Gemini想定で編集可能な高品質SVGへ仕上げます。
+
+4. B / 診断  
+   Figma上で1案を選び、強み、懸念、最初に直す点を記録します。
+
+5. C / 比較  
+   2から5案を比較し、Primary / Secondary候補と選定理由を記録します。
+
+6. D / 背景仕上げ  
+   Primary案に対して背景3案を作り、選ばれた背景を適用します。テキストとCTAは編集可能なまま残します。
+
+## セットアップ
 
 ```bash
 npm install
@@ -17,60 +31,40 @@ npm run dev
 npm run build
 ```
 
-Figmaで使う場合:
+Figma Desktopで使う場合:
 
 1. `npm run build`
 2. Figma Desktopを開く
-3. Plugins > Development > Import plugin from manifest...
-4. このリポジトリの `manifest.json` を選択
-5. Plugins > Development からプラグインを起動
+3. `Plugins > Development > Import plugin from manifest...`
+4. このリポジトリ直下の `manifest.json` を選ぶ
+5. `Plugins > Development` からプラグインを起動する
 
 ## APIなしでDemoフローを確認する
 
-展示会デモや初回確認では、API keyを入れなくても最後まで動きます。
+APIキーがなくてもDemo Modeで一連の流れを確認できます。
 
 1. `npm run build`
 2. Figmaで `manifest.json` を読み込む
 3. プラグインを起動
-4. 探索画面でDemoサンプルが自動表示される
-5. 「生成してFigmaに配置」
-6. Figmaキャンバス上で1案を選択
-7. 診断画面で「選択中のフレームを診断」
-8. 「診断結果をFigmaに記録」
-9. Figmaキャンバス上で2〜5案を選択
-10. 比較画面で「選択中の案を比較」
-11. 「比較結果をFigmaに記録」
-12. 仕上げ画面で「Demo背景を生成」「背景をFigmaに適用」
-13. 「仕上げ結果をFigmaに記録」
+4. 探索画面で `Demoフローを再読み込み`
+5. `一連のプロセスをFigmaに配置`
+6. Figmaキャンバス上に5つの実バナー案と横長プロセスボードが配置される
+7. 1案を選択して診断
+8. 2から5案を選択して比較
+9. 仕上げ画面で背景を生成、適用
 
-## Figmaにプロセスを記録する
+## Figmaに記録されるボード
 
-探索結果は、次のボードとしてFigmaキャンバスに記録できます。
+`一連のプロセスをFigmaに配置` で、以下が横方向に流れる1枚のボードとして生成されます。
 
-- Project Header Board
-- Copy Direction Board
-- Layout Strategy Board
-- SVG Candidate Board
-- Diagnosis Board
-- Compare Board
-- Finish Board
-
-探索段階でも、Project Header、コピー方向性、レイアウト方針、SVG候補は出力されます。診断、比較、仕上げを実行したあとに、それぞれの結果もFigma上へ追加できます。
-
-## Webローカルで確認できる範囲
-
-- React UIの表示
-- Demoデータ
-- SVG preview
-- 入力フォームやタブ移動
-
-## Figma内でしか確認できない範囲
-
-- SVGをFigmaに配置
-- 選択フレーム診断
-- 複数フレーム比較
-- 背景適用
-- プロセスボード生成
+- Project Header
+- 30 Ideas Explore
+- 15 Typography Drafts
+- 5 Refined SVGs
+- Diagnosis
+- Compare
+- Background Variations
+- Final Candidate
 
 ## API設定
 
@@ -80,15 +74,29 @@ APIを使う場合は、`src/config/apiSettings.example.ts` をコピーして `
 cp src/config/apiSettings.example.ts src/config/apiSettings.ts
 ```
 
-`apiSettings.ts` にDify / GeminiのURLとAPI keyを入れてください。実キーはコミットしないでください。providerの切り替えは `src/config/providers.ts` で行います。
+`apiSettings.ts` にDify / GeminiのURLとAPI keyを入れてください。実キーはコミットしないでください。  
+Providerの切り替えは `src/config/providers.ts` で行います。API未設定またはAPI失敗時はDemo Modeにfallbackします。
 
-APIが未設定、またはAPI呼び出しに失敗した場合はDemo Modeへfallbackします。
+## Webローカルで確認できる範囲
 
-## よくあるエラー
+- React UI
+- Demoデータ
+- SVGプレビュー
+- 30案 / 15ドラフト / 5高品質SVGの表示
 
-- `figma is not defined`: ブラウザ単体ではFigma APIを使えません。Figma Desktop上で確認してください。
-- APIが動かない: `apiSettings.ts` と `providers.ts` を確認してください。未設定でもDemo Modeで動きます。
-- SVGが貼れない: `npm run build` 後にFigma側でプラグインを再起動してください。
-- 何も表示されない: `manifest.json` がこのリポジトリ直下のものか確認し、`dist/code.js` と `dist/ui.html` が生成されているか確認してください。
+## Figma内でしか確認できない範囲
 
-詳しくは `docs/` を参照してください。
+- SVGをFigmaに配置
+- 横長プロセスボード生成
+- 選択フレーム診断
+- 複数フレーム比較
+- 背景レイヤー適用
+
+## 関連docs
+
+- [新ワークフロー](docs/new-workflow.md)
+- [Figmaプロセスボード](docs/figma-process-board.md)
+- [Difyワークフロー仕様](docs/dify-workflow-spec.md)
+- [Gemini仕上げ仕様](docs/gemini-refine-spec.md)
+- [Figmaプラグインテスト](docs/figma-plugin-test.md)
+- [API設定](docs/api-settings.md)
