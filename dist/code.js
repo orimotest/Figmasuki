@@ -428,37 +428,24 @@
   async function renderProcessBoard(project, options = {}) {
     var _a, _b, _c, _d, _e;
     await loadFonts();
-    const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8500, 1540, COLORS.canvas);
-    root.cornerRadius = 28;
-    root.strokes = [{ type: "SOLID", color: COLORS.border }];
-    root.strokeWeight = 1;
-    root.x = (_a = options.x) != null ? _a : figma.viewport.center.x - root.width / 2;
-    root.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
-    addText(root, "AI Cover Studio / Process Board", 40, 34, { size: 34, bold: true, width: 720 });
-    addText(root, "30\u6848\u63A2\u7D22\u304B\u3089\u6700\u7D42\u6848\u307E\u3067\u3001AI\u304C\u691C\u8A0E\u3057\u305F\u904E\u7A0B\u3092Figma\u4E0A\u3067\u30EC\u30D3\u30E5\u30FC\u3059\u308B\u305F\u3081\u306E\u6A2A\u9577\u30DC\u30FC\u30C9\u3067\u3059\u3002", 40, 82, {
-      size: 14,
-      color: COLORS.muted,
-      width: 980
-    });
-    addPill(root, root.width - 300, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
+    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250;
+    const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
     const workflow = project.stageWorkflow;
     const boards = [
-      renderProjectHeaderBoard(root, project, 40, 150),
-      renderIdeaExploreBoard(root, (_c = workflow == null ? void 0 : workflow.ideaDirections) != null ? _c : [], 700, 150),
-      renderTypographyDraftBoard(root, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], 1960, 150),
-      renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3420, 150),
-      renderDiagnosisBoardPanel(root, project.diagnosisResults, 4820, 150),
-      renderCompareBoardPanel(root, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, 5620, 150),
-      renderBackgroundVariationsBoard(root, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, 6560, 150),
-      renderFinalCandidateBoard(root, project, 7480, 150)
+      renderProjectHeaderBoard(null, project, startX, startY),
+      renderIdeaExploreBoard(null, (_c = workflow == null ? void 0 : workflow.ideaDirections) != null ? _c : [], startX + 660, startY),
+      renderTypographyDraftBoard(null, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], startX + 1920, startY),
+      renderRefinedSvgBoard(null, workflow, project.svgCandidates, startX + 3380, startY),
+      renderDiagnosisBoardPanel(null, project.diagnosisResults, startX + 4780, startY),
+      renderCompareBoardPanel(null, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, startX + 5580, startY),
+      renderBackgroundVariationsBoard(null, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, startX + 6520, startY),
+      renderFinalCandidateBoard(null, project, startX + 7440, startY)
     ];
-    boards.slice(0, -1).forEach((board, index) => renderArrow(root, board.x + board.width + 16, 492, index === 2 ? 20 : 28));
-    figma.currentPage.appendChild(root);
     if (options.zoom !== false) {
-      figma.currentPage.selection = [root];
-      figma.viewport.scrollAndZoomIntoView([root]);
+      figma.currentPage.selection = boards;
+      figma.viewport.scrollAndZoomIntoView(boards);
     }
-    return root;
+    return boards;
   }
   async function renderStandaloneDiagnosisBoard(result) {
     await loadFonts();
@@ -483,7 +470,7 @@
   }
   function renderProjectHeaderBoard(parent2, project, x, y) {
     const board = createSection("Project Header", "\u5236\u4F5C\u6761\u4EF6\u3068\u5B9F\u884C\u30E2\u30FC\u30C9", x, y, 620, 720);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     renderProjectHeaderContent(board, project, 24, 92, 572);
     return board;
   }
@@ -508,7 +495,7 @@
   }
   function renderIdeaExploreBoard(parent2, ideas, x, y) {
     const board = createSection("30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u65B9\u5411\u306B\u6574\u7406\u3057\u300115\u6848\u306E\u6587\u5B57\u7D44\u307F\u3078\u9032\u3081\u308B\u5019\u88DC\u3092\u898B\u3048\u308B\u5316\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 1220, 900);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     addStageStats(board, [
       ["\u63A2\u7D22", "30\u6848"],
       ["Typography\u3078", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}\u6848`],
@@ -519,7 +506,7 @@
   }
   function renderTypographyDraftBoard(parent2, drafts, x, y) {
     const board = createSection("15 Typography Drafts", "\u5B8C\u6210\u30C7\u30B6\u30A4\u30F3\u3067\u306F\u306A\u304F\u3001\u6587\u5B57\u7D44\u307F\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u691C\u8A0E\u3059\u308B\u8EFD\u91CFSVG\u3002", x, y, 1420, 1060);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     addStageStats(board, [
       ["\u30C9\u30E9\u30D5\u30C8", "15\u6848"],
       ["Refine\u3078", `${drafts.filter((draft) => draft.selectedForRefine).length}\u6848`],
@@ -530,7 +517,7 @@
   }
   function renderRefinedSvgBoard(parent2, workflow, candidates, x, y) {
     const board = createSection("5 Refined SVGs", "Gemini\u3067\u4ED5\u4E0A\u3052\u308B\u60F3\u5B9A\u306E\u9AD8\u54C1\u8CEASVG\u3002\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u306F\u4E0A\u90E8\u306B\u3082\u914D\u7F6E\u3055\u308C\u307E\u3059\u3002", x, y, 1360, 1060);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     addStageStats(board, [
       ["\u9AD8\u54C1\u8CEASVG", "5\u6848"],
       ["\u6BD4\u8F03\u8EF8", "\u65B9\u5411\u6027\u5DEE"],
@@ -541,20 +528,20 @@
   }
   function renderDiagnosisBoardPanel(parent2, results, x, y) {
     const board = createSection("Diagnosis", "1\u6848\u3092\u9078\u629E\u3057\u3066\u3001\u5F37\u307F\u30FB\u61F8\u5FF5\u30FB\u6700\u521D\u306B\u76F4\u3059\u70B9\u3092\u8A18\u9332\u3002", x, y, 760, 720);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     renderDiagnosisContent(board, results, 24, 104, 712);
     return board;
   }
   function renderCompareBoardPanel(parent2, result, demoComparison, x, y) {
     const board = createSection("Compare", "5\u6848\u306E\u5F79\u5272\u3068\u5411\u304D\u4E0D\u5411\u304D\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3092\u6C7A\u3081\u308B\u3002", x, y, 900, 720);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     renderCompareContent(board, result, 24, 104, 852, demoComparison);
     return board;
   }
   function renderBackgroundVariationsBoard(parent2, variations, result, x, y) {
     var _a;
     const board = createSection("Background Variations", "Primary\u6848\u306B\u3060\u3051\u80CC\u666F3\u6848\u3092\u4F5C\u308B\u3002\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     addText(board, (_a = result == null ? void 0 : result.brief.promptText) != null ? _a : "\u6BD4\u8F03\u5F8C\u306Bbackground brief\u304C\u5165\u308A\u307E\u3059\u3002Demo\u3067\u306F\u80CC\u666F3\u6848\u306E\u65B9\u5411\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 24, 88, {
       size: 11,
       color: COLORS.muted,
@@ -567,7 +554,7 @@
   function renderFinalCandidateBoard(parent2, project, x, y) {
     var _a;
     const board = createSection("Final Candidate", "\u9078\u3093\u3060\u6848\u3001\u9069\u7528\u80CC\u666F\u3001\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8\u3002", x, y, 760, 720);
-    parent2.appendChild(board);
+    appendBoard(parent2, board);
     const final = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate;
     const card = createCard(24, 104, 712, 516);
     board.appendChild(card);
@@ -859,6 +846,13 @@
     frame.clipsContent = false;
     return frame;
   }
+  function appendBoard(parent2, board) {
+    if (parent2) {
+      parent2.appendChild(board);
+      return;
+    }
+    figma.currentPage.appendChild(board);
+  }
   function createCard(x, y, width, height) {
     const card = createFrame("Card", x, y, width, height, COLORS.card);
     card.cornerRadius = 12;
@@ -917,25 +911,6 @@
     parent2.appendChild(node);
     return node;
   }
-  function renderArrow(parent2, x, y, width) {
-    const line = figma.createLine();
-    line.name = "Process Arrow";
-    line.x = x;
-    line.y = y;
-    line.resize(width, 0);
-    line.strokes = [{ type: "SOLID", color: COLORS.blue }];
-    line.strokeWeight = 2;
-    parent2.appendChild(line);
-    const head = figma.createPolygon();
-    head.name = "Arrow Head";
-    head.pointCount = 3;
-    head.x = x + width - 2;
-    head.y = y - 5;
-    head.resize(10, 10);
-    head.rotation = 90;
-    head.fills = [{ type: "SOLID", color: COLORS.blue }];
-    parent2.appendChild(head);
-  }
   async function loadFonts() {
     await Promise.all([figma.loadFontAsync(FONT_REGULAR), figma.loadFontAsync(FONT_BOLD)]);
   }
@@ -977,22 +952,22 @@
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
         const nodes = placeProjectCandidates(message.payload);
-        const board = await renderProcessBoard(message.payload, {
+        const boards = await renderProcessBoard(message.payload, {
           x: figma.viewport.center.x - 4250,
           y: figma.viewport.center.y + 360,
           zoom: false
         });
-        figma.currentPage.selection = [...nodes, board];
-        figma.viewport.scrollAndZoomIntoView([...nodes, board]);
+        figma.currentPage.selection = [...nodes, ...boards];
+        figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
         postToUi({
           type: "PLUGIN_SUCCESS",
-          payload: { message: `${nodes.length}\u6848\u3068\u30D7\u30ED\u30BB\u30B9\u30DC\u30FC\u30C9\u3092Figma\u306B\u307E\u3068\u3081\u3066\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` }
+          payload: { message: `${nodes.length}\u6848\u3068\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` }
         });
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {
         await renderProcessBoard(message.payload);
-        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u30D7\u30ED\u30BB\u30B9\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_DIAGNOSIS_BOARD") {

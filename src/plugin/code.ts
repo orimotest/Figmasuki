@@ -41,23 +41,23 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
 
     if (message.type === "PLACE_EXPLORE_PACKAGE") {
       const nodes = placeProjectCandidates(message.payload);
-      const board = await renderProcessBoard(message.payload, {
+      const boards = await renderProcessBoard(message.payload, {
         x: figma.viewport.center.x - 4250,
         y: figma.viewport.center.y + 360,
         zoom: false,
       });
-      figma.currentPage.selection = [...nodes, board];
-      figma.viewport.scrollAndZoomIntoView([...nodes, board]);
+      figma.currentPage.selection = [...nodes, ...boards];
+      figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
       postToUi({
         type: "PLUGIN_SUCCESS",
-        payload: { message: `${nodes.length}案とプロセスボードをFigmaにまとめて配置しました。` },
+        payload: { message: `${nodes.length}案と各フェーズの記録ボードをFigmaに配置しました。` },
       });
       return;
     }
 
     if (message.type === "RENDER_PROCESS_BOARD") {
       await renderProcessBoard(message.payload);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "プロセスボードをFigmaに作成しました。" } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "各フェーズの記録ボードをFigmaに作成しました。" } });
       return;
     }
 

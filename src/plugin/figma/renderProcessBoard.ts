@@ -36,42 +36,27 @@ type RenderOptions = {
   zoom?: boolean;
 };
 
-export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode> {
+export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode[]> {
   await loadFonts();
-  const root = createFrame(`AI Cover Studio / Full Process / ${project.projectName}`, 0, 0, 8500, 1540, COLORS.canvas);
-  root.cornerRadius = 28;
-  root.strokes = [{ type: "SOLID", color: COLORS.border }];
-  root.strokeWeight = 1;
-  root.x = options.x ?? figma.viewport.center.x - root.width / 2;
-  root.y = options.y ?? figma.viewport.center.y - 420;
-
-  addText(root, "AI Cover Studio / Process Board", 40, 34, { size: 34, bold: true, width: 720 });
-  addText(root, "30案探索から最終案まで、AIが検討した過程をFigma上でレビューするための横長ボードです。", 40, 82, {
-    size: 14,
-    color: COLORS.muted,
-    width: 980,
-  });
-  addPill(root, root.width - 300, 44, project.providerMeta.mode.includes("Demo") ? "Demo Mode" : "Live / Mixed", COLORS.blue, 220);
-
+  const startX = options.x ?? figma.viewport.center.x - 4250;
+  const startY = options.y ?? figma.viewport.center.y - 420;
   const workflow = project.stageWorkflow;
   const boards = [
-    renderProjectHeaderBoard(root, project, 40, 150),
-    renderIdeaExploreBoard(root, workflow?.ideaDirections ?? [], 700, 150),
-    renderTypographyDraftBoard(root, workflow?.typographyDrafts ?? [], 1960, 150),
-    renderRefinedSvgBoard(root, workflow, project.svgCandidates, 3420, 150),
-    renderDiagnosisBoardPanel(root, project.diagnosisResults, 4820, 150),
-    renderCompareBoardPanel(root, project.comparisonResult, workflow?.demoComparison, 5620, 150),
-    renderBackgroundVariationsBoard(root, workflow?.backgroundVariations ?? [], project.backgroundResult, 6560, 150),
-    renderFinalCandidateBoard(root, project, 7480, 150),
+    renderProjectHeaderBoard(null, project, startX, startY),
+    renderIdeaExploreBoard(null, workflow?.ideaDirections ?? [], startX + 660, startY),
+    renderTypographyDraftBoard(null, workflow?.typographyDrafts ?? [], startX + 1920, startY),
+    renderRefinedSvgBoard(null, workflow, project.svgCandidates, startX + 3380, startY),
+    renderDiagnosisBoardPanel(null, project.diagnosisResults, startX + 4780, startY),
+    renderCompareBoardPanel(null, project.comparisonResult, workflow?.demoComparison, startX + 5580, startY),
+    renderBackgroundVariationsBoard(null, workflow?.backgroundVariations ?? [], project.backgroundResult, startX + 6520, startY),
+    renderFinalCandidateBoard(null, project, startX + 7440, startY),
   ];
-  boards.slice(0, -1).forEach((board, index) => renderArrow(root, board.x + board.width + 16, 492, index === 2 ? 20 : 28));
 
-  figma.currentPage.appendChild(root);
   if (options.zoom !== false) {
-    figma.currentPage.selection = [root];
-    figma.viewport.scrollAndZoomIntoView([root]);
+    figma.currentPage.selection = boards;
+    figma.viewport.scrollAndZoomIntoView(boards);
   }
-  return root;
+  return boards;
 }
 
 export async function renderStandaloneDiagnosisBoard(result: DiagnosisResult): Promise<FrameNode> {
@@ -140,9 +125,9 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
   return board;
 }
 
-function renderProjectHeaderBoard(parent: FrameNode, project: ProjectData, x: number, y: number): FrameNode {
+function renderProjectHeaderBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
   const board = createSection("Project Header", "制作条件と実行モード", x, y, 620, 720);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   renderProjectHeaderContent(board, project, 24, 92, 572);
   return board;
 }
@@ -167,9 +152,9 @@ function renderProjectHeaderContent(parent: FrameNode, project: ProjectData, x: 
   addText(brief, project.inputSummary.goal ?? "未指定", 18, 202, { size: 12, width: width - 36 });
 }
 
-function renderIdeaExploreBoard(parent: FrameNode, ideas: IdeaDirection[], x: number, y: number): FrameNode {
+function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[], x: number, y: number): FrameNode {
   const board = createSection("30 Ideas Explore", "30案を5つの方向に整理し、15案の文字組みへ進める候補を見える化します。ここではSVGは置きません。", x, y, 1220, 900);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   addStageStats(board, [
     ["探索", "30案"],
     ["Typographyへ", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}案`],
@@ -179,9 +164,9 @@ function renderIdeaExploreBoard(parent: FrameNode, ideas: IdeaDirection[], x: nu
   return board;
 }
 
-function renderTypographyDraftBoard(parent: FrameNode, drafts: TypographyDraft[], x: number, y: number): FrameNode {
+function renderTypographyDraftBoard(parent: FrameNode | null, drafts: TypographyDraft[], x: number, y: number): FrameNode {
   const board = createSection("15 Typography Drafts", "完成デザインではなく、文字組み・余白・CTA位置を検討する軽量SVG。", x, y, 1420, 1060);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   addStageStats(board, [
     ["ドラフト", "15案"],
     ["Refineへ", `${drafts.filter((draft) => draft.selectedForRefine).length}案`],
@@ -191,9 +176,9 @@ function renderTypographyDraftBoard(parent: FrameNode, drafts: TypographyDraft[]
   return board;
 }
 
-function renderRefinedSvgBoard(parent: FrameNode, workflow: StageWorkflowData | undefined, candidates: SvgCandidate[], x: number, y: number): FrameNode {
+function renderRefinedSvgBoard(parent: FrameNode | null, workflow: StageWorkflowData | undefined, candidates: SvgCandidate[], x: number, y: number): FrameNode {
   const board = createSection("5 Refined SVGs", "Geminiで仕上げる想定の高品質SVG。実物フレームは上部にも配置されます。", x, y, 1360, 1060);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   addStageStats(board, [
     ["高品質SVG", "5案"],
     ["比較軸", "方向性差"],
@@ -203,29 +188,29 @@ function renderRefinedSvgBoard(parent: FrameNode, workflow: StageWorkflowData | 
   return board;
 }
 
-function renderDiagnosisBoardPanel(parent: FrameNode, results: DiagnosisResult[], x: number, y: number): FrameNode {
+function renderDiagnosisBoardPanel(parent: FrameNode | null, results: DiagnosisResult[], x: number, y: number): FrameNode {
   const board = createSection("Diagnosis", "1案を選択して、強み・懸念・最初に直す点を記録。", x, y, 760, 720);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   renderDiagnosisContent(board, results, 24, 104, 712);
   return board;
 }
 
-function renderCompareBoardPanel(parent: FrameNode, result: ComparisonResult | undefined, demoComparison: DemoComparison | undefined, x: number, y: number): FrameNode {
+function renderCompareBoardPanel(parent: FrameNode | null, result: ComparisonResult | undefined, demoComparison: DemoComparison | undefined, x: number, y: number): FrameNode {
   const board = createSection("Compare", "5案の役割と向き不向きを比較し、Primary / Secondaryを決める。", x, y, 900, 720);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   renderCompareContent(board, result, 24, 104, 852, demoComparison);
   return board;
 }
 
 function renderBackgroundVariationsBoard(
-  parent: FrameNode,
+  parent: FrameNode | null,
   variations: BackgroundVariation[],
   result: BackgroundResult | undefined,
   x: number,
   y: number,
 ): FrameNode {
   const board = createSection("Background Variations", "Primary案にだけ背景3案を作る。文字とCTAは編集可能なまま残します。", x, y, 880, 720);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   addText(board, result?.brief.promptText ?? "比較後にbackground briefが入ります。Demoでは背景3案の方向性を確認できます。", 24, 88, {
     size: 11,
     color: COLORS.muted,
@@ -236,9 +221,9 @@ function renderBackgroundVariationsBoard(
   return board;
 }
 
-function renderFinalCandidateBoard(parent: FrameNode, project: ProjectData, x: number, y: number): FrameNode {
+function renderFinalCandidateBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
   const board = createSection("Final Candidate", "選んだ案、適用背景、人間が次に調整するポイント。", x, y, 760, 720);
-  parent.appendChild(board);
+  appendBoard(parent, board);
   const final = project.stageWorkflow?.finalCandidate;
   const card = createCard(24, 104, 712, 516);
   board.appendChild(card);
@@ -562,6 +547,14 @@ function createFrame(name: string, x: number, y: number, width: number, height: 
   frame.fills = [{ type: "SOLID", color: fill }];
   frame.clipsContent = false;
   return frame;
+}
+
+function appendBoard(parent: FrameNode | null, board: FrameNode): void {
+  if (parent) {
+    parent.appendChild(board);
+    return;
+  }
+  figma.currentPage.appendChild(board);
 }
 
 function createCard(x: number, y: number, width: number, height: number): FrameNode {
