@@ -5,11 +5,22 @@ import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import type { ProjectData } from "../../schemas/project";
 import { hasString, isRecord } from "../../utils/guards";
 
+export type ProcessBoardStage =
+  | "project_header"
+  | "ideas"
+  | "typography_drafts"
+  | "refined_svgs"
+  | "diagnosis"
+  | "compare"
+  | "background_variations"
+  | "final_candidate";
+
 export type PluginRequestMessage =
   | { type: "INSERT_SVG"; payload: { svg: string; name?: string } }
   | { type: "INSERT_SVG_BATCH"; payload: { items: Array<{ svg: string; name?: string }> } }
   | { type: "PLACE_EXPLORE_PACKAGE"; payload: ProjectData }
   | { type: "RENDER_PROCESS_BOARD"; payload: ProjectData }
+  | { type: "RENDER_PROCESS_STAGE_BOARD"; payload: { project: ProjectData; stage: ProcessBoardStage } }
   | { type: "RENDER_DIAGNOSIS_BOARD"; payload: DiagnosisResult }
   | { type: "RENDER_COMPARE_BOARD"; payload: ComparisonResult }
   | { type: "RENDER_FINISH_BOARD"; payload: { backgroundResult: BackgroundResult; comparisonResult?: ComparisonResult } }
@@ -71,6 +82,19 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
     return { type: "RENDER_PROCESS_BOARD", payload: value.payload as ProjectData };
   }
 
+  if (
+    value.type === "RENDER_PROCESS_STAGE_BOARD" &&
+    isRecord(value.payload) &&
+    isRecord(value.payload.project) &&
+    hasString(value.payload, "stage") &&
+    isProcessBoardStage(value.payload.stage)
+  ) {
+    return {
+      type: "RENDER_PROCESS_STAGE_BOARD",
+      payload: { project: value.payload.project as ProjectData, stage: value.payload.stage },
+    };
+  }
+
   if (value.type === "RENDER_DIAGNOSIS_BOARD" && isRecord(value.payload)) {
     return { type: "RENDER_DIAGNOSIS_BOARD", payload: value.payload as DiagnosisResult };
   }
@@ -105,6 +129,19 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
   }
 
   return null;
+}
+
+function isProcessBoardStage(value: string): value is ProcessBoardStage {
+  return [
+    "project_header",
+    "ideas",
+    "typography_drafts",
+    "refined_svgs",
+    "diagnosis",
+    "compare",
+    "background_variations",
+    "final_candidate",
+  ].includes(value);
 }
 
 export function getErrorMessage(error: unknown): string {

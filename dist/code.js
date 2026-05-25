@@ -380,6 +380,12 @@
     if (value.type === "RENDER_PROCESS_BOARD" && isRecord(value.payload)) {
       return { type: "RENDER_PROCESS_BOARD", payload: value.payload };
     }
+    if (value.type === "RENDER_PROCESS_STAGE_BOARD" && isRecord(value.payload) && isRecord(value.payload.project) && hasString(value.payload, "stage") && isProcessBoardStage(value.payload.stage)) {
+      return {
+        type: "RENDER_PROCESS_STAGE_BOARD",
+        payload: { project: value.payload.project, stage: value.payload.stage }
+      };
+    }
     if (value.type === "RENDER_DIAGNOSIS_BOARD" && isRecord(value.payload)) {
       return { type: "RENDER_DIAGNOSIS_BOARD", payload: value.payload };
     }
@@ -406,6 +412,18 @@
     }
     return null;
   }
+  function isProcessBoardStage(value) {
+    return [
+      "project_header",
+      "ideas",
+      "typography_drafts",
+      "refined_svgs",
+      "diagnosis",
+      "compare",
+      "background_variations",
+      "final_candidate"
+    ].includes(value);
+  }
   function getErrorMessage(error) {
     return error instanceof Error ? error.message : "Unexpected plugin error.";
   }
@@ -426,26 +444,59 @@
   var FONT_REGULAR = { family: "Inter", style: "Regular" };
   var FONT_BOLD = { family: "Inter", style: "Bold" };
   async function renderProcessBoard(project, options = {}) {
-    var _a, _b, _c, _d, _e;
+    var _a, _b;
     await loadFonts();
     const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250;
     const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
-    const workflow = project.stageWorkflow;
     const boards = [
-      renderProjectHeaderBoard(null, project, startX, startY),
-      renderIdeaExploreBoard(null, (_c = workflow == null ? void 0 : workflow.ideaDirections) != null ? _c : [], startX + 660, startY),
-      renderTypographyDraftBoard(null, (_d = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _d : [], startX + 1920, startY),
-      renderRefinedSvgBoard(null, workflow, project.svgCandidates, startX + 3380, startY),
-      renderDiagnosisBoardPanel(null, project.diagnosisResults, startX + 4780, startY),
-      renderCompareBoardPanel(null, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, startX + 5580, startY),
-      renderBackgroundVariationsBoard(null, (_e = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _e : [], project.backgroundResult, startX + 6520, startY),
-      renderFinalCandidateBoard(null, project, startX + 7440, startY)
+      renderProcessStage(project, "project_header", startX, startY),
+      renderProcessStage(project, "ideas", startX + 660, startY),
+      renderProcessStage(project, "typography_drafts", startX + 1920, startY),
+      renderProcessStage(project, "refined_svgs", startX + 3380, startY),
+      renderProcessStage(project, "diagnosis", startX + 4780, startY),
+      renderProcessStage(project, "compare", startX + 5580, startY),
+      renderProcessStage(project, "background_variations", startX + 6520, startY),
+      renderProcessStage(project, "final_candidate", startX + 7440, startY)
     ];
     if (options.zoom !== false) {
       figma.currentPage.selection = boards;
       figma.viewport.scrollAndZoomIntoView(boards);
     }
     return boards;
+  }
+  async function renderProcessStageBoard(project, stage, options = {}) {
+    var _a, _b;
+    await loadFonts();
+    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250;
+    const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
+    const board = renderProcessStage(project, stage, startX, startY);
+    if (options.zoom !== false) {
+      figma.currentPage.selection = [board];
+      figma.viewport.scrollAndZoomIntoView([board]);
+    }
+    return board;
+  }
+  function renderProcessStage(project, stage, x, y) {
+    var _a, _b, _c;
+    const workflow = project.stageWorkflow;
+    switch (stage) {
+      case "project_header":
+        return renderProjectHeaderBoard(null, project, x, y);
+      case "ideas":
+        return renderIdeaExploreBoard(null, (_a = workflow == null ? void 0 : workflow.ideaDirections) != null ? _a : [], x, y);
+      case "typography_drafts":
+        return renderTypographyDraftBoard(null, (_b = workflow == null ? void 0 : workflow.typographyDrafts) != null ? _b : [], x, y);
+      case "refined_svgs":
+        return renderRefinedSvgBoard(null, workflow, project.svgCandidates, x, y);
+      case "diagnosis":
+        return renderDiagnosisBoardPanel(null, project.diagnosisResults, x, y);
+      case "compare":
+        return renderCompareBoardPanel(null, project.comparisonResult, workflow == null ? void 0 : workflow.demoComparison, x, y);
+      case "background_variations":
+        return renderBackgroundVariationsBoard(null, (_c = workflow == null ? void 0 : workflow.backgroundVariations) != null ? _c : [], project.backgroundResult, x, y);
+      case "final_candidate":
+        return renderFinalCandidateBoard(null, project, x, y);
+    }
   }
   async function renderStandaloneDiagnosisBoard(result) {
     await loadFonts();
@@ -951,12 +1002,18 @@
         return;
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
-        const nodes = placeProjectCandidates(message.payload);
-        const boards = await renderProcessBoard(message.payload, {
-          x: figma.viewport.center.x - 4250,
-          y: figma.viewport.center.y + 360,
-          zoom: false
-        });
+        const startX = figma.viewport.center.x - 4250;
+        const startY = figma.viewport.center.y + 360;
+        const boards = [];
+        boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
+        await sleep(350);
+        boards.push(await renderProcessStageBoard(message.payload, "ideas", { x: startX + 660, y: startY, zoom: false }));
+        await sleep(500);
+        boards.push(await renderProcessStageBoard(message.payload, "typography_drafts", { x: startX + 1920, y: startY, zoom: false }));
+        await sleep(500);
+        boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
+        await sleep(350);
+        const nodes = placeProjectCandidates(message.payload, { x: startX + 3380, y: startY - 620 });
         figma.currentPage.selection = [...nodes, ...boards];
         figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
         postToUi({
@@ -968,6 +1025,11 @@
       if (message.type === "RENDER_PROCESS_BOARD") {
         await renderProcessBoard(message.payload);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
+        return;
+      }
+      if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
+        await renderProcessStageBoard(message.payload.project, message.payload.stage);
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_DIAGNOSIS_BOARD") {
@@ -1001,12 +1063,16 @@
       postToUi({ type: "PLUGIN_ERROR", payload: { message: getErrorMessage(error) } });
     }
   };
-  function placeProjectCandidates(project) {
-    return placeSvgCandidates(project.svgCandidates.map((candidate) => ({ svg: candidate.svg, name: candidate.name })));
+  function placeProjectCandidates(project, position) {
+    return placeSvgCandidates(
+      project.svgCandidates.map((candidate) => ({ svg: candidate.svg, name: candidate.name })),
+      position
+    );
   }
-  function placeSvgCandidates(items) {
-    const startX = figma.viewport.center.x - 400;
-    const startY = figma.viewport.center.y - 225;
+  function placeSvgCandidates(items, position) {
+    var _a, _b;
+    const startX = (_a = position == null ? void 0 : position.x) != null ? _a : figma.viewport.center.x - 400;
+    const startY = (_b = position == null ? void 0 : position.y) != null ? _b : figma.viewport.center.y - 225;
     return items.map(
       (item, index) => createSvgNode(item.svg, item.name, {
         x: startX + index * 900,
@@ -1015,5 +1081,8 @@
         zoom: false
       })
     );
+  }
+  function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 })();

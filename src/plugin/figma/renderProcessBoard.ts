@@ -5,6 +5,7 @@ import type { Direction } from "../../schemas/direction";
 import type { ProjectData } from "../../schemas/project";
 import type { SvgCandidate } from "../../schemas/svg";
 import type { BackgroundVariation, DemoComparison, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
+import type { ProcessBoardStage } from "./messageBridge";
 
 const COLORS = {
   canvas: { r: 0.969, g: 0.976, b: 0.988 },
@@ -40,16 +41,15 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
   await loadFonts();
   const startX = options.x ?? figma.viewport.center.x - 4250;
   const startY = options.y ?? figma.viewport.center.y - 420;
-  const workflow = project.stageWorkflow;
   const boards = [
-    renderProjectHeaderBoard(null, project, startX, startY),
-    renderIdeaExploreBoard(null, workflow?.ideaDirections ?? [], startX + 660, startY),
-    renderTypographyDraftBoard(null, workflow?.typographyDrafts ?? [], startX + 1920, startY),
-    renderRefinedSvgBoard(null, workflow, project.svgCandidates, startX + 3380, startY),
-    renderDiagnosisBoardPanel(null, project.diagnosisResults, startX + 4780, startY),
-    renderCompareBoardPanel(null, project.comparisonResult, workflow?.demoComparison, startX + 5580, startY),
-    renderBackgroundVariationsBoard(null, workflow?.backgroundVariations ?? [], project.backgroundResult, startX + 6520, startY),
-    renderFinalCandidateBoard(null, project, startX + 7440, startY),
+    renderProcessStage(project, "project_header", startX, startY),
+    renderProcessStage(project, "ideas", startX + 660, startY),
+    renderProcessStage(project, "typography_drafts", startX + 1920, startY),
+    renderProcessStage(project, "refined_svgs", startX + 3380, startY),
+    renderProcessStage(project, "diagnosis", startX + 4780, startY),
+    renderProcessStage(project, "compare", startX + 5580, startY),
+    renderProcessStage(project, "background_variations", startX + 6520, startY),
+    renderProcessStage(project, "final_candidate", startX + 7440, startY),
   ];
 
   if (options.zoom !== false) {
@@ -57,6 +57,40 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
     figma.viewport.scrollAndZoomIntoView(boards);
   }
   return boards;
+}
+
+export async function renderProcessStageBoard(project: ProjectData, stage: ProcessBoardStage, options: RenderOptions = {}): Promise<FrameNode> {
+  await loadFonts();
+  const startX = options.x ?? figma.viewport.center.x - 4250;
+  const startY = options.y ?? figma.viewport.center.y - 420;
+  const board = renderProcessStage(project, stage, startX, startY);
+  if (options.zoom !== false) {
+    figma.currentPage.selection = [board];
+    figma.viewport.scrollAndZoomIntoView([board]);
+  }
+  return board;
+}
+
+function renderProcessStage(project: ProjectData, stage: ProcessBoardStage, x: number, y: number): FrameNode {
+  const workflow = project.stageWorkflow;
+  switch (stage) {
+    case "project_header":
+      return renderProjectHeaderBoard(null, project, x, y);
+    case "ideas":
+      return renderIdeaExploreBoard(null, workflow?.ideaDirections ?? [], x, y);
+    case "typography_drafts":
+      return renderTypographyDraftBoard(null, workflow?.typographyDrafts ?? [], x, y);
+    case "refined_svgs":
+      return renderRefinedSvgBoard(null, workflow, project.svgCandidates, x, y);
+    case "diagnosis":
+      return renderDiagnosisBoardPanel(null, project.diagnosisResults, x, y);
+    case "compare":
+      return renderCompareBoardPanel(null, project.comparisonResult, workflow?.demoComparison, x, y);
+    case "background_variations":
+      return renderBackgroundVariationsBoard(null, workflow?.backgroundVariations ?? [], project.backgroundResult, x, y);
+    case "final_candidate":
+      return renderFinalCandidateBoard(null, project, x, y);
+  }
 }
 
 export async function renderStandaloneDiagnosisBoard(result: DiagnosisResult): Promise<FrameNode> {
