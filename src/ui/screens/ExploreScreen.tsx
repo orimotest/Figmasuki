@@ -24,6 +24,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
 import { SvgPreviewCard } from "../components/SvgPreviewCard";
+import { UsageGuide } from "../components/UsageGuide";
 
 type ExploreScreenProps = {
   providers: ProviderConfig;
@@ -41,6 +42,9 @@ const defaultFixedCopy: FixedCopyInput = {
   sub: "制作から判断へ。これからの働き方を考える",
   cta: "無料で参加する",
 };
+
+const demoFlowBrief =
+  "オンラインセミナー集客用のバナー。\n時間のないビジネスパーソンに向けて、短時間で学べる価値を伝えたい。\n信頼感と親しみやすさを両立したい。";
 
 export function ExploreScreen({ providers, projectData, onProjectData }: ExploreScreenProps) {
   const [contentType, setContentType] = useState<ContentType>("note_thumbnail");
@@ -89,6 +93,19 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setStatusLogs([type === "note_thumbnail" ? "noteサンプルを読み込みました。" : "セミナーサンプルを読み込みました。"]);
   }
 
+  function startDemoFlow() {
+    setContentType("seminar_banner");
+    setInputMode("brief_text");
+    setBriefText(demoFlowBrief);
+    setError(null);
+    setSuccess("Demoフローを開始しました。次に「探索を開始」を押してください。");
+    setStatusLogs([
+      "API設定を確認しています。",
+      "APIなしでも最後まで確認できるDemo Modeで進めます。",
+      "セミナー用サンプル要件を入力しました。",
+    ]);
+  }
+
   async function handleGenerate() {
     setError(null);
     setSuccess(null);
@@ -114,9 +131,26 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         rawInput: inputMode === "brief_text" ? briefText : `${fixedCopy.main}\n${fixedCopy.sub}\n${fixedCopy.cta ?? ""}`,
         targetAudience: contentType === "seminar_banner" ? "AI活用を始めたいマーケティング担当者" : "デザイナー、編集者、個人クリエイター",
       });
+      if (result.providerMeta?.fallbackUsed) {
+        setStatusLogs((entries) => [
+          ...entries,
+          "APIが未設定、またはlive providerに接続できないためDemo Modeに切り替えました。",
+          result.providerMeta?.fallbackReason ?? "サンプルデータを使って探索しています。",
+        ]);
+      } else if (result.providerMeta?.provider === "demo") {
+        setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
+      }
 
       setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`, `${result.selectedCount}方向へ整理しました。`, "SVGレイアウトを生成しています。"]);
       const svgResult = await runGenerateSvgWorkflow(result);
+      const fallbackSvg = svgResult.svgs.find((candidate) => candidate.meta.fallbackUsed);
+      if (fallbackSvg) {
+        setStatusLogs((entries) => [
+          ...entries,
+          "Gemini API keyが未設定、または生成に失敗したためDemo SVGを表示しています。",
+          fallbackSvg.meta.fallbackReason ?? "Demo SVGに切り替えました。",
+        ]);
+      }
       setExploreResult(result);
       setSvgCandidates(svgResult.svgs);
       const project = buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs });
@@ -175,12 +209,17 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         />
         <div className="badge-row">
           <CanvasBadge />
+          <span className="provider-badge warning">実行モード: Demo Mode対応</span>
           {exploreResult && <span className="provider-badge">30案 から 5方向</span>}
         </div>
+        <UsageGuide note="API未設定でもDemo Modeにfallbackし、探索、配置、診断、比較、仕上げまで確認できます。" />
         <ProcessTimeline steps={getExploreTimeline(isGenerating, Boolean(exploreResult), Boolean(error))} />
         {isGenerating && <LoadingState title="方向性を探索しています" description="コピー、訴求軸、レイアウト方向を整理し、SVG候補を生成しています。" />}
 
         <div className="demo-actions">
+          <button className="primary-button" type="button" onClick={startDemoFlow}>
+            Demoフローを開始
+          </button>
           <DemoDataButton type="note_thumbnail" onClick={loadDemo} />
           <DemoDataButton type="seminar_banner" onClick={loadDemo} />
         </div>

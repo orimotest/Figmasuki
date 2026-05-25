@@ -1,5 +1,6 @@
 import { providerConfig } from "../config/providers";
 import { CANVAS_SIZE } from "../config/canvas";
+import { env } from "../config/env";
 import type { BackgroundBrief, BackgroundResult } from "../schemas/background";
 import type { ContentType } from "../schemas/content";
 import type { ComparisonResult, FrameCompareSummary } from "../schemas/comparison";
@@ -28,11 +29,19 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
     if (!input) {
       throw new Error("Explore input is required for live providers.");
     }
+    const missing = missingDifySettings("layout");
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoExplore(input), "dify", createMissingApiReason("Dify layout", missing));
+    }
     return withDemoFallback("dify", () => exploreLayoutWithDify(input), () => demoExplore(input));
   }
   if (activeProviderConfig.copy === "dify") {
     if (!input) {
       throw new Error("Explore input is required for live providers.");
+    }
+    const missing = missingDifySettings("copy");
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoExplore(input), "dify", createMissingApiReason("Dify copy", missing));
     }
     return withDemoFallback<ExploreResult>(
       "dify",
@@ -57,6 +66,10 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
 
 export async function generateSvg(direction: Direction): Promise<SvgCandidate> {
   if (activeProviderConfig.svg === "gemini") {
+    const missing = missingGeminiSettings();
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoGenerateSvg(direction), "gemini", createMissingApiReason("Gemini", missing));
+    }
     return withDemoFallback("gemini", () => generateSvgWithGemini(direction), () => demoGenerateSvg(direction));
   }
   return demoGenerateSvg(direction);
@@ -64,6 +77,10 @@ export async function generateSvg(direction: Direction): Promise<SvgCandidate> {
 
 export async function diagnose(frame: FigmaFrameData, contentType: ContentType, ruleCheck?: RuleCheckReport): Promise<DiagnosisResult> {
   if (activeProviderConfig.diagnosis === "dify") {
+    const missing = missingDifySettings("diagnosis");
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoDiagnose(frame, contentType, ruleCheck), "dify", createMissingApiReason("Dify diagnosis", missing));
+    }
     return withDemoFallback("dify", () => diagnoseWithDify(frame, contentType, ruleCheck), () => demoDiagnose(frame, contentType, ruleCheck));
   }
   return demoDiagnose(frame, contentType, ruleCheck);
@@ -75,6 +92,10 @@ export async function compare(
   frameSummaries?: FrameCompareSummary[],
 ): Promise<ComparisonResult> {
   if (activeProviderConfig.compare === "dify") {
+    const missing = missingDifySettings("compare");
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoCompare(frames, contentType, frameSummaries), "dify", createMissingApiReason("Dify compare", missing));
+    }
     return withDemoFallback("dify", () => compareWithDify(frames, contentType, frameSummaries), () => demoCompare(frames, contentType, frameSummaries));
   }
   return demoCompare(frames, contentType, frameSummaries);
@@ -82,6 +103,10 @@ export async function compare(
 
 export async function generateBackground(brief: BackgroundBrief): Promise<BackgroundResult> {
   if (activeProviderConfig.background === "gemini") {
+    const missing = missingGeminiSettings();
+    if (missing.length > 0) {
+      return attachProviderMeta(await demoGenerateBackground(brief), "gemini", createMissingApiReason("Gemini", missing));
+    }
     return withDemoFallback("gemini", () => generateBackgroundWithGemini(brief), () => demoGenerateBackground(brief));
   }
   return demoGenerateBackground(brief);
@@ -112,18 +137,44 @@ function attachProviderMeta<T extends object>(value: T, provider: "dify" | "gemi
       ...value,
       meta: {
         ...value.meta,
-        provider,
+        provider: "demo",
         fallbackUsed: true,
-        fallbackReason: reason,
+        fallbackReason: `${provider}: ${reason}`,
       },
     };
   }
   return {
     ...value,
     providerMeta: {
-      provider,
+      provider: "demo",
       fallbackUsed: true,
-      fallbackReason: reason,
+      fallbackReason: `${provider}: ${reason}`,
     },
   };
+}
+
+type DifyWorkflow = "copy" | "layout" | "diagnosis" | "compare";
+
+function missingDifySettings(workflow: DifyWorkflow): string[] {
+  const settings: Record<DifyWorkflow, Record<string, string>> = {
+    copy: { DIFY_COPY_API_URL: env.DIFY_COPY_API_URL, DIFY_COPY_API_KEY: env.DIFY_COPY_API_KEY },
+    layout: { DIFY_LAYOUT_API_URL: env.DIFY_LAYOUT_API_URL, DIFY_LAYOUT_API_KEY: env.DIFY_LAYOUT_API_KEY },
+    diagnosis: { DIFY_DIAGNOSIS_API_URL: env.DIFY_DIAGNOSIS_API_URL, DIFY_DIAGNOSIS_API_KEY: env.DIFY_DIAGNOSIS_API_KEY },
+    compare: { DIFY_COMPARE_API_URL: env.DIFY_COMPARE_API_URL, DIFY_COMPARE_API_KEY: env.DIFY_COMPARE_API_KEY },
+  };
+  return missingKeys(settings[workflow]);
+}
+
+function missingGeminiSettings(): string[] {
+  return missingKeys({ GEMINI_API_KEY: env.GEMINI_API_KEY });
+}
+
+function missingKeys(values: Record<string, string>): string[] {
+  return Object.entries(values)
+    .filter(([, value]) => value.trim().length === 0)
+    .map(([key]) => key);
+}
+
+function createMissingApiReason(label: string, missing: string[]): string {
+  return `${label} API設定が未設定です: ${missing.join(", ")}。Demo Modeで実行しています。`;
 }

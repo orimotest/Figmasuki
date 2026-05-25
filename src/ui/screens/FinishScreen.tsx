@@ -7,6 +7,7 @@ import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/mes
 import { runFinishWorkflow } from "../../workflows/finishWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { CanvasBadge } from "../components/CanvasBadge";
+import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { FinishPanel } from "../components/FinishPanel";
 import { LoadingState } from "../components/LoadingState";
@@ -15,6 +16,7 @@ import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
+import { UsageGuide } from "../components/UsageGuide";
 
 type FinishScreenProps = {
   providers: ProviderConfig;
@@ -74,6 +76,15 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
       const result = await runFinishWorkflow({ ...backgroundBrief, style: `${backgroundBrief.style} / ${styleChoice}` });
       setBackgroundResult(result);
       onBackground(result);
+      if (result.providerMeta?.fallbackUsed) {
+        setStatusLogs((entries) => [
+          ...entries,
+          "Gemini API keyが未設定、または背景生成に失敗したためDemo背景を生成しました。",
+          result.providerMeta?.fallbackReason ?? "Demo背景に切り替えました。",
+        ]);
+      } else if (result.providerMeta?.provider === "demo") {
+        setStatusLogs((entries) => [...entries, "Demo Modeで編集可能な背景レイヤーを生成しました。"]);
+      }
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), backgroundResult: result }));
       }
@@ -121,12 +132,18 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
         <SectionHeader
           title="仕上げ"
           description="選ばれた案だけに、文字を邪魔しない背景を追加します。"
-          aside={<ProviderBadge label="背景" provider={providers.background} />}
+          aside={<ProviderBadge label="背景" provider={backgroundResult?.providerMeta?.provider ?? providers.background} fallbackUsed={backgroundResult?.providerMeta?.fallbackUsed} />}
         />
         <div className="badge-row">
           <CanvasBadge />
           {backgroundBrief && <span className="provider-badge">{backgroundBrief.targetFrameName}</span>}
+          <span className="provider-badge warning">API未設定でもDemo背景</span>
         </div>
+        <UsageGuide
+          title="仕上げの操作"
+          note="まず比較画面でベース案を選んでください。比較結果から選ばれた案に対して、背景を生成・適用します。APIなしでもDemo背景で仕上げを確認できます。"
+          steps={["比較画面でbackground briefを仕上げへ送る", "背景スタイルを選ぶ", "Demo背景を生成", "背景をFigmaに適用"]}
+        />
         <ProcessTimeline steps={getFinishTimeline(Boolean(backgroundBrief), Boolean(backgroundResult), isGenerating, isApplying, Boolean(error), Boolean(success))} />
         {(isGenerating || isApplying) && (
           <LoadingState
@@ -144,10 +161,10 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
           </select>
         </label>
         <button className="primary-button" type="button" disabled={!backgroundBrief || isGenerating} onClick={handleGenerateBackground}>
-          {isGenerating ? "背景生成中..." : "背景を生成"}
+          {isGenerating ? "背景生成中..." : "Demo背景を生成"}
         </button>
         <button className="secondary-button" type="button" disabled={!backgroundResult || isApplying} onClick={handleApplyBackground}>
-          {isApplying ? "適用中..." : "背景を適用"}
+          {isApplying ? "適用中..." : "背景をFigmaに適用"}
         </button>
         <button className="secondary-button" type="button" disabled={!backgroundResult} onClick={handleRenderFinishBoard}>
           仕上げボードをFigmaに追加
@@ -157,7 +174,14 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
         <StatusLog entries={statusLogs} />
       </section>
       <section className="panel finish-result">
-        <FinishPanel brief={backgroundBrief} result={backgroundResult} />
+        {backgroundBrief ? (
+          <FinishPanel brief={backgroundBrief} result={backgroundResult} />
+        ) : (
+          <EmptyState
+            title="まず比較画面でベース案を選んでください"
+            body="比較結果から選ばれた案に対して、背景を生成・適用します。APIなしでもDemo背景で仕上げを確認できます。"
+          />
+        )}
       </section>
     </div>
   );

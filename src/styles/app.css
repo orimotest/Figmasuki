@@ -1260,6 +1260,42 @@ input {
   background: #94a3b8;
 }
 
+.usage-guide {
+  display: grid;
+  gap: 8px;
+  margin: 8px 0 10px;
+  padding: 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.usage-guide strong {
+  display: block;
+  color: #1e3a8a;
+  font-size: 12px;
+}
+
+.usage-guide p {
+  margin: 3px 0 0;
+  color: #475569;
+  font-size: 11px;
+}
+
+.usage-guide ol {
+  display: grid;
+  gap: 3px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.usage-guide li {
+  padding-left: 2px;
+}
+
 @media (max-width: 560px) {
   .plugin-header {
     display: grid;

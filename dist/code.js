@@ -29,19 +29,24 @@
 
   // src/plugin/figma/createSvgNode.ts
   var insertedSvgCount = 0;
-  function createSvgNode(svg, name = "Generated SVG Layout") {
+  function createSvgNode(svg, name = "Generated SVG Layout", options = {}) {
+    var _a, _b;
     if (!svg.trim()) {
       throw new Error("SVG is empty.");
     }
     const node = figma.createNodeFromSvg(svg);
     node.name = name;
     const offset = insertedSvgCount * 36;
-    node.x = figma.viewport.center.x - 400 + offset;
-    node.y = figma.viewport.center.y - 225 + offset;
+    node.x = (_a = options.x) != null ? _a : figma.viewport.center.x - 400 + offset;
+    node.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 225 + offset;
     insertedSvgCount += 1;
     figma.currentPage.appendChild(node);
-    figma.currentPage.selection = [node];
-    figma.viewport.scrollAndZoomIntoView([node]);
+    if (options.select !== false) {
+      figma.currentPage.selection = [node];
+    }
+    if (options.zoom !== false) {
+      figma.viewport.scrollAndZoomIntoView([node]);
+    }
     return node;
   }
 
@@ -62,14 +67,14 @@
   function extractFrameData() {
     const selection = figma.currentPage.selection;
     if (selection.length === 0) {
-      throw new Error("No frame selected. Select exactly one Frame in Figma.");
+      throw new Error("\u8A3A\u65AD\u3059\u308B\u30D5\u30EC\u30FC\u30E0\u304C\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u305B\u3093\u3002Figma\u30AD\u30E3\u30F3\u30D0\u30B9\u4E0A\u3067\u30D0\u30CA\u30FC\u6848\u30921\u3064\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
     if (selection.length > 1) {
-      throw new Error("Select exactly one Frame. Multiple selections are handled in Compare.");
+      throw new Error("\u8A3A\u65AD\u3067\u306F1\u3064\u3060\u3051\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u8907\u6570\u6848\u3092\u898B\u305F\u3044\u5834\u5408\u306F\u6BD4\u8F03\u753B\u9762\u3092\u4F7F\u3044\u307E\u3059\u3002");
     }
     const selected = selection[0];
     if (selected.type !== "FRAME") {
-      throw new Error("Selected object is not a Frame. Select exactly one Frame.");
+      throw new Error("\u9078\u629E\u4E2D\u306E\u30AA\u30D6\u30B8\u30A7\u30AF\u30C8\u306FFrame\u3067\u306F\u3042\u308A\u307E\u305B\u3093\u3002\u63A2\u7D22\u3067\u914D\u7F6E\u3057\u305F\u30D0\u30CA\u30FC\u6848\u306EFrame\u3092\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
     return serializeFrame(selected);
   }
@@ -239,15 +244,15 @@
   function extractMultiFrameData() {
     const selection = figma.currentPage.selection;
     if (selection.length < 2) {
-      throw new Error("Select at least two frames.");
+      throw new Error("\u6BD4\u8F03\u3059\u308B\u6848\u30922\u3064\u4EE5\u4E0A\u9078\u629E\u3057\u3066\u304F\u3060\u3055\u3044\u3002\u63A2\u7D22\u3067\u914D\u7F6E\u3057\u305F\u30D0\u30CA\u30FC\u6848\u30922\u301C5\u500B\u9078\u3076\u3068\u6BD4\u8F03\u3067\u304D\u307E\u3059\u3002");
     }
     const nonFrames = selection.filter((node) => node.type !== "FRAME");
     if (nonFrames.length > 0) {
-      throw new Error("Compare only supports Frame selections. Remove non-frame objects and try again.");
+      throw new Error("Frame\u4EE5\u5916\u304C\u9078\u629E\u3055\u308C\u3066\u3044\u307E\u3059\u3002\u30D0\u30CA\u30FC\u6848\u306EFrame\u3060\u3051\u3092\u9078\u629E\u3057\u3066\u304B\u3089\u6BD4\u8F03\u3057\u3066\u304F\u3060\u3055\u3044\u3002");
     }
     const frames = selection.filter((node) => node.type === "FRAME");
     if (frames.length < 2) {
-      throw new Error("Select at least two frames.");
+      throw new Error("\u6BD4\u8F03\u306B\u306F2\u3064\u4EE5\u4E0A\u306E\u30D5\u30EC\u30FC\u30E0\u304C\u5FC5\u8981\u3067\u3059\u3002");
     }
     return frames.map(serializeFrame);
   }
@@ -734,8 +739,19 @@
         return;
       }
       if (message.type === "INSERT_SVG_BATCH") {
-        message.payload.items.forEach((item) => createSvgNode(item.svg, item.name));
-        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}\u6848\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
+        const startX = figma.viewport.center.x - 400;
+        const startY = figma.viewport.center.y - 225;
+        const nodes = message.payload.items.map(
+          (item, index) => createSvgNode(item.svg, item.name, {
+            x: startX + index * 900,
+            y: startY,
+            select: false,
+            zoom: false
+          })
+        );
+        figma.currentPage.selection = nodes;
+        figma.viewport.scrollAndZoomIntoView(nodes);
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}\u6848\u3092\u6A2A\u4E26\u3073\u3067Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {

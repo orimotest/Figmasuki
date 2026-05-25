@@ -53,6 +53,7 @@ export default function App() {
         </div>
         <div className="header-meta">
           <CanvasBadge />
+          <span className="provider-badge warning">実行モード: Demo Mode</span>
           <ProviderBadge label="provider" provider={providers.copy} />
           <button className="header-button" type="button" disabled={!projectData} onClick={handleRenderFullProcess}>
             {"\u4e00\u9023\u306e\u30d7\u30ed\u30bb\u30b9\u3092Figma\u306b\u51fa\u529b"}

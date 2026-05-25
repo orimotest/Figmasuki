@@ -9,6 +9,7 @@ import { runDiagnoseWorkflow } from "../../workflows/diagnoseWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { CanvasBadge } from "../components/CanvasBadge";
 import { DiagnosisPanel } from "../components/DiagnosisPanel";
+import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
@@ -17,6 +18,7 @@ import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
+import { UsageGuide } from "../components/UsageGuide";
 
 type DiagnoseScreenProps = {
   providers: ProviderConfig;
@@ -50,6 +52,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
       if (message.type === "PLUGIN_ERROR") {
         setError(message.payload.message);
         setIsDiagnosing(false);
+        setSelectedFrame(null);
         setStatusLogs((entries) => [...entries, `Figmaエラー: ${message.payload.message}`]);
       }
     };
@@ -73,6 +76,15 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
       const result = await runDiagnoseWorkflow(frame, preset);
       setDiagnosis(result);
       onDiagnosis(result);
+      if (result.providerMeta?.fallbackUsed) {
+        setStatusLogs((entries) => [
+          ...entries,
+          "APIが未設定、または診断APIに接続できないためDemo Modeで診断しました。",
+          result.providerMeta?.fallbackReason ?? "Demo診断に切り替えました。",
+        ]);
+      } else if (result.providerMeta?.provider === "demo") {
+        setStatusLogs((entries) => [...entries, "Demo Modeで診断結果を表示しています。"]);
+      }
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), diagnosisResults: [...projectData.diagnosisResults, result] }));
       }
@@ -101,12 +113,18 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
         <SectionHeader
           title="診断"
           description="Figma上で1案だけ選び、最初に伝わることと直す順番を整理します。"
-          aside={<ProviderBadge label="診断" provider={providers.diagnosis} />}
+          aside={<ProviderBadge label="診断" provider={diagnosis?.providerMeta?.provider ?? providers.diagnosis} fallbackUsed={diagnosis?.providerMeta?.fallbackUsed} />}
         />
         <div className="badge-row">
           <CanvasBadge />
           <span className="provider-badge">点数評価なし</span>
+          <span className="provider-badge warning">API未設定でもDemo診断</span>
         </div>
+        <UsageGuide
+          title="診断の操作"
+          note="診断したいFigmaフレームを1つ選択してから、下のボタンを押してください。まず探索画面で案をFigmaに配置すると、診断用のフレームを作成できます。"
+          steps={["探索画面で「5案をまとめてFigmaに配置」", "Figma上で1つの案をクリック", "診断画面で「選択中のフレームを診断」"]}
+        />
         <ProcessTimeline steps={getDiagnoseTimeline(isDiagnosing, Boolean(selectedFrame), Boolean(diagnosis), Boolean(error))} />
         {isDiagnosing && <LoadingState title="フレームを診断しています" description="文字階層、余白、CTA、用途との相性を確認しています。" />}
         <PresetSelector value={contentType} onChange={setContentType} />
@@ -123,7 +141,14 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
         <StatusLog entries={statusLogs} />
       </section>
       <section className="panel diagnose-result">
-        <DiagnosisPanel result={diagnosis} />
+        {diagnosis ? (
+          <DiagnosisPanel result={diagnosis} />
+        ) : (
+          <EmptyState
+            title="診断するフレームを選択してください"
+            body="Figmaキャンバス上で診断したいバナー案を1つ選択します。探索画面で生成した案を配置してから選択すると、診断を試せます。"
+          />
+        )}
       </section>
     </div>
   );

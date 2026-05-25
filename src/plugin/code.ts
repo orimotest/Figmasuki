@@ -31,8 +31,19 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "INSERT_SVG_BATCH") {
-      message.payload.items.forEach((item) => createSvgNode(item.svg, item.name));
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案をFigmaに配置しました。` } });
+      const startX = figma.viewport.center.x - 400;
+      const startY = figma.viewport.center.y - 225;
+      const nodes = message.payload.items.map((item, index) =>
+        createSvgNode(item.svg, item.name, {
+          x: startX + index * 900,
+          y: startY,
+          select: false,
+          zoom: false,
+        }),
+      );
+      figma.currentPage.selection = nodes;
+      figma.viewport.scrollAndZoomIntoView(nodes);
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案を横並びでFigmaに配置しました。` } });
       return;
     }
 

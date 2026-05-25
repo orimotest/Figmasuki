@@ -11,14 +11,14 @@ import type {
 export function extractFrameData(): FigmaFrameData {
   const selection = figma.currentPage.selection;
   if (selection.length === 0) {
-    throw new Error("No frame selected. Select exactly one Frame in Figma.");
+    throw new Error("診断するフレームが選択されていません。Figmaキャンバス上でバナー案を1つ選択してください。");
   }
   if (selection.length > 1) {
-    throw new Error("Select exactly one Frame. Multiple selections are handled in Compare.");
+    throw new Error("診断では1つだけ選択してください。複数案を見たい場合は比較画面を使います。");
   }
   const selected = selection[0];
   if (selected.type !== "FRAME") {
-    throw new Error("Selected object is not a Frame. Select exactly one Frame.");
+    throw new Error("選択中のオブジェクトはFrameではありません。探索で配置したバナー案のFrameを選択してください。");
   }
   return serializeFrame(selected);
 }

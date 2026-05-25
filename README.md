@@ -46,6 +46,40 @@ providerの切り替えは `src/config/providers.ts` で行います。
 
 初期状態はすべて `demo` providerです。APIキーなしで、noteサンプル、セミナーサンプル、探索、診断、比較、仕上げの流れを確認できます。
 
+## APIなしでDemoフローを確認する
+
+展示会デモや初回確認では、API keyを入れなくても一連の流れを最後まで確認できます。
+
+1. `npm run build`
+2. Figmaで `manifest.json` を読み込む
+3. プラグインを起動
+4. 探索画面で「Demoフローを開始」
+5. 「探索を開始」
+6. 「5案をまとめてFigmaに配置」
+7. Figmaキャンバス上で1案を選択
+8. 診断画面で「選択中のフレームを診断」
+9. Figmaキャンバス上で2〜5案を選択
+10. 比較画面で「選択中の案を比較」
+11. 比較結果のbackground briefから仕上げへ進む
+12. 仕上げ画面で「Demo背景を生成」「背景をFigmaに適用」
+
+API未設定、またはlive providerが失敗した場合は、Demo Modeにfallbackします。UIには「API未設定でもDemo診断」「Demo Modeに切替」などの表示が出ます。
+
+## Webローカルで確認できる範囲
+
+- React UIの表示
+- demoデータの表示
+- SVG preview
+- 入力フォームやタブ移動
+
+## Figma内でしか確認できない範囲
+
+- SVGをFigmaに配置
+- 選択フレーム診断
+- 複数フレーム比較
+- 背景適用
+- プロセスボード生成
+
 ## よくあるエラー
 
 - `figma is not defined`: Figma Plugin外のブラウザでFigma APIを使う操作を押しています。Figma上で確認してください。

@@ -19,6 +19,7 @@ import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
+import { UsageGuide } from "../components/UsageGuide";
 
 type CompareScreenProps = {
   providers: ProviderConfig;
@@ -44,6 +45,9 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       if (message.type === "SELECTION_FRAMES_RESULT") {
         setFrames(message.payload);
         setStatusLogs((entries) => [...entries, `${message.payload.length}案を取得しました。`, "各案の役割を整理しています。"]);
+        if (message.payload.length > 5) {
+          setStatusLogs((entries) => [...entries, "2〜5案での比較を推奨します。今回は選択中の案をそのまま比較します。"]);
+        }
         void runComparison(message.payload, contentType);
       }
       if (message.type === "PLUGIN_SUCCESS") {
@@ -76,6 +80,15 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       const result = await runCompareWorkflow(selectedFrames, preset);
       setComparison(result);
       onComparison(result);
+      if (result.providerMeta?.fallbackUsed) {
+        setStatusLogs((entries) => [
+          ...entries,
+          "APIが未設定、または比較APIに接続できないためDemo Modeで比較しました。",
+          result.providerMeta?.fallbackReason ?? "Demo比較に切り替えました。",
+        ]);
+      } else if (result.providerMeta?.provider === "demo") {
+        setStatusLogs((entries) => [...entries, "Demo Modeで比較結果を表示しています。"]);
+      }
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), comparisonResult: result }));
       }
@@ -104,12 +117,18 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
         <SectionHeader
           title="比較"
           description="2から5案を比較し、ベース候補と次点候補を整理します。"
-          aside={<ProviderBadge label="比較" provider={providers.compare} />}
+          aside={<ProviderBadge label="比較" provider={comparison?.providerMeta?.provider ?? providers.compare} fallbackUsed={comparison?.providerMeta?.fallbackUsed} />}
         />
         <div className="badge-row">
           <CanvasBadge />
           <span className="provider-badge">選択案: {frames.length}</span>
+          <span className="provider-badge warning">API未設定でもDemo比較</span>
         </div>
+        <UsageGuide
+          title="比較の操作"
+          note="比較したいFigmaフレームを2〜5個選択してから、比較を実行してください。探索画面で5案をまとめて配置すると、比較用のフレームをすぐに選択できます。"
+          steps={["探索画面で「5案をまとめてFigmaに配置」", "Figma上で2〜5案をShiftクリックして選択", "比較画面で「選択中の案を比較」", "background briefを確認し、仕上げへ送る"]}
+        />
         <ProcessTimeline steps={getCompareTimeline(isComparing, frames.length > 0, Boolean(comparison), Boolean(error))} />
         {isComparing && <LoadingState title="複数案を比較しています" description="役割、強み、懸念、背景生成briefを整理しています。" />}
         <PresetSelector value={contentType} onChange={setContentType} />
@@ -128,7 +147,10 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
 
       <section className="panel compare-result">
         {!comparison ? (
-          <EmptyState title="比較する案がありません" body="Figma上で比較したい案を2から5個選択してください。" />
+          <EmptyState
+            title="比較する案を2つ以上選択してください"
+            body="Figmaキャンバス上で比較したいバナー案を2〜5個選択します。探索画面で5案をまとめて配置してから選択すると、Demo比較をすぐに試せます。"
+          />
         ) : (
           <div className="compare-result-stack">
             <section className="diagnosis-section">
