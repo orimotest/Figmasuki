@@ -9,7 +9,7 @@ AIが探索したコピー、文字組み、SVG案、比較、背景仕上げの
    Dify想定でコピー、訴求軸、トーン、レイアウト方向を30案広げます。
 
 2. A2 / 15案文字組みドラフト  
-   30案を整理し、15案のTypography Draft SVGを作ります。完成デザインではなく、文字サイズ、余白、CTA位置、日時情報の見え方を確認します。
+   30案を整理し、15案のTypography Draft SVGを作ります。完成デザインではなく、文字サイズ、余白、CTA位置、日時情報の見え方を確認します。Live APIではDifyに自由なSVGを作らせず、Layout Draft JSONを返してもらい、プラグイン側テンプレートで安定したSVGにします。
 
 3. A3 / 5案高品質SVG  
    15案から5案に絞り、Gemini想定で編集可能な高品質SVGへ仕上げます。
@@ -97,6 +97,8 @@ cp src/config/apiSettings.example.ts src/config/apiSettings.ts
 `apiSettings.ts` にDify / GeminiのURLとAPI keyを入れてください。実キーはコミットしないでください。  
 Providerの切り替えは `src/config/providers.ts` で行います。API未設定またはAPI失敗時はDemo Modeにfallbackします。
 
+Difyは30案探索、15案整理、Typography Draft用Layout JSON、5案選定、診断、比較を担当します。Geminiは5案の高品質SVG化と背景3案生成を担当します。15案ドラフトの安定化方針は [SVGテンプレート戦略](docs/svg-template-strategy.md) にまとめています。
+
 ## Webローカルで確認できる範囲
 
 - React UI
@@ -120,5 +122,6 @@ Providerの切り替えは `src/config/providers.ts` で行います。API未設
 - [Live APIフロー](docs/api-live-flow.md)
 - [Difyワークフロー仕様](docs/dify-workflow-spec.md)
 - [Gemini仕上げ仕様](docs/gemini-refine-spec.md)
+- [SVGテンプレート戦略](docs/svg-template-strategy.md)
 - [Figmaプラグインテスト](docs/figma-plugin-test.md)
 - [API設定](docs/api-settings.md)

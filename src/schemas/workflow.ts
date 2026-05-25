@@ -1,4 +1,5 @@
 import type { BackgroundResult } from "./background";
+import type { TypographyDraftLayoutType } from "./layoutDraft";
 import type { SvgCandidate } from "./svg";
 
 export type IdeaDirectionStatus = "selected_for_typography" | "rejected" | "merged";
@@ -23,7 +24,7 @@ export type TypographyDraft = {
   sourceIdeaId: string;
   name: string;
   directionName: string;
-  layoutType: string;
+  layoutType: TypographyDraftLayoutType;
   svg: string;
   evaluationMemo: string;
   selectedForRefine: boolean;

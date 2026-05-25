@@ -65,6 +65,14 @@ Demo Modeでは `demoGenerateBackground` にfallbackし、Primary案に対する
 
 背景の実画像生成や編集可能レイヤーの高度化は、Gemini連携時に差し替える想定です。
 
+## 15案Typography Draftの安定生成
+
+15案の文字組みドラフトは、Difyに自由なSVGを書かせる方式ではなく、`Layout Draft JSON + Plugin template` を採用します。
+
+Difyは `layoutType`、コピー、CTA、日時、優先順位をJSONで返します。プラグイン側は `src/utils/typographyDraftSvg.ts` のテンプレートでSVG化します。
+
+これにより、800x450、text要素、safe area、外部参照禁止などの制約を安定して守れます。詳細は `docs/svg-template-strategy.md` を参照してください。
+
 ## Demo Mode
 
 API未設定でも停止せず、Demo Modeで以下まで進みます。
@@ -75,4 +83,3 @@ API未設定でも停止せず、Demo Modeで以下まで進みます。
 - 自動比較
 - 背景3案
 - Final Candidate
-

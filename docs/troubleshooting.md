@@ -79,14 +79,19 @@ SVG配置、診断、比較、背景適用、プロセスボード生成はFigma
 
 - SVG validationがOKか確認する
 - `foreignObject` や外部画像URLを含めない
+- `viewBox="0 0 800 450"` があるか確認する
+- `text` 要素があるか確認する
 - `npm run build` 後に `dist/code.js` が更新されているか確認する
 - Figma Desktopで開発プラグインを再起動する
+
+15案のTypography Draftは、Difyが返すLayout Draft JSONからプラグイン側テンプレートでSVG生成する方針です。Difyに自由SVGを書かせている場合は、`docs/svg-template-strategy.md` のJSON形式に寄せてください。
 
 ## APIが動かない
 
 - `src/config/apiSettings.ts` にURLとAPI keyが入っているか確認する
 - `src/config/providers.ts` が `demo` のままではないか確認する
 - Dify workflowの出力JSONが期待構造に合っているか確認する
+- API keyを設定してもDemo Modeになる場合は、URL/API keyが空、workflowのJSON形式不一致、またはAPI呼び出し失敗でfallbackしている可能性があります。
 
 ## demo fallbackになっている
 

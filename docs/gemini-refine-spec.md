@@ -1,26 +1,37 @@
 # Gemini Refine Spec
 
-Geminiは仕上げ工程を担当します。
+Geminiは視覚品質を上げる工程を担当します。Difyで30案や15案を大量に扱い、Geminiへ渡すのは5案に絞った後です。
 
 ## Gemini 1: 5案高品質SVG化
 
 入力:
 
-- 5 refined targets
-- Typography Draft SVG
-- copy
+- 5件のrefined targets
+- 対応するLayout Draft JSON
+- 対応するTypography Draft SVG
+- copy direction
 - layoutHint
 - styleBrief
+- canvasSize: 800x450
+- safeArea: 704x370
 
 出力:
 
 - 5 high quality SVG
-- 800x450
-- viewBox `0 0 800 450`
+- `width="800"` / `height="450"`
+- `viewBox="0 0 800 450"`
 - text要素あり
-- foreignObjectなし
-- scriptなし
-- external imageなし
+- `foreignObject` なし
+- `script` なし
+- 外部 `http(s)` image参照なし
+
+5案は比較できるように、以下の差を維持します。
+
+1. 課題共感型 / 左寄せ / やさしい導入
+2. 参加メリット型 / 左右分割 / 情報整理
+3. 実務ノウハウ型 / 中央配置 / 濃色または強い印象
+4. 信頼感型 / BtoB / 余白と落ち着き
+5. 初心者歓迎型 / やわらかい色 / 丸み / 安心感
 
 ## Gemini 2: 背景画像3案
 
@@ -30,6 +41,7 @@ Geminiは仕上げ工程を担当します。
 - background brief
 - avoid
 - safeAreaHint
+- selected refined SVG metadata
 
 出力:
 
@@ -37,4 +49,17 @@ Geminiは仕上げ工程を担当します。
 - 背景案B: Subtle Geometry
 - 背景案C: Editorial Texture
 
-背景は文字やCTAを壊さないようにし、テキストはFigma上で編集可能なまま残します。
+背景は文字やCTAを壊さないようにします。テキスト、日時、CTAはFigma上で編集可能なまま残す方針です。
+
+## validation
+
+Geminiから返るSVGは、プラグイン側で以下を確認します。
+
+- `<svg` がある
+- `viewBox="0 0 800 450"` がある
+- `text` 要素がある
+- `foreignObject` がない
+- `script` がない
+- 外部 `http(s)` 参照がない
+
+失敗した場合はDemo refined SVGまたはDemo backgroundへfallbackします。

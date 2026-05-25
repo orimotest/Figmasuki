@@ -1,5 +1,21 @@
 export const apiSettings = {
   dify: {
+    ideas: {
+      url: "",
+      apiKey: "",
+    },
+    draftSelection: {
+      url: "",
+      apiKey: "",
+    },
+    typographyDraft: {
+      url: "",
+      apiKey: "",
+    },
+    refinedSelection: {
+      url: "",
+      apiKey: "",
+    },
     copy: {
       url: "",
       apiKey: "",

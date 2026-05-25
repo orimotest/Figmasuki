@@ -24,8 +24,9 @@ Difyは、思考整理と軽量な構成生成を担当します。
    - 30案を代表性のある15案へ絞る
    - merged / rejected / selected_for_typography を付与する
 
-3. 15 Typography Draft SVG
-   - 完成デザインではなく、文字組みと情報配置を確認する軽量SVGを生成する
+3. 15 Typography Draft Layout JSON
+   - 完成デザインではなく、文字組みと情報配置を確認するためのLayout JSONを生成する
+   - SVG文字列はプラグイン側テンプレートで生成する
 
 4. 5案選定
    - 15案から方向性が重ならない5案を選ぶ
@@ -44,7 +45,7 @@ Difyは、思考整理と軽量な構成生成を担当します。
 Geminiは、視覚品質を上げる工程を担当します。
 
 1. 5案高品質SVG化
-   - 5件のTypography Draftを、編集可能な800x450 SVGへ仕上げる
+   - 5件のTypography Draft SVGとLayout JSONを、編集可能な800x450 SVGへ仕上げる
 
 2. 背景3案生成
    - Primary案に対して背景方向を3案生成する
@@ -76,3 +77,8 @@ Figma側の描画関数は `src/plugin/figma/renderProcessBoard.ts` にありま
 
 API設定が空、またはAPI呼び出しが失敗した場合はDemo providerへ切り替えます。
 
+## Typography Draftの安定化
+
+15案ドラフトはDifyに完全自由なSVGを書かせず、`layoutType`、コピー、CTA、日時、優先順位をJSONで返してもらいます。
+
+プラグイン側は `src/utils/typographyDraftSvg.ts` のテンプレートでSVG化します。これにより、Figma貼り付け時の崩れ、外部参照、`foreignObject` 混入、文字サイズの暴れを抑えます。

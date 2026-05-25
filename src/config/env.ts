@@ -1,6 +1,14 @@
 import { apiSettings } from "./apiSettings";
 
 export type ProviderEnv = {
+  DIFY_IDEAS_API_URL: string;
+  DIFY_IDEAS_API_KEY: string;
+  DIFY_DRAFT_SELECTION_API_URL: string;
+  DIFY_DRAFT_SELECTION_API_KEY: string;
+  DIFY_TYPOGRAPHY_DRAFT_API_URL: string;
+  DIFY_TYPOGRAPHY_DRAFT_API_KEY: string;
+  DIFY_REFINED_SELECTION_API_URL: string;
+  DIFY_REFINED_SELECTION_API_KEY: string;
   DIFY_COPY_API_URL: string;
   DIFY_COPY_API_KEY: string;
   DIFY_LAYOUT_API_URL: string;
@@ -14,7 +22,24 @@ export type ProviderEnv = {
   GEMINI_IMAGE_MODEL: string;
 };
 
+type OptionalDifyWorkflow = "ideas" | "draftSelection" | "typographyDraft" | "refinedSelection";
+type ApiWorkflowSettings = { url: string; apiKey: string };
+
+const difySettings = apiSettings.dify as typeof apiSettings.dify & Partial<Record<OptionalDifyWorkflow, ApiWorkflowSettings>>;
+
+function readDifyWorkflow(workflow: OptionalDifyWorkflow): ApiWorkflowSettings {
+  return difySettings[workflow] ?? { url: "", apiKey: "" };
+}
+
 export const env: ProviderEnv = {
+  DIFY_IDEAS_API_URL: readDifyWorkflow("ideas").url,
+  DIFY_IDEAS_API_KEY: readDifyWorkflow("ideas").apiKey,
+  DIFY_DRAFT_SELECTION_API_URL: readDifyWorkflow("draftSelection").url,
+  DIFY_DRAFT_SELECTION_API_KEY: readDifyWorkflow("draftSelection").apiKey,
+  DIFY_TYPOGRAPHY_DRAFT_API_URL: readDifyWorkflow("typographyDraft").url,
+  DIFY_TYPOGRAPHY_DRAFT_API_KEY: readDifyWorkflow("typographyDraft").apiKey,
+  DIFY_REFINED_SELECTION_API_URL: readDifyWorkflow("refinedSelection").url,
+  DIFY_REFINED_SELECTION_API_KEY: readDifyWorkflow("refinedSelection").apiKey,
   DIFY_COPY_API_URL: apiSettings.dify.copy.url,
   DIFY_COPY_API_KEY: apiSettings.dify.copy.apiKey,
   DIFY_LAYOUT_API_URL: apiSettings.dify.layout.url,

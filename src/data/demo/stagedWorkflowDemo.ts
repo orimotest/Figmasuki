@@ -1,24 +1,26 @@
 import type { BackgroundResult } from "../../schemas/background";
 import type { Direction } from "../../schemas/direction";
+import type { LayoutDraftInput, TypographyDraftLayoutType } from "../../schemas/layoutDraft";
 import type { SvgCandidate } from "../../schemas/svg";
 import type { BackgroundVariation, DemoComparison, FinalCandidate, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
+import { createTypographyDraftSvg } from "../../utils/typographyDraftSvg";
 
-const layouts = [
-  "左寄せ",
-  "中央配置",
-  "左右分割",
-  "上下分割",
-  "CTA強調",
-  "メタ情報強調",
-  "余白型",
-  "濃色背景",
-  "白背景",
-  "カード型",
-  "斜めリズム",
-  "見出し一点突破",
-  "情報整理型",
-  "導入ステップ型",
-  "安心訴求型",
+const draftLayouts: TypographyDraftLayoutType[] = [
+  "left_hero",
+  "center_focus",
+  "split_panel",
+  "card_stack",
+  "cta_emphasis",
+  "meta_first",
+  "editorial_whitespace",
+  "dark_center",
+  "trust_panel",
+  "beginner_soft",
+  "left_hero",
+  "split_panel",
+  "card_stack",
+  "trust_panel",
+  "beginner_soft",
 ];
 
 const ideaSeeds: Record<string, Array<Pick<IdeaDirection, "name" | "mainCopy" | "subCopy" | "cta" | "intent" | "tone" | "layoutHint" | "risk" | "bestFor">>> = {
@@ -114,92 +116,55 @@ function createTypographyDrafts(ideas: IdeaDirection[]): TypographyDraft[] {
   return ideas
     .filter((idea) => idea.status === "selected_for_typography")
     .slice(0, 15)
-    .map((idea, index) => ({
-      id: `draft_${String(index + 1).padStart(2, "0")}`,
-      sourceIdeaId: idea.id,
-      name: `Draft ${String(index + 1).padStart(2, "0")}`,
-      directionName: idea.name,
-      layoutType: layouts[index],
-      svg: createDraftSvg(idea, layouts[index], index),
-      evaluationMemo: index % 3 === 0 ? "主見出しが残りやすい。" : index % 3 === 1 ? "CTAと日時の位置関係を比較しやすい。" : "余白と情報量のバランスを検討しやすい。",
-      selectedForRefine: [0, 4, 8, 11, 14].includes(index),
-    }));
+    .map((idea, index) => {
+      const id = `draft_${String(index + 1).padStart(2, "0")}`;
+      const layoutType = draftLayouts[index] ?? "left_hero";
+      const selectedForRefine = [0, 4, 8, 11, 14].includes(index);
+      const evaluationMemo = getDraftEvaluationMemo(layoutType, selectedForRefine);
+      const draftInput: LayoutDraftInput = {
+        id,
+        sourceIdeaId: idea.id,
+        contentType: "seminar_banner",
+        layoutType,
+        directionName: idea.name,
+        mainCopy: idea.mainCopy,
+        subCopy: idea.subCopy,
+        cta: idea.cta,
+        date: "6.18 WED",
+        time: "14:00 Online",
+        tone: idea.tone,
+        priority: ["main", "sub", "date", "cta"],
+        evaluationMemo,
+        selectedForRefine,
+      };
+
+      return {
+        id,
+        sourceIdeaId: idea.id,
+        name: `Draft ${String(index + 1).padStart(2, "0")}`,
+        directionName: idea.name,
+        layoutType,
+        svg: createTypographyDraftSvg(draftInput),
+        evaluationMemo,
+        selectedForRefine,
+      };
+    });
 }
 
-function createDraftSvg(idea: IdeaDirection, layout: string, index: number): string {
-  const dark = layout === "濃色背景";
-  const bg = dark ? "#0F235C" : index % 2 === 0 ? "#F8FAFC" : "#FFFFFF";
-  const text = dark ? "#FFFFFF" : "#0F172A";
-  const muted = dark ? "#BAE6FD" : "#475569";
-  const accent = dark ? "#67E8F9" : "#2563EB";
-  const safeCta = escapeXml(idea.cta ?? "詳細を見る");
-
-  if (layout === "中央配置" || layout === "見出し一点突破") {
-    return baseDraftSvg(bg, `
-      ${svgTextBlock(idea.mainCopy, 400, 128, 46, text, 800, "middle", 13)}
-      ${svgTextBlock(idea.subCopy, 400, 238, 22, muted, 650, "middle", 22)}
-      <rect x="300" y="292" width="200" height="48" rx="24" fill="${accent}"/>
-      <text x="400" y="323" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
-      <text x="400" y="382" text-anchor="middle" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED / 14:00 Online</text>
-    `);
-  }
-
-  if (layout === "左右分割" || layout === "カード型") {
-    return baseDraftSvg(bg, `
-      <rect x="430" y="72" width="290" height="250" rx="24" fill="${dark ? "rgba(255,255,255,0.08)" : "#EFF6FF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#BFDBFE"}"/>
-      ${svgTextBlock(idea.mainCopy, 64, 122, 42, text, 330, "start", 10)}
-      ${svgTextBlock(idea.subCopy, 64, 226, 20, muted, 330, "start", 16)}
-      <text x="464" y="132" fill="${accent}" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">見るポイント</text>
-      <text x="464" y="174" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">文字優先順位</text>
-      <text x="464" y="212" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">CTAの見つけやすさ</text>
-      <text x="464" y="250" fill="${text}" font-size="17" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">余白バランス</text>
-      <rect x="64" y="320" width="190" height="48" rx="24" fill="${accent}"/>
-      <text x="159" y="351" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
-    `);
-  }
-
-  return baseDraftSvg(bg, `
-    ${svgTextBlock(idea.mainCopy, 64, 112, 42, text, 520, "start", 12)}
-    <line x1="64" y1="154" x2="356" y2="154" stroke="${accent}" stroke-width="6" stroke-linecap="round"/>
-    ${svgTextBlock(idea.subCopy, 64, 218, 21, muted, 560, "start", 18)}
-    <rect x="64" y="278" width="168" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
-    <text x="88" y="306" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">6.18 WED</text>
-    <rect x="254" y="278" width="194" height="44" rx="14" fill="${dark ? "rgba(255,255,255,0.08)" : "#FFFFFF"}" stroke="${dark ? "rgba(255,255,255,0.18)" : "#CBD5E1"}"/>
-    <text x="278" y="306" fill="${muted}" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', sans-serif">14:00 Online</text>
-    <rect x="550" y="328" width="184" height="52" rx="26" fill="${accent}"/>
-    <text x="642" y="361" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif">${safeCta}</text>
-  `);
-}
-
-function baseDraftSvg(bg: string, content: string): string {
-  return `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg" fill="none">
-    <rect width="800" height="450" rx="24" fill="${bg}"/>
-    <rect x="24" y="24" width="752" height="402" rx="20" fill="none" stroke="#D8E4F5"/>
-    ${content}
-  </svg>`;
-}
-
-function svgTextBlock(value: string, x: number, y: number, fontSize: number, fill: string, width: number, anchor: "start" | "middle", maxChars: number): string {
-  const lines = splitForSvg(value, maxChars).slice(0, 3);
-  const tspans = lines
-    .map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : Math.round(fontSize * 1.14)}">${escapeXml(line)}</tspan>`)
-    .join("");
-  return `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${fill}" font-size="${fontSize}" font-weight="800" font-family="Inter, 'Noto Sans JP', sans-serif" data-width="${width}">${tspans}</text>`;
-}
-
-function splitForSvg(value: string, maxChars: number): string[] {
-  return value
-    .split("\n")
-    .flatMap((line) => {
-      const chars = Array.from(line.trim());
-      if (chars.length <= maxChars) return [line.trim()];
-      const chunks: string[] = [];
-      for (let index = 0; index < chars.length; index += maxChars) {
-        chunks.push(chars.slice(index, index + maxChars).join(""));
-      }
-      return chunks;
-    })
-    .filter(Boolean);
+function getDraftEvaluationMemo(layoutType: TypographyDraftLayoutType, selectedForRefine: boolean): string {
+  const base: Record<TypographyDraftLayoutType, string> = {
+    left_hero: "主見出しとCTAの読み順を素直に確認できます。",
+    center_focus: "中央配置で、主コピーが一覧上に残るかを見やすくしています。",
+    split_panel: "左のコピーと右の情報整理のバランスを比較できます。",
+    card_stack: "学べる内容を複数カードで見せた時の情報量を確認できます。",
+    cta_emphasis: "CTAが強すぎないか、行動導線の見つけやすさを確認できます。",
+    editorial_whitespace: "余白を広く取り、広告感を抑えた見え方を確認できます。",
+    dark_center: "濃色背景で印象を強めた時の可読性を確認できます。",
+    trust_panel: "BtoB向けに落ち着いた信頼感を出せるか確認できます。",
+    beginner_soft: "初心者向けのやわらかい印象と読みやすさを確認できます。",
+    meta_first: "日時や開催情報を先に見せる構成を確認できます。",
+  };
+  return `${base[layoutType]}${selectedForRefine ? " 5案化の候補として残します。" : " 代表性を見ながら整理対象にします。"}`;
 }
 
 function createBackgroundVariations(backgroundResult?: BackgroundResult): BackgroundVariation[] {

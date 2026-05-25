@@ -2,6 +2,7 @@ import type { BackgroundResult } from "../../schemas/background";
 import type { ComparisonResult } from "../../schemas/comparison";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { Direction } from "../../schemas/direction";
+import { typographyDraftLayoutLabels } from "../../schemas/layoutDraft";
 import type { ProjectData } from "../../schemas/project";
 import type { ProcessBoardStage } from "../../schemas/production";
 import type { SvgCandidate } from "../../schemas/svg";
@@ -367,7 +368,12 @@ function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number
     const row = Math.floor(index / 5);
     const card = createCard(x + col * (cardWidth + 12), y + row * 292, cardWidth, 272);
     parent.appendChild(card);
-    addText(card, `${draft.name} / ${draft.layoutType}`, 12, 10, { size: 10, bold: true, color: draft.selectedForRefine ? COLORS.green : COLORS.blue, width: cardWidth - 24 });
+    addText(card, `${draft.name} / ${typographyDraftLayoutLabels[draft.layoutType]}`, 12, 10, {
+      size: 10,
+      bold: true,
+      color: draft.selectedForRefine ? COLORS.green : COLORS.blue,
+      width: cardWidth - 24,
+    });
     addText(card, draft.directionName, 12, 30, { size: 8, color: COLORS.muted, width: cardWidth - 24 });
     appendSvg(card, draft.svg, 12, 54, cardWidth - 24, 138, draft.name);
     addText(card, draft.evaluationMemo, 12, 204, { size: 8, color: COLORS.muted, width: cardWidth - 24, height: 28 });

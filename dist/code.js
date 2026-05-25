@@ -436,6 +436,20 @@
     return error instanceof Error ? error.message : "Unexpected plugin error.";
   }
 
+  // src/schemas/layoutDraft.ts
+  var typographyDraftLayoutLabels = {
+    left_hero: "\u5DE6\u5BC4\u305B",
+    center_focus: "\u4E2D\u592E\u914D\u7F6E",
+    split_panel: "\u5DE6\u53F3\u5206\u5272",
+    card_stack: "\u30AB\u30FC\u30C9\u6574\u7406",
+    cta_emphasis: "CTA\u5F37\u8ABF",
+    editorial_whitespace: "\u4F59\u767D\u578B",
+    dark_center: "\u6FC3\u8272\u4E2D\u592E",
+    trust_panel: "\u4FE1\u983C\u611F\u30D1\u30CD\u30EB",
+    beginner_soft: "\u521D\u5FC3\u8005\u5411\u3051",
+    meta_first: "\u958B\u50AC\u60C5\u5831\u512A\u5148"
+  };
+
   // src/plugin/figma/renderProcessBoard.ts
   var COLORS = {
     canvas: { r: 0.969, g: 0.976, b: 0.988 },
@@ -718,7 +732,12 @@
       const row = Math.floor(index / 5);
       const card = createCard(x + col * (cardWidth + 12), y + row * 292, cardWidth, 272);
       parent2.appendChild(card);
-      addText(card, `${draft.name} / ${draft.layoutType}`, 12, 10, { size: 10, bold: true, color: draft.selectedForRefine ? COLORS.green : COLORS.blue, width: cardWidth - 24 });
+      addText(card, `${draft.name} / ${typographyDraftLayoutLabels[draft.layoutType]}`, 12, 10, {
+        size: 10,
+        bold: true,
+        color: draft.selectedForRefine ? COLORS.green : COLORS.blue,
+        width: cardWidth - 24
+      });
       addText(card, draft.directionName, 12, 30, { size: 8, color: COLORS.muted, width: cardWidth - 24 });
       appendSvg(card, draft.svg, 12, 54, cardWidth - 24, 138, draft.name);
       addText(card, draft.evaluationMemo, 12, 204, { size: 8, color: COLORS.muted, width: cardWidth - 24, height: 28 });
