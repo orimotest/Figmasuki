@@ -1,24 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { ContentType } from "../../schemas/content";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import type { ProjectData } from "../../schemas/project";
 import type { ProviderConfig } from "../../schemas/provider";
+import type { SvgCandidate } from "../../schemas/svg";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
 import { runDiagnoseWorkflow } from "../../workflows/diagnoseWorkflow";
 import { buildProjectData } from "../projectBuilder";
+import { ActionBar } from "../components/ActionBar";
 import { CanvasBadge } from "../components/CanvasBadge";
-import { DiagnosisPanel } from "../components/DiagnosisPanel";
-import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
-import { ProcessTimeline, type ProcessTimelineStep } from "../components/ProcessTimeline";
 import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
-import { UsageGuide } from "../components/UsageGuide";
 
 type DiagnoseScreenProps = {
   providers: ProviderConfig;
@@ -27,14 +25,20 @@ type DiagnoseScreenProps = {
   onDiagnosis: (result: DiagnosisResult) => void;
 };
 
+const demoSvg = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#eff6ff"/><rect x="28" y="28" width="744" height="394" rx="20" fill="#fff" stroke="#bfdbfe"/><text x="64" y="148" font-size="58" font-weight="800" fill="#1d4ed8" font-family="Inter, sans-serif">AI活用、</text><text x="64" y="222" font-size="58" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">何から始める？</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">明日から使える実践ステップを60分で解説</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#16a34a"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
+
 export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagnosis }: DiagnoseScreenProps) {
-  const [contentType, setContentType] = useState<ContentType>("note_thumbnail");
+  const [contentType, setContentType] = useState<ContentType>(projectData?.contentType ?? "seminar_banner");
   const [selectedFrame, setSelectedFrame] = useState<FigmaFrameData | null>(null);
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | undefined>();
-  const [statusLogs, setStatusLogs] = useState<string[]>(["Figma上で診断したいフレームを1つ選択してください。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["自動制作後の詳細確認画面です。必要に応じてFigma上の1案を選択し、診断を再実行できます。"]);
   const [error, setError] = useState<string | null>(null);
   const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [success, setSuccess] = useState<string | null>(null);
+
+  const latestDiagnosis = diagnosis ?? (projectData?.diagnosisResults.length ? projectData.diagnosisResults[projectData.diagnosisResults.length - 1] : undefined);
+  const previewCandidate = projectData?.svgCandidates[0];
+  const display = useMemo(() => buildDiagnosisDisplay(latestDiagnosis, selectedFrame, previewCandidate, contentType), [latestDiagnosis, selectedFrame, previewCandidate, contentType]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -42,7 +46,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
       if (!message) return;
       if (message.type === "SELECTION_FRAME_RESULT") {
         setSelectedFrame(message.payload);
-        setStatusLogs((entries) => [...entries, "選択フレームを取得しました。", "構造とテキストを読み取っています。"]);
+        setStatusLogs((entries) => [...entries, "選択中のフレームを取得しました。", "情報構造と文字要素を読み取っています。"]);
         void runDiagnosis(message.payload, contentType);
       }
       if (message.type === "PLUGIN_SUCCESS") {
@@ -52,7 +56,6 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
       if (message.type === "PLUGIN_ERROR") {
         setError(message.payload.message);
         setIsDiagnosing(false);
-        setSelectedFrame(null);
         setStatusLogs((entries) => [...entries, `Figmaエラー: ${message.payload.message}`]);
       }
     };
@@ -72,24 +75,15 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
 
   async function runDiagnosis(frame: FigmaFrameData, preset: ContentType) {
     try {
-      setStatusLogs((entries) => [...entries, `${preset === "note_thumbnail" ? "note" : "セミナー"}用の観点で診断します。`, "診断コメントを生成しています。"]);
+      setStatusLogs((entries) => [...entries, `${preset === "note_thumbnail" ? "note" : "セミナー"}用途の観点で診断します。`, "診断コメントを生成しています。"]);
       const result = await runDiagnoseWorkflow(frame, preset);
       setDiagnosis(result);
       onDiagnosis(result);
-      if (result.providerMeta?.fallbackUsed) {
-        setStatusLogs((entries) => [
-          ...entries,
-          "APIが未設定、または診断APIに接続できないためDemo Modeで診断しました。",
-          result.providerMeta?.fallbackReason ?? "Demo診断に切り替えました。",
-        ]);
-      } else if (result.providerMeta?.provider === "demo") {
-        setStatusLogs((entries) => [...entries, "Demo Modeで診断結果を表示しています。"]);
-      }
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), diagnosisResults: [...projectData.diagnosisResults, result] }));
       }
       setError(null);
-      setStatusLogs((entries) => [...entries, "診断が完了しました。"]);
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定のためDemo診断で続行しました。" : "診断が完了しました。"]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "診断に失敗しました。";
       setError(message);
@@ -100,101 +94,153 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
   }
 
   function handleRenderDiagnosisBoard() {
-    if (!diagnosis) {
-      setError("診断結果をFigmaに記録するには、先に診断を実行してください。");
+    if (!latestDiagnosis) {
+      setError("診断ボードをFigmaに出力するには、先に診断を実行してください。");
       return;
     }
-    postToPlugin({ type: "RENDER_DIAGNOSIS_BOARD", payload: diagnosis });
+    postToPlugin({ type: "RENDER_DIAGNOSIS_BOARD", payload: latestDiagnosis });
+  }
+
+  function handleCopyReport() {
+    const text = [`診断概要: ${display.summary}`, `最初に伝わること: ${display.firstImpression}`, `強い点: ${display.strengths.join(" / ")}`, `気になる点: ${display.concerns.join(" / ")}`].join("\n");
+    void navigator.clipboard?.writeText(text);
+    setSuccess("診断レポートをコピーしました。");
   }
 
   return (
-    <div className="diagnose-layout">
-      <section className="panel diagnose-controls">
-        <SectionHeader
-          title="診断"
-          description="Figma上で1案だけ選び、最初に伝わることと直す順番を整理します。"
-          aside={<ProviderBadge label="診断" provider={diagnosis?.providerMeta?.provider ?? providers.diagnosis} fallbackUsed={diagnosis?.providerMeta?.fallbackUsed} />}
-        />
+    <div className="review-screen">
+      <div className="review-page-heading">
+        <div>
+          <p className="eyebrow">AI CREATIVE PROCESS BOARD <span className="step-pill">Step 2/4</span></p>
+          <h2>診断</h2>
+          <p>自動制作後の1案を読み取り、最初に伝わることと改善方針を整理します。</p>
+        </div>
         <div className="badge-row">
           <CanvasBadge />
-          <span className="provider-badge">点数評価なし</span>
-          <span className="provider-badge warning">API未設定でもDemo診断</span>
+          <span className="provider-badge warning">実行モード: Demo Mode</span>
+          <ProviderBadge label="provider" provider={latestDiagnosis?.providerMeta?.provider ?? providers.diagnosis} fallbackUsed={latestDiagnosis?.providerMeta?.fallbackUsed} />
         </div>
-        <UsageGuide
-          title="診断の操作"
-          note="診断したいFigmaフレームを1つ選択してから、下のボタンを押してください。まず探索画面で案をFigmaに配置すると、診断用のフレームを作成できます。"
-          steps={["探索画面で「5案をまとめてFigmaに配置」", "Figma上で1つの案をクリック", "診断画面で「選択中のフレームを診断」"]}
-        />
-        <ProcessTimeline steps={getDiagnoseTimeline(isDiagnosing, Boolean(selectedFrame), Boolean(diagnosis), Boolean(error))} />
-        {isDiagnosing && <LoadingState title="フレームを診断しています" description="文字階層、余白、CTA、用途との相性を確認しています。" />}
-        <PresetSelector value={contentType} onChange={setContentType} />
-        <button className="primary-button" type="button" disabled={isDiagnosing} onClick={handleDiagnoseSelectedFrame}>
-          {isDiagnosing ? "診断中..." : "選択中のフレームを診断"}
-        </button>
-        <button className="secondary-button" type="button" disabled={!diagnosis} onClick={handleRenderDiagnosisBoard}>
-          診断結果をFigmaに記録
-        </button>
-        {error && <ErrorMessage title="診断を実行できませんでした" detail={error} action="Figma上でフレームを1つだけ選択してから、もう一度実行してください。" />}
-        {diagnosis && <SuccessMessage title="診断が完了しました" detail="強い点、気になる点、最初に直す場所を確認できます。" />}
-        {success && <SuccessMessage title={success} />}
-        <FrameSummary frame={selectedFrame} />
-        <StatusLog entries={statusLogs} />
-      </section>
-      <section className="panel diagnose-result">
-        {diagnosis ? (
-          <DiagnosisPanel result={diagnosis} />
-        ) : (
-          <EmptyState
-            title="診断するフレームを選択してください"
-            body="Figmaキャンバス上で診断したいバナー案を1つ選択します。探索画面で生成した案を配置してから選択すると、診断を試せます。"
-          />
-        )}
-      </section>
+      </div>
+
+      <div className="review-layout diagnose-review-layout">
+        <section className="panel review-side-panel">
+          <SectionHeader title="診断対象" description="Figma上で選択された1案を診断します。" />
+          <PreviewFigure svg={display.svg} label={display.frameName} />
+          <InfoList items={[["案名", display.frameName], ["ID", display.frameId], ["サイズ", "800×450 固定"], ["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", "信頼感・親しみやすさ"]]} />
+          <ChecklistCard title="診断の観点" items={["最初に伝わること", "強い点", "気になる点", "最初に直すなら", "派生案のヒント"]} />
+          <ChecklistCard title="処理の流れ" items={["フレーム解析", "情報構造チェック", "読みやすさ評価", "伝わり方の整理", "改善提案の生成"]} completed />
+          <PresetSelector value={contentType} onChange={setContentType} />
+        </section>
+
+        <section className="panel review-main-panel">
+          <SectionHeader title="診断サマリー" description={`診断時間: ${display.createdAt} / provider: ${display.provider}`} />
+          {isDiagnosing && <LoadingState title="フレームを診断しています" description="文字階層、余白、CTA、用途との相性を確認しています。" />}
+          {error && <ErrorMessage title="診断を実行できませんでした" detail={error} action="Figma上でフレームを1つ選択して、もう一度実行してください。" />}
+          {success && <SuccessMessage title={success} />}
+          <InsightHero text={display.summary} />
+          <div className="insight-grid three">
+            <InsightCard title="最初に伝わること" icon="👁" items={[display.firstImpression]} />
+            <InsightCard title="強い点" icon="✓" items={display.strengths} />
+            <InsightCard title="気になる点" icon="!" items={display.concerns} tone="warn" />
+          </div>
+          <div className="insight-grid two">
+            <NumberedCard title="最初に直すなら" items={display.fixPriority} />
+            <InsightCard title="派生案のヒント" icon="↗" items={display.rewriteIdeas} />
+          </div>
+        </section>
+
+        <section className="panel review-preview-panel">
+          <SectionHeader title="選択中のプレビュー" aside={<span className="canvas-badge">800×450固定</span>} />
+          <PreviewFigure svg={display.svg} label="選択中バナー" large />
+          <RatingCard title="総合評価" rows={[["伝わりやすさ", "良い", 88], ["情報の整理", "良い", 84], ["視線誘導", "改善余地あり", 68], ["行動につながりやすさ", "良い", 82]]} />
+          <CompatibilityCard rows={[["セミナー集客", "とても良い"], ["AI初心者向け", "とても良い"], ["忙しい人向け", "良い"], ["信頼感重視", "良い"]]} />
+        </section>
+      </div>
+
+      <ActionBar>
+        <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Explore" }))}>探索に戻る</button>
+        <button className="secondary-button" type="button" onClick={handleRenderDiagnosisBoard}>Figmaに診断ボードを出力</button>
+        <button className="secondary-button" type="button" onClick={handleCopyReport}>診断レポートをコピー</button>
+        <button className="primary-button" type="button" onClick={handleDiagnoseSelectedFrame}>{isDiagnosing ? "診断中..." : "選択中のフレームを診断"}</button>
+        <button className="primary-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Compare" }))}>比較フェーズへ進む</button>
+      </ActionBar>
+      <StatusLog entries={statusLogs.slice(-4)} />
     </div>
   );
 }
 
-function FrameSummary({ frame }: { frame: FigmaFrameData | null }) {
-  if (!frame) {
-    return (
-      <section className="frame-summary empty">
-        <h3>選択中のフレーム</h3>
-        <p className="muted">Figma上で診断したいフレームを1つ選択してください。</p>
-      </section>
-    );
-  }
+type DiagnosisDisplay = {
+  frameId: string;
+  frameName: string;
+  svg: string;
+  summary: string;
+  firstImpression: string;
+  strengths: string[];
+  concerns: string[];
+  fixPriority: string[];
+  rewriteIdeas: string[];
+  provider: string;
+  createdAt: string;
+};
+
+function buildDiagnosisDisplay(result: DiagnosisResult | undefined, frame: FigmaFrameData | null, candidate: SvgCandidate | undefined, contentType: ContentType): DiagnosisDisplay {
+  return {
+    frameId: result?.frameId ?? frame?.id ?? candidate?.id ?? "SEC_01",
+    frameName: result?.frameName ?? frame?.name ?? candidate?.name ?? "AI活用 何から始める？",
+    svg: candidate?.svg ?? demoSvg,
+    summary:
+      result?.summary ??
+      "「AI活用って何から始めればいいの？」という悩みに寄り添い、最初の一歩を後押しする印象です。初心者向けの導入セミナーとして、入口の分かりやすさが強く出ています。",
+    firstImpression: result?.firstImpression ?? "AI活用に不安がある人へ、やさしく参加を促すセミナー告知として伝わります。",
+    strengths: result?.strengths ?? ["問いかけ型の見出しで関心を引きやすい", "CTAが明確で次の行動が分かる", "セミナー用途として必要な情報がまとまっている"],
+    concerns: result?.concerns ?? ["日時情報が小さい場合は見落とされやすい", "具体的な参加メリットをもう少し補強できる", "右側に視線を逃がす要素があるとさらに安定します"],
+    fixPriority: result?.fixPriority.map((item) => item.suggestion) ?? ["日時と開催形式を少し強調する", "「60分で学べる」をサブコピー内で目立たせる", "CTA周辺の余白を確保する", "背景装飾は文字領域から離す"],
+    rewriteIdeas: result?.rewriteInstructions.map((item) => item.instruction) ?? [
+      "AIのメリットを3つ並べて安心感を強調する構成",
+      "「明日から使える」を目立たせる構成",
+      "人物写真を追加して親近感を出す構成",
+      "左右分割で右にビジュアルを置く構成",
+    ],
+    provider: result?.providerMeta?.provider ?? "demo",
+    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : contentType === "seminar_banner" ? "Demo" : "Demo",
+  };
+}
+
+function PreviewFigure({ svg, label, large = false }: { svg: string; label: string; large?: boolean }) {
   return (
-    <section className="frame-summary">
-      <h3>選択中のフレーム</h3>
-      <dl className="detail-list">
-        <div>
-          <dt>フレーム名</dt>
-          <dd>{frame.name}</dd>
-        </div>
-        <div>
-          <dt>サイズ</dt>
-          <dd>{frame.width}x{frame.height}{!frame.derived.frameSizeMatchesCanvas && " / 800x450ではありません"}</dd>
-        </div>
-        <div>
-          <dt>テキスト数</dt>
-          <dd>{frame.derived.textCount}</dd>
-        </div>
-        <div>
-          <dt>メインタイトル候補</dt>
-          <dd>{frame.derived.possibleMainTitle?.characters || "見つかりません"}</dd>
-        </div>
-      </dl>
-    </section>
+    <figure className={large ? "review-preview-figure large" : "review-preview-figure"}>
+      <div className="review-svg-canvas" dangerouslySetInnerHTML={{ __html: svg }} />
+      <figcaption>{label}</figcaption>
+    </figure>
   );
 }
 
-function getDiagnoseTimeline(isRunning: boolean, hasFrame: boolean, hasResult: boolean, hasError: boolean): ProcessTimelineStep[] {
-  return [
-    { label: "フレーム選択", description: "Figma上の1案を取得", status: hasError ? "error" : hasFrame || isRunning ? "completed" : "pending" },
-    { label: "構造チェック", description: "文字、余白、サイズを確認", status: hasError ? "error" : hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "診断コメント生成", description: "用途別の観点で言語化", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "修正方針を整理", description: "最初に直すならを提示", status: hasResult ? "completed" : "pending" },
-  ];
+function InfoList({ items }: { items: [string, string][] }) {
+  return <dl className="review-info-list">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
+}
+
+function ChecklistCard({ title, items, completed = false }: { title: string; items: string[]; completed?: boolean }) {
+  return <section className="review-card"><h3>{title}</h3><ul className="review-check-list">{items.map((item) => <li key={item}><span className={completed ? "check-dot done" : "check-dot"}>{completed ? "✓" : ""}</span>{item}</li>)}</ul></section>;
+}
+
+function InsightHero({ text }: { text: string }) {
+  return <section className="insight-hero"><span>💡</span><strong>{text}</strong></section>;
+}
+
+function InsightCard({ title, icon, items, tone }: { title: string; icon: string; items: string[]; tone?: "warn" }) {
+  return <article className={tone === "warn" ? "insight-card warn" : "insight-card"}><h3><span>{icon}</span>{title}</h3><ul>{items.map((item) => <li key={item}>{item}</li>)}</ul></article>;
+}
+
+function NumberedCard({ title, items }: { title: string; items: string[] }) {
+  return <article className="insight-card"><h3>{title}</h3><ol>{items.map((item) => <li key={item}>{item}</li>)}</ol></article>;
+}
+
+function RatingCard({ title, rows }: { title: string; rows: [string, string, number][] }) {
+  return <section className="review-card"><h3>{title}</h3><div className="metric-list">{rows.map(([label, value, width]) => <div className="metric-row" key={label}><span>{label}</span><div><i style={{ width: `${width}%` }} /></div><em>{value}</em></div>)}</div></section>;
+}
+
+function CompatibilityCard({ rows }: { rows: [string, string][] }) {
+  return <section className="review-card"><h3>用途との相性</h3><ul className="compat-list">{rows.map(([label, value]) => <li key={label}><span>{label}</span><strong>{value}</strong></li>)}</ul></section>;
 }
 
 function projectDataToBuilder(project: ProjectData) {

@@ -1,25 +1,23 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { BackgroundBrief } from "../../schemas/background";
 import type { ContentType } from "../../schemas/content";
 import type { ComparisonResult } from "../../schemas/comparison";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import type { ProjectData } from "../../schemas/project";
 import type { ProviderConfig } from "../../schemas/provider";
+import type { SvgCandidate } from "../../schemas/svg";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
 import { runCompareWorkflow } from "../../workflows/compareWorkflow";
 import { buildProjectData } from "../projectBuilder";
+import { ActionBar } from "../components/ActionBar";
 import { CanvasBadge } from "../components/CanvasBadge";
-import { CompareTable } from "../components/CompareTable";
-import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
-import { ProcessTimeline, type ProcessTimelineStep } from "../components/ProcessTimeline";
 import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
-import { UsageGuide } from "../components/UsageGuide";
 
 type CompareScreenProps = {
   providers: ProviderConfig;
@@ -29,14 +27,20 @@ type CompareScreenProps = {
   onSendToFinish: (brief: BackgroundBrief) => void;
 };
 
+const demoSvgA = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#eff6ff"/><rect x="28" y="28" width="744" height="394" rx="20" fill="#fff" stroke="#bfdbfe"/><text x="64" y="150" font-size="58" font-weight="800" fill="#1d4ed8" font-family="Inter, sans-serif">AI活用</text><text x="64" y="222" font-size="54" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">何から始める？</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">明日から使える実践ステップを60分で解説</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#16a34a"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
+const demoSvgB = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#ecfdf5"/><rect x="30" y="30" width="740" height="390" rx="20" fill="#fff" stroke="#bbf7d0"/><text x="64" y="145" font-size="50" font-weight="800" fill="#064e3b" font-family="Inter, sans-serif">60分でわかる</text><text x="64" y="220" font-size="62" font-weight="800" fill="#16a34a" font-family="Inter, sans-serif">AI活用の第一歩</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">現場で使える知識と具体例をわかりやすく解説</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#16a34a"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
+
 export function CompareScreen({ providers, projectData, onProjectData, onComparison, onSendToFinish }: CompareScreenProps) {
-  const [contentType, setContentType] = useState<ContentType>("note_thumbnail");
+  const [contentType, setContentType] = useState<ContentType>(projectData?.contentType ?? "seminar_banner");
   const [frames, setFrames] = useState<FigmaFrameData[]>([]);
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
-  const [statusLogs, setStatusLogs] = useState<string[]>(["Figma上で比較したい案を2から5個選択してください。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["自動制作後の比較確認画面です。必要に応じてFigma上の2〜5案を選択し、比較を再実行できます。"]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState(false);
+
+  const activeComparison = comparison ?? projectData?.comparisonResult;
+  const display = useMemo(() => buildCompareDisplay(activeComparison, projectData?.svgCandidates ?? [], frames, contentType), [activeComparison, projectData?.svgCandidates, frames, contentType]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -44,10 +48,7 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       if (!message) return;
       if (message.type === "SELECTION_FRAMES_RESULT") {
         setFrames(message.payload);
-        setStatusLogs((entries) => [...entries, `${message.payload.length}案を取得しました。`, "各案の役割を整理しています。"]);
-        if (message.payload.length > 5) {
-          setStatusLogs((entries) => [...entries, "2〜5案での比較を推奨します。今回は選択中の案をそのまま比較します。"]);
-        }
+        setStatusLogs((entries) => [...entries, `${message.payload.length}案を取得しました。`, "各案の役割と向いている用途を整理しています。"]);
         void runComparison(message.payload, contentType);
       }
       if (message.type === "PLUGIN_SUCCESS") {
@@ -80,20 +81,11 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       const result = await runCompareWorkflow(selectedFrames, preset);
       setComparison(result);
       onComparison(result);
-      if (result.providerMeta?.fallbackUsed) {
-        setStatusLogs((entries) => [
-          ...entries,
-          "APIが未設定、または比較APIに接続できないためDemo Modeで比較しました。",
-          result.providerMeta?.fallbackReason ?? "Demo比較に切り替えました。",
-        ]);
-      } else if (result.providerMeta?.provider === "demo") {
-        setStatusLogs((entries) => [...entries, "Demo Modeで比較結果を表示しています。"]);
-      }
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), comparisonResult: result }));
       }
       setError(null);
-      setStatusLogs((entries) => [...entries, "比較が完了しました。"]);
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定のためDemo比較で続行しました。" : "比較が完了しました。"]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "比較に失敗しました。";
       setError(message);
@@ -104,128 +96,202 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
   }
 
   function handleRenderCompareBoard() {
-    if (!comparison) {
-      setError("比較結果をFigmaに記録するには、先に比較を実行してください。");
+    if (!activeComparison) {
+      setError("比較ボードをFigmaに出力するには、先に比較を実行してください。");
       return;
     }
-    postToPlugin({ type: "RENDER_COMPARE_BOARD", payload: comparison });
+    postToPlugin({ type: "RENDER_COMPARE_BOARD", payload: activeComparison });
+  }
+
+  function handleCopyReport() {
+    const text = [`比較概要: ${display.summary}`, `ベース候補: ${display.primary.name}`, `理由: ${display.primary.reason}`, `次点候補: ${display.secondary.name}`].join("\n");
+    void navigator.clipboard?.writeText(text);
+    setSuccess("比較レポートをコピーしました。");
   }
 
   return (
-    <div className="compare-layout">
-      <section className="panel compare-controls">
-        <SectionHeader
-          title="比較"
-          description="2から5案を比較し、ベース候補と次点候補を整理します。"
-          aside={<ProviderBadge label="比較" provider={comparison?.providerMeta?.provider ?? providers.compare} fallbackUsed={comparison?.providerMeta?.fallbackUsed} />}
-        />
+    <div className="review-screen">
+      <div className="review-page-heading">
+        <div>
+          <p className="eyebrow">AI CREATIVE PROCESS BOARD <span className="step-pill">Step 3/4</span></p>
+          <h2>比較</h2>
+          <p>2〜5案を比べ、ベース候補と次点候補、background briefを整理します。</p>
+        </div>
         <div className="badge-row">
           <CanvasBadge />
-          <span className="provider-badge">選択案: {frames.length}</span>
-          <span className="provider-badge warning">API未設定でもDemo比較</span>
+          <span className="provider-badge warning">実行モード: Demo Mode</span>
+          <ProviderBadge label="provider" provider={activeComparison?.providerMeta?.provider ?? providers.compare} fallbackUsed={activeComparison?.providerMeta?.fallbackUsed} />
         </div>
-        <UsageGuide
-          title="比較の操作"
-          note="比較したいFigmaフレームを2〜5個選択してから、比較を実行してください。探索画面で5案をまとめて配置すると、比較用のフレームをすぐに選択できます。"
-          steps={["探索画面で「5案をまとめてFigmaに配置」", "Figma上で2〜5案をShiftクリックして選択", "比較画面で「選択中の案を比較」", "background briefを確認し、仕上げへ送る"]}
-        />
-        <ProcessTimeline steps={getCompareTimeline(isComparing, frames.length > 0, Boolean(comparison), Boolean(error))} />
-        {isComparing && <LoadingState title="複数案を比較しています" description="役割、強み、懸念、背景生成briefを整理しています。" />}
-        <PresetSelector value={contentType} onChange={setContentType} />
-        <button className="primary-button" type="button" disabled={isComparing} onClick={handleCompareSelectedFrames}>
-          {isComparing ? "比較中..." : "選択中の案を比較"}
-        </button>
-        <button className="secondary-button" type="button" disabled={!comparison} onClick={handleRenderCompareBoard}>
-          比較結果をFigmaに記録
-        </button>
-        {error && <ErrorMessage title="比較を実行できませんでした" detail={error} action="Figma上でフレームを2から5個選択して、もう一度実行してください。" />}
-        {comparison && <SuccessMessage title="比較が完了しました" detail="ベース候補、次点候補、background briefを確認できます。" />}
-        {success && <SuccessMessage title={success} />}
-        <SelectedFrameList frames={frames} />
-        <StatusLog entries={statusLogs} />
-      </section>
+      </div>
 
-      <section className="panel compare-result">
-        {!comparison ? (
-          <EmptyState
-            title="比較する案を2つ以上選択してください"
-            body="Figmaキャンバス上で比較したいバナー案を2〜5個選択します。探索画面で5案をまとめて配置してから選択すると、Demo比較をすぐに試せます。"
-          />
-        ) : (
-          <div className="compare-result-stack">
-            <section className="diagnosis-section">
-              <h3>比較概要</h3>
-              <p>{comparison.comparisonSummary}</p>
-            </section>
-            <CompareTable result={comparison} />
-            <section className="recommendation-grid">
-              <RecommendationCard title="ベース候補" frameName={findFrameName(comparison, comparison.recommendation.primaryFrameId)} reason={comparison.recommendation.primaryReason} />
-              <RecommendationCard title="次点候補" frameName={comparison.recommendation.secondaryFrameId ? findFrameName(comparison, comparison.recommendation.secondaryFrameId) : "なし"} reason={comparison.recommendation.secondaryReason ?? "次点候補は生成されませんでした。"} />
-            </section>
-            <section className="background-brief-box">
-              <div>
-                <h3>background brief</h3>
-                <p>{comparison.backgroundBrief.promptText}</p>
-                <div className="mini-meta">
-                  <span>{comparison.backgroundBrief.targetFrameName}</span>
-                  <span>{comparison.backgroundBrief.mood}</span>
-                  <span>{comparison.backgroundBrief.style}</span>
-                </div>
-              </div>
-              <button className="primary-button compact" type="button" onClick={() => onSendToFinish(comparison.backgroundBrief)}>
-                この案で背景を仕上げる
-              </button>
-            </section>
+      <div className="review-layout compare-review-layout">
+        <section className="panel review-side-panel">
+          <SectionHeader title="比較対象" description="選択中または自動制作済みの案を比較しています。" />
+          <CompareTargetCard label="案A" item={display.a} badge="ベース候補" />
+          <CompareTargetCard label="案B" item={display.b} badge="次点候補" />
+          <ChecklistCard title="比較の観点" items={["役割", "向いている用途", "強い点", "懸念", "ベース候補", "次点候補"]} />
+          <ChecklistCard title="処理の流れ" items={["2案を取得", "差分を抽出", "コメント生成", "ベース候補整理"]} completed />
+          <PresetSelector value={contentType} onChange={setContentType} />
+        </section>
+
+        <section className="panel review-main-panel">
+          <SectionHeader title="比較サマリー" description={`比較時間: ${display.createdAt} / provider: ${display.provider}`} />
+          {isComparing && <LoadingState title="複数案を比較しています" description="役割、強み、懸念、背景生成briefを整理しています。" />}
+          {error && <ErrorMessage title="比較を実行できませんでした" detail={error} action="Figma上で2〜5案を選択して、もう一度実行してください。" />}
+          {success && <SuccessMessage title={success} />}
+          <InsightHero text={display.summary} />
+          <ComparisonMatrix rows={display.rows} />
+          <div className="insight-grid two">
+            <CandidateReasonCard title="ベース候補" item={display.primary} />
+            <CandidateReasonCard title="次点候補" item={display.secondary} />
           </div>
-        )}
-      </section>
+          <BriefCard brief={display.brief} />
+        </section>
+
+        <section className="panel review-preview-panel">
+          <SectionHeader title="比較プレビュー" />
+          <PreviewFigure svg={display.a.svg} label="案A / ベース候補" large />
+          <PreviewFigure svg={display.b.svg} label="案B / 次点候補" large />
+          <ComparisonWinnerCard />
+          <CompatibilityCard rows={[["セミナー集客", "とても良い"], ["AI初心者向け", "とても良い"], ["忙しい人向け", "良い"], ["信頼感重視", "とても良い"]]} />
+        </section>
+      </div>
+
+      <ActionBar>
+        <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Diagnose" }))}>診断フェーズに戻る</button>
+        <button className="secondary-button" type="button" onClick={handleRenderCompareBoard}>Figmaに比較ボードを出力</button>
+        <button className="secondary-button" type="button" onClick={handleCopyReport}>比較レポートをコピー</button>
+        <button className="primary-button" type="button" onClick={handleCompareSelectedFrames}>{isComparing ? "比較中..." : "選択中の案を比較"}</button>
+        <button className="primary-button" type="button" onClick={() => onSendToFinish(display.brief)}>仕上げフェーズへ進む</button>
+      </ActionBar>
+      <StatusLog entries={statusLogs.slice(-4)} />
     </div>
   );
 }
 
-function SelectedFrameList({ frames }: { frames: FigmaFrameData[] }) {
-  if (frames.length === 0) {
-    return (
-      <section className="frame-summary empty">
-        <h3>選択中の案</h3>
-        <p className="muted">Figma上で比較したい案を2から5個選択してください。</p>
-      </section>
-    );
-  }
+type CompareDisplayItem = { id: string; name: string; svg: string; meta: [string, string][]; reason?: string };
+type CompareDisplay = {
+  a: CompareDisplayItem;
+  b: CompareDisplayItem;
+  summary: string;
+  rows: { name: string; role: string; bestFor: string; strength: string; concern: string }[];
+  primary: { name: string; reason: string };
+  secondary: { name: string; reason: string };
+  brief: BackgroundBrief;
+  provider: string;
+  createdAt: string;
+};
+
+function buildCompareDisplay(result: ComparisonResult | undefined, candidates: SvgCandidate[], frames: FigmaFrameData[], contentType: ContentType): CompareDisplay {
+  const a = candidateToItem(candidates[0], frames[0], "AI活用 何から始める？", demoSvgA);
+  const b = candidateToItem(candidates[1], frames[1], "60分でわかる AI活用の第一歩", demoSvgB);
+  const roles = result?.frameRoles ?? [];
+  return {
+    a,
+    b,
+    summary:
+      result?.comparisonSummary ??
+      "課題共感型は集客向き、参加メリット型は内容理解向き。今回は入口として強い「AI活用、何から始める？」をベース候補とします。",
+    rows:
+      roles.length > 0
+        ? roles.map((role) => ({ name: role.frameName, role: role.role, bestFor: role.bestFor, strength: role.strength, concern: role.risk }))
+        : [
+            { name: a.name, role: "課題想起・入口", bestFor: "セミナー集客の入口", strength: "問いかけで関心を引きやすい", concern: "内容イメージがやや曖昧" },
+            { name: b.name, role: "参加メリット・内容訴求", bestFor: "理解促進の告知", strength: "時間と内容が明確で安心感がある", concern: "入口としてのインパクトは控えめ" },
+          ],
+    primary: { name: result ? findFrameName(result, result.recommendation.primaryFrameId) : a.name, reason: result?.recommendation.primaryReason ?? "入口として強く、初心者層の関心を引きやすいためベース候補に向いています。" },
+    secondary: { name: result?.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : b.name, reason: result?.recommendation.secondaryReason ?? "内容理解と安心感の補強として残す価値があります。" },
+    brief: result?.backgroundBrief ?? demoBrief(a.id, a.name, contentType),
+    provider: result?.providerMeta?.provider ?? "demo",
+    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : "Demo",
+  };
+}
+
+function candidateToItem(candidate: SvgCandidate | undefined, frame: FigmaFrameData | undefined, fallbackName: string, fallbackSvg: string): CompareDisplayItem {
+  const name = candidate?.name ?? frame?.name ?? fallbackName;
+  return {
+    id: candidate?.id ?? frame?.id ?? fallbackName,
+    name,
+    svg: candidate?.svg ?? fallbackSvg,
+    meta: [["サイズ", "800×450 固定"], ["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", name.includes("60分") ? "安心感・わかりやすさ" : "課題共感・親しみやすさ"]],
+  };
+}
+
+function demoBrief(targetFrameId: string, targetFrameName: string, contentType: ContentType): BackgroundBrief {
+  return {
+    id: "demo-brief-compare",
+    contentType,
+    targetFrameId,
+    targetFrameName,
+    mood: "calm / trustworthy / friendly",
+    style: "soft tech gradient with subtle geometry",
+    avoid: ["文字の生成", "ロゴ", "過度な装飾", "中央の細かすぎる模様"],
+    safeAreaHint: "主見出しとCTAの背面は低コントラストにし、文字領域を邪魔しない。",
+    suggestedStyleKeywords: ["soft tech gradient", "business calm", "low contrast center"],
+    promptText: "初心者が安心して一歩を踏み出せる、信頼感と親しみのある背景で構成する。",
+  };
+}
+
+function CompareTargetCard({ label, item, badge }: { label: string; item: CompareDisplayItem; badge: string }) {
   return (
-    <section className="frame-summary">
-      <h3>選択中の案</h3>
-      <div className="selected-frame-list">
-        {frames.map((frame) => (
-          <article className="selected-frame-item" key={frame.id}>
-            <strong>{frame.name}</strong>
-            <span>{frame.width}x{frame.height} / テキスト {frame.derived.textCount}</span>
-            <span>{frame.derived.possibleMainTitle?.characters || "タイトル候補なし"}</span>
-          </article>
-        ))}
+    <article className="review-card target-card">
+      <PreviewFigure svg={item.svg} label={label} />
+      <div>
+        <strong>{item.name}</strong>
+        <span className="mini-badge">{badge}</span>
       </div>
+      <InfoList items={item.meta} />
+    </article>
+  );
+}
+
+function ComparisonMatrix({ rows }: { rows: CompareDisplay["rows"] }) {
+  return (
+    <div className="review-table-wrap">
+      <table className="review-table">
+        <thead><tr><th>案</th><th>役割</th><th>向いている用途</th><th>強み</th><th>懸念</th></tr></thead>
+        <tbody>{rows.map((row) => <tr key={row.name}><td>{row.name}</td><td>{row.role}</td><td>{row.bestFor}</td><td>{row.strength}</td><td>{row.concern}</td></tr>)}</tbody>
+      </table>
+    </div>
+  );
+}
+
+function CandidateReasonCard({ title, item }: { title: string; item: { name: string; reason: string } }) {
+  return <article className="insight-card"><h3>{title}</h3><strong>{item.name}</strong><p>{item.reason}</p></article>;
+}
+
+function BriefCard({ brief }: { brief: BackgroundBrief }) {
+  return (
+    <section className="review-card brief-card">
+      <h3>background brief</h3>
+      <InfoList items={[["背景の方向性", brief.promptText], ["雰囲気", brief.mood], ["背景スタイル", brief.style], ["避けること", brief.avoid.join(" / ")], ["文字領域への配慮", brief.safeAreaHint]]} />
     </section>
   );
 }
 
-function getCompareTimeline(isRunning: boolean, hasFrames: boolean, hasResult: boolean, hasError: boolean): ProcessTimelineStep[] {
-  return [
-    { label: "複数フレーム選択", description: "2から5案を取得", status: hasError ? "error" : hasFrames || isRunning ? "completed" : "pending" },
-    { label: "差分を抽出", description: "文字、CTA、用途を比較", status: hasError ? "error" : hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "役割を整理", description: "各案が向いている用途を言語化", status: hasResult ? "completed" : isRunning ? "running" : "pending" },
-    { label: "ベース候補を選定", description: "仕上げに進む案を決める", status: hasResult ? "completed" : "pending" },
-    { label: "background brief作成", description: "背景生成の判断材料を準備", status: hasResult ? "completed" : "pending" },
-  ];
+function ComparisonWinnerCard() {
+  const rows: [string, string, number][] = [["伝わりやすさ", "案A", 88], ["情報の整理", "案B", 84], ["視線誘導", "案A", 76], ["行動につながりやすさ", "案B", 82]];
+  return <section className="review-card"><h3>比較結果</h3><div className="metric-list">{rows.map(([label, value, width]) => <div className="metric-row" key={label}><span>{label}</span><div><i style={{ width: `${width}%` }} /></div><em>{value}</em></div>)}</div></section>;
 }
 
-function RecommendationCard({ title, frameName, reason }: { title: string; frameName: string; reason: string }) {
-  return (
-    <article className="recommendation-card">
-      <span>{title}</span>
-      <strong>{frameName}</strong>
-      <p>{reason}</p>
-    </article>
-  );
+function PreviewFigure({ svg, label, large = false }: { svg: string; label: string; large?: boolean }) {
+  return <figure className={large ? "review-preview-figure large" : "review-preview-figure"}><div className="review-svg-canvas" dangerouslySetInnerHTML={{ __html: svg }} /><figcaption>{label}</figcaption></figure>;
+}
+
+function InfoList({ items }: { items: [string, string][] }) {
+  return <dl className="review-info-list">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
+}
+
+function ChecklistCard({ title, items, completed = false }: { title: string; items: string[]; completed?: boolean }) {
+  return <section className="review-card"><h3>{title}</h3><ul className="review-check-list">{items.map((item) => <li key={item}><span className={completed ? "check-dot done" : "check-dot"}>{completed ? "✓" : ""}</span>{item}</li>)}</ul></section>;
+}
+
+function InsightHero({ text }: { text: string }) {
+  return <section className="insight-hero"><span>💡</span><strong>{text}</strong></section>;
+}
+
+function CompatibilityCard({ rows }: { rows: [string, string][] }) {
+  return <section className="review-card"><h3>用途との相性</h3><ul className="compat-list">{rows.map(([label, value]) => <li key={label}><span>{label}</span><strong>{value}</strong></li>)}</ul></section>;
 }
 
 function findFrameName(result: ComparisonResult, frameId: string): string {

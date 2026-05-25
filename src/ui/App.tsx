@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { providerConfig } from "../config/providers";
 import type { BackgroundBrief, BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
@@ -31,12 +31,21 @@ export default function App() {
 
   const completedTabs = useMemo<AppTab[]>(() => {
     const completed: AppTab[] = [];
-    if (projectData?.svgCandidates.length) completed.push("Explore");
-    if (diagnoses.length) completed.push("Diagnose");
-    if (comparison) completed.push("Compare");
-    if (background) completed.push("Finish");
+    if (projectData?.svgCandidates.length || activeTab !== "Explore") completed.push("Explore");
+    if (diagnoses.length || projectData?.diagnosisResults.length || activeTab === "Compare" || activeTab === "Finish") completed.push("Diagnose");
+    if (comparison || projectData?.comparisonResult || activeTab === "Finish") completed.push("Compare");
+    if (background || projectData?.backgroundResult) completed.push("Finish");
     return completed;
-  }, [projectData, diagnoses.length, comparison, background]);
+  }, [activeTab, projectData, diagnoses.length, comparison, background]);
+
+  useEffect(() => {
+    const handleTabChange = (event: Event) => {
+      const tab = (event as CustomEvent<AppTab>).detail;
+      if (tabs.includes(tab)) setActiveTab(tab);
+    };
+    window.addEventListener("CHANGE_APP_TAB", handleTabChange);
+    return () => window.removeEventListener("CHANGE_APP_TAB", handleTabChange);
+  }, []);
 
   function handleRenderFullProcess() {
     if (!projectData) return;
@@ -57,7 +66,10 @@ export default function App() {
         <div className="header-copy">
           <p className="eyebrow">AI Creative Process Board</p>
           <h1>AI Cover Studio</h1>
-          <p className="header-description">{activeTab === "Explore" ? "要件入力からFinal Candidateまで、AI制作ジョブとして自動進行します。" : tabLabels[activeTab].description}</p>
+          <p className="header-description">
+            {activeTab !== "Explore" && <span className="step-pill">{getStepLabel(activeTab)}</span>}
+            {activeTab === "Explore" ? "要件入力からFinal Candidateまで、AI制作ジョブとして自動進行します。" : tabLabels[activeTab].description}
+          </p>
         </div>
         <div className="header-meta">
           <CanvasBadge />
@@ -132,4 +144,14 @@ export default function App() {
       </ActionFooter>
     </main>
   );
+}
+
+function getStepLabel(tab: AppTab): string {
+  const labels: Record<AppTab, string> = {
+    Explore: "Step 1/4",
+    Diagnose: "Step 2/4",
+    Compare: "Step 3/4",
+    Finish: "Step 4/4",
+  };
+  return labels[tab];
 }
