@@ -23,6 +23,30 @@ npm run build
 
 ブラウザでFigma API操作を実行しています。SVG配置、診断、比較、背景適用、ボード生成はFigma Plugin内でのみ動きます。
 
+## プラグイン画面が真っ白
+
+Figma DesktopがUI用のJS/CSSを読めていない可能性があります。
+
+このプロジェクトは `npm run build` 時に `dist/index.html` へUIのJS/CSSをインライン化します。
+
+対処:
+
+```bash
+npm run build
+```
+
+その後、Figmaで `manifest.json` を読み込み直してください。
+
+```text
+Plugins > Development > Import plugin from manifest...
+```
+
+読み込むファイル:
+
+```text
+FigmaPJ/manifest.json
+```
+
 ## SVGが貼れない
 
 - SVG validationがOKか確認

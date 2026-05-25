@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite --host 127.0.0.1",
     "typecheck": "tsc --noEmit",
-    "build": "vite build && esbuild src/plugin/code.ts --bundle --outfile=dist/code.js --format=iife --target=es2017"
+    "build": "vite build && node scripts/inlineFigmaUi.mjs && esbuild src/plugin/code.ts --bundle --outfile=dist/code.js --format=iife --target=es2017"
   },
   "dependencies": {
     "@vitejs/plugin-react": "^5.0.0",
