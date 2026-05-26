@@ -23,8 +23,8 @@
   // src/config/app.ts
   var appConfig = {
     name: "AI Cover Studio",
-    uiWidth: 960,
-    uiHeight: 720
+    uiWidth: 760,
+    uiHeight: 640
   };
 
   // src/config/runtimeApiSettings.ts

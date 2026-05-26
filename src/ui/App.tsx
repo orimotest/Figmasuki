@@ -24,16 +24,16 @@ const tabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish", "Settings"];
 const productionTabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish"];
 
 const uiSizePresets = {
-  S: { width: 720, height: 680 },
-  M: { width: 960, height: 720 },
-  L: { width: 1180, height: 820 },
+  S: { width: 760, height: 640 },
+  M: { width: 860, height: 680 },
+  L: { width: 1040, height: 760 },
 } as const;
 
 type UiSizePreset = keyof typeof uiSizePresets;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("Explore");
-  const [uiSize, setUiSize] = useState<UiSizePreset>("M");
+  const [uiSize, setUiSize] = useState<UiSizePreset>("S");
   const [latestBackgroundBrief, setLatestBackgroundBrief] = useState<BackgroundBrief | null>(null);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [diagnoses, setDiagnoses] = useState<DiagnosisResult[]>([]);
