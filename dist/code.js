@@ -465,32 +465,80 @@
   };
   var FONT_REGULAR = { family: "Inter", style: "Regular" };
   var FONT_BOLD = { family: "Inter", style: "Bold" };
+  var DEFAULT_LAYOUT_BASE = {
+    xOffset: -4250,
+    yOffset: -900
+  };
+  var PROCESS_STAGE_POSITIONS = {
+    project_header: { x: 0, y: 0 },
+    ideas: { x: 660, y: 0 },
+    typography_drafts: { x: 1920, y: 0 },
+    refined_svgs: { x: 3380, y: 0 },
+    diagnosis: { x: 4860, y: -780 },
+    compare: { x: 4860, y: 0 },
+    background_variations: { x: 4860, y: 820 },
+    final_candidate: { x: 4860, y: 1600 }
+  };
+  var PROCESS_LAYOUT_HEADINGS = {
+    planning: {
+      title: "\u691C\u8A0E\u30D5\u30A7\u30FC\u30BA",
+      description: "\u8981\u4EF6\u300130\u6848\u63A2\u7D22\u300115\u6848\u6587\u5B57\u7D44\u307F\u30015\u6848\u306E\u65B9\u5411\u6027\u3092\u307E\u3068\u3081\u3066\u78BA\u8A8D\u3057\u307E\u3059\u3002",
+      x: 0,
+      y: -82,
+      width: 4740,
+      accent: COLORS.blue
+    },
+    banners: {
+      title: "5\u6848\u306ESVG\u30D0\u30CA\u30FC",
+      description: "\u6BD4\u8F03\u5BFE\u8C61\u306B\u306A\u308B\u5B9F\u7269\u30B5\u30A4\u30BA\u306E800\xD7450\u30D0\u30CA\u30FC\u3067\u3059\u3002Figma\u4E0A\u3067\u76F4\u63A5\u78BA\u8A8D\u30FB\u7DE8\u96C6\u3067\u304D\u307E\u3059\u3002",
+      x: 0,
+      y: 1134,
+      width: 4400,
+      accent: COLORS.green
+    },
+    complete: {
+      title: "\u305D\u306E\u5F8C\u306E\u5B8C\u5168\u7248\u751F\u6210",
+      description: "\u6BD4\u8F03\u3001\u80CC\u666F3\u6848\u3001Final Candidate\u3092\u53F3\u5074\u306B\u7A4D\u307F\u4E0A\u3052\u3066\u8A18\u9332\u3057\u307E\u3059\u3002",
+      x: 4860,
+      y: -82,
+      width: 900,
+      accent: COLORS.orange
+    }
+  };
   async function renderProcessBoard(project, options = {}) {
     var _a, _b;
     await loadFonts();
-    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250;
-    const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
+    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
+    const startY = (_b = options.y) != null ? _b : figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
+    const headings = [
+      ensureLayoutHeading("planning", startX, startY),
+      ensureLayoutHeading("complete", startX, startY)
+    ];
     const boards = [
-      renderProcessStage(project, "project_header", startX, startY),
-      renderProcessStage(project, "ideas", startX + 660, startY),
-      renderProcessStage(project, "typography_drafts", startX + 1920, startY),
-      renderProcessStage(project, "refined_svgs", startX + 3380, startY),
-      renderProcessStage(project, "diagnosis", startX + 4780, startY),
-      renderProcessStage(project, "compare", startX + 5580, startY),
-      renderProcessStage(project, "background_variations", startX + 6520, startY),
-      renderProcessStage(project, "final_candidate", startX + 7440, startY)
+      renderProcessStageAt(project, "project_header", startX, startY),
+      renderProcessStageAt(project, "ideas", startX, startY),
+      renderProcessStageAt(project, "typography_drafts", startX, startY),
+      renderProcessStageAt(project, "refined_svgs", startX, startY),
+      ...project.diagnosisResults.length > 0 ? [renderProcessStageAt(project, "diagnosis", startX, startY)] : [],
+      renderProcessStageAt(project, "compare", startX, startY),
+      renderProcessStageAt(project, "background_variations", startX, startY),
+      renderProcessStageAt(project, "final_candidate", startX, startY)
     ];
     if (options.zoom !== false) {
-      figma.currentPage.selection = boards;
-      figma.viewport.scrollAndZoomIntoView(boards);
+      figma.currentPage.selection = [...headings, ...boards];
+      figma.viewport.scrollAndZoomIntoView([...headings, ...boards]);
     }
-    return boards;
+    return [...headings, ...boards];
   }
   async function renderProcessStageBoard(project, stage, options = {}) {
     var _a, _b;
     await loadFonts();
-    const startX = (_a = options.x) != null ? _a : figma.viewport.center.x - 4250 + getStageOffset(stage);
-    const startY = (_b = options.y) != null ? _b : figma.viewport.center.y - 420;
+    const defaultPosition = getDefaultStagePosition(stage);
+    const startX = (_a = options.x) != null ? _a : defaultPosition.x;
+    const startY = (_b = options.y) != null ? _b : defaultPosition.y;
+    if (options.x === void 0 && options.y === void 0) {
+      ensureLayoutHeading(getLayoutGroupForStage(stage), figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset, figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset);
+    }
     const board = renderProcessStage(project, stage, startX, startY);
     if (options.zoom !== false) {
       figma.currentPage.selection = [board];
@@ -498,18 +546,52 @@
     }
     return board;
   }
-  function getStageOffset(stage) {
-    const offsets = {
-      project_header: 0,
-      ideas: 660,
-      typography_drafts: 1920,
-      refined_svgs: 3380,
-      diagnosis: 4780,
-      compare: 5580,
-      background_variations: 6520,
-      final_candidate: 7440
-    };
-    return offsets[stage];
+  async function renderProcessLayoutHeading(group, baseX, baseY) {
+    await loadFonts();
+    return ensureLayoutHeading(group, baseX, baseY);
+  }
+  function getLayoutGroupForStage(stage) {
+    if (stage === "compare" || stage === "background_variations" || stage === "final_candidate" || stage === "diagnosis") {
+      return "complete";
+    }
+    return "planning";
+  }
+  function ensureLayoutHeading(group, baseX, baseY) {
+    const meta = PROCESS_LAYOUT_HEADINGS[group];
+    const x = baseX + meta.x;
+    const y = baseY + meta.y;
+    const name = `Process Layout Heading / ${meta.title}`;
+    for (const node of figma.currentPage.children) {
+      if (node.type === "FRAME" && node.name === name && Math.abs(node.x - x) < 4 && Math.abs(node.y - y) < 4) {
+        return node;
+      }
+    }
+    const heading = createFrame(name, x, y, meta.width, 54, COLORS.board);
+    heading.cornerRadius = 16;
+    heading.strokes = [{ type: "SOLID", color: COLORS.border }];
+    heading.strokeWeight = 1;
+    const accent = figma.createRectangle();
+    accent.name = "Accent";
+    accent.x = 0;
+    accent.y = 0;
+    accent.resize(8, 54);
+    accent.cornerRadius = 4;
+    accent.fills = [{ type: "SOLID", color: meta.accent }];
+    heading.appendChild(accent);
+    addText(heading, meta.title, 24, 8, { size: 18, bold: true, width: 240, height: 24 });
+    addText(heading, meta.description, 252, 12, { size: 11, color: COLORS.muted, width: meta.width - 276, height: 28 });
+    figma.currentPage.appendChild(heading);
+    return heading;
+  }
+  function renderProcessStageAt(project, stage, baseX, baseY) {
+    const position = PROCESS_STAGE_POSITIONS[stage];
+    return renderProcessStage(project, stage, baseX + position.x, baseY + position.y);
+  }
+  function getDefaultStagePosition(stage) {
+    const baseX = figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
+    const baseY = figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
+    const position = PROCESS_STAGE_POSITIONS[stage];
+    return { x: baseX + position.x, y: baseY + position.y };
   }
   function renderProcessStage(project, stage, x, y) {
     var _a, _b, _c;
@@ -1018,6 +1100,11 @@
   }
 
   // src/plugin/code.ts
+  var PROCESS_LAYOUT = {
+    baseXOffset: -4250,
+    baseYOffset: -900,
+    bannersY: 1220
+  };
   figma.showUI(__html__, {
     width: appConfig.uiWidth,
     height: appConfig.uiHeight
@@ -1042,9 +1129,10 @@
         return;
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
-        const startX = figma.viewport.center.x - 4250;
-        const startY = figma.viewport.center.y + 360;
+        const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+        const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
         const boards = [];
+        const planningHeading = await renderProcessLayoutHeading("planning", startX, startY);
         boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
         await sleep(350);
         boards.push(await renderProcessStageBoard(message.payload, "ideas", { x: startX + 660, y: startY, zoom: false }));
@@ -1053,9 +1141,10 @@
         await sleep(500);
         boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
         await sleep(350);
-        const nodes = placeProjectCandidates(message.payload, { x: startX + 3380, y: startY - 760 });
-        figma.currentPage.selection = [...nodes, ...boards];
-        figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
+        const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
+        const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
+        figma.currentPage.selection = [...nodes, ...boards, planningHeading, bannerHeading];
+        figma.viewport.scrollAndZoomIntoView([...nodes, ...boards, planningHeading, bannerHeading]);
         postToUi({
           type: "PLUGIN_SUCCESS",
           payload: { message: `${nodes.length}\u6848\u3068\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` }
@@ -1063,7 +1152,13 @@
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {
-        await renderProcessBoard(message.payload);
+        const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+        const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
+        const boards = await renderProcessBoard(message.payload, { x: startX, y: startY, zoom: false });
+        const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
+        const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
+        figma.currentPage.selection = [...boards, bannerHeading, ...nodes];
+        figma.viewport.scrollAndZoomIntoView([...boards, bannerHeading, ...nodes]);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
@@ -1115,8 +1210,8 @@
   }
   function placeSvgCandidates(items, position) {
     var _a, _b;
-    const startX = (_a = position == null ? void 0 : position.x) != null ? _a : figma.viewport.center.x - 400;
-    const startY = (_b = position == null ? void 0 : position.y) != null ? _b : figma.viewport.center.y - 340;
+    const startX = (_a = position == null ? void 0 : position.x) != null ? _a : figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+    const startY = (_b = position == null ? void 0 : position.y) != null ? _b : figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset + PROCESS_LAYOUT.bannersY;
     return items.map(
       (item, index) => createSvgNode(item.svg, item.name, {
         x: startX + index * 900,

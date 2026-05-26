@@ -7,11 +7,18 @@ import { insertBackgroundImage } from "./figma/insertBackgroundImage";
 import { getErrorMessage, parsePluginRequestMessage, postToUi } from "./figma/messageBridge";
 import {
   renderProcessBoard,
+  renderProcessLayoutHeading,
   renderProcessStageBoard,
   renderStandaloneCompareBoard,
   renderStandaloneDiagnosisBoard,
   renderStandaloneFinishBoard,
 } from "./figma/renderProcessBoard";
+
+const PROCESS_LAYOUT = {
+  baseXOffset: -4250,
+  baseYOffset: -900,
+  bannersY: 1220,
+};
 
 figma.showUI(__html__, {
   width: appConfig.uiWidth,
@@ -41,9 +48,10 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "PLACE_EXPLORE_PACKAGE") {
-      const startX = figma.viewport.center.x - 4250;
-      const startY = figma.viewport.center.y + 360;
+      const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+      const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
       const boards = [];
+      const planningHeading = await renderProcessLayoutHeading("planning", startX, startY);
       boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
       await sleep(350);
       boards.push(await renderProcessStageBoard(message.payload, "ideas", { x: startX + 660, y: startY, zoom: false }));
@@ -52,9 +60,10 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       await sleep(500);
       boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
       await sleep(350);
-      const nodes = placeProjectCandidates(message.payload, { x: startX + 3380, y: startY - 760 });
-      figma.currentPage.selection = [...nodes, ...boards];
-      figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
+      const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
+      const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
+      figma.currentPage.selection = [...nodes, ...boards, planningHeading, bannerHeading];
+      figma.viewport.scrollAndZoomIntoView([...nodes, ...boards, planningHeading, bannerHeading]);
       postToUi({
         type: "PLUGIN_SUCCESS",
         payload: { message: `${nodes.length}案と各フェーズの記録ボードをFigmaに配置しました。` },
@@ -63,7 +72,13 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "RENDER_PROCESS_BOARD") {
-      await renderProcessBoard(message.payload);
+      const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+      const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
+      const boards = await renderProcessBoard(message.payload, { x: startX, y: startY, zoom: false });
+      const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
+      const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
+      figma.currentPage.selection = [...boards, bannerHeading, ...nodes];
+      figma.viewport.scrollAndZoomIntoView([...boards, bannerHeading, ...nodes]);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "各フェーズの記録ボードをFigmaに作成しました。" } });
       return;
     }
@@ -123,8 +138,8 @@ function placeProjectCandidates(project: ProjectData, position?: { x: number; y:
 }
 
 function placeSvgCandidates(items: Array<{ svg: string; name?: string }>, position?: { x: number; y: number }) {
-  const startX = position?.x ?? figma.viewport.center.x - 400;
-  const startY = position?.y ?? figma.viewport.center.y - 340;
+  const startX = position?.x ?? figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
+  const startY = position?.y ?? figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset + PROCESS_LAYOUT.bannersY;
   return items.map((item, index) =>
     createSvgNode(item.svg, item.name, {
       x: startX + index * 900,

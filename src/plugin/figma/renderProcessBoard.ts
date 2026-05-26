@@ -38,32 +38,85 @@ type RenderOptions = {
   zoom?: boolean;
 };
 
+const DEFAULT_LAYOUT_BASE = {
+  xOffset: -4250,
+  yOffset: -900,
+};
+
+const PROCESS_STAGE_POSITIONS: Record<ProcessBoardStage, { x: number; y: number }> = {
+  project_header: { x: 0, y: 0 },
+  ideas: { x: 660, y: 0 },
+  typography_drafts: { x: 1920, y: 0 },
+  refined_svgs: { x: 3380, y: 0 },
+  diagnosis: { x: 4860, y: -780 },
+  compare: { x: 4860, y: 0 },
+  background_variations: { x: 4860, y: 820 },
+  final_candidate: { x: 4860, y: 1600 },
+};
+
+type ProcessLayoutGroup = "planning" | "banners" | "complete";
+
+const PROCESS_LAYOUT_HEADINGS: Record<ProcessLayoutGroup, { title: string; description: string; x: number; y: number; width: number; accent: RGB }> = {
+  planning: {
+    title: "検討フェーズ",
+    description: "要件、30案探索、15案文字組み、5案の方向性をまとめて確認します。",
+    x: 0,
+    y: -82,
+    width: 4740,
+    accent: COLORS.blue,
+  },
+  banners: {
+    title: "5案のSVGバナー",
+    description: "比較対象になる実物サイズの800×450バナーです。Figma上で直接確認・編集できます。",
+    x: 0,
+    y: 1134,
+    width: 4400,
+    accent: COLORS.green,
+  },
+  complete: {
+    title: "その後の完全版生成",
+    description: "比較、背景3案、Final Candidateを右側に積み上げて記録します。",
+    x: 4860,
+    y: -82,
+    width: 900,
+    accent: COLORS.orange,
+  },
+};
+
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode[]> {
   await loadFonts();
-  const startX = options.x ?? figma.viewport.center.x - 4250;
-  const startY = options.y ?? figma.viewport.center.y - 420;
+  const startX = options.x ?? figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
+  const startY = options.y ?? figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
+  const headings = [
+    ensureLayoutHeading("planning", startX, startY),
+    ensureLayoutHeading("complete", startX, startY),
+  ];
   const boards = [
-    renderProcessStage(project, "project_header", startX, startY),
-    renderProcessStage(project, "ideas", startX + 660, startY),
-    renderProcessStage(project, "typography_drafts", startX + 1920, startY),
-    renderProcessStage(project, "refined_svgs", startX + 3380, startY),
-    renderProcessStage(project, "diagnosis", startX + 4780, startY),
-    renderProcessStage(project, "compare", startX + 5580, startY),
-    renderProcessStage(project, "background_variations", startX + 6520, startY),
-    renderProcessStage(project, "final_candidate", startX + 7440, startY),
+    renderProcessStageAt(project, "project_header", startX, startY),
+    renderProcessStageAt(project, "ideas", startX, startY),
+    renderProcessStageAt(project, "typography_drafts", startX, startY),
+    renderProcessStageAt(project, "refined_svgs", startX, startY),
+    ...(project.diagnosisResults.length > 0 ? [renderProcessStageAt(project, "diagnosis", startX, startY)] : []),
+    renderProcessStageAt(project, "compare", startX, startY),
+    renderProcessStageAt(project, "background_variations", startX, startY),
+    renderProcessStageAt(project, "final_candidate", startX, startY),
   ];
 
   if (options.zoom !== false) {
-    figma.currentPage.selection = boards;
-    figma.viewport.scrollAndZoomIntoView(boards);
+    figma.currentPage.selection = [...headings, ...boards];
+    figma.viewport.scrollAndZoomIntoView([...headings, ...boards]);
   }
-  return boards;
+  return [...headings, ...boards];
 }
 
 export async function renderProcessStageBoard(project: ProjectData, stage: ProcessBoardStage, options: RenderOptions = {}): Promise<FrameNode> {
   await loadFonts();
-  const startX = options.x ?? figma.viewport.center.x - 4250 + getStageOffset(stage);
-  const startY = options.y ?? figma.viewport.center.y - 420;
+  const defaultPosition = getDefaultStagePosition(stage);
+  const startX = options.x ?? defaultPosition.x;
+  const startY = options.y ?? defaultPosition.y;
+  if (options.x === undefined && options.y === undefined) {
+    ensureLayoutHeading(getLayoutGroupForStage(stage), figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset, figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset);
+  }
   const board = renderProcessStage(project, stage, startX, startY);
   if (options.zoom !== false) {
     figma.currentPage.selection = [board];
@@ -72,18 +125,57 @@ export async function renderProcessStageBoard(project: ProjectData, stage: Proce
   return board;
 }
 
-function getStageOffset(stage: ProcessBoardStage): number {
-  const offsets: Record<ProcessBoardStage, number> = {
-    project_header: 0,
-    ideas: 660,
-    typography_drafts: 1920,
-    refined_svgs: 3380,
-    diagnosis: 4780,
-    compare: 5580,
-    background_variations: 6520,
-    final_candidate: 7440,
-  };
-  return offsets[stage];
+export async function renderProcessLayoutHeading(group: ProcessLayoutGroup, baseX: number, baseY: number): Promise<FrameNode> {
+  await loadFonts();
+  return ensureLayoutHeading(group, baseX, baseY);
+}
+
+function getLayoutGroupForStage(stage: ProcessBoardStage): ProcessLayoutGroup {
+  if (stage === "compare" || stage === "background_variations" || stage === "final_candidate" || stage === "diagnosis") {
+    return "complete";
+  }
+  return "planning";
+}
+
+function ensureLayoutHeading(group: ProcessLayoutGroup, baseX: number, baseY: number): FrameNode {
+  const meta = PROCESS_LAYOUT_HEADINGS[group];
+  const x = baseX + meta.x;
+  const y = baseY + meta.y;
+  const name = `Process Layout Heading / ${meta.title}`;
+  for (const node of figma.currentPage.children) {
+    if (node.type === "FRAME" && node.name === name && Math.abs(node.x - x) < 4 && Math.abs(node.y - y) < 4) {
+      return node;
+    }
+  }
+
+  const heading = createFrame(name, x, y, meta.width, 54, COLORS.board);
+  heading.cornerRadius = 16;
+  heading.strokes = [{ type: "SOLID", color: COLORS.border }];
+  heading.strokeWeight = 1;
+  const accent = figma.createRectangle();
+  accent.name = "Accent";
+  accent.x = 0;
+  accent.y = 0;
+  accent.resize(8, 54);
+  accent.cornerRadius = 4;
+  accent.fills = [{ type: "SOLID", color: meta.accent }];
+  heading.appendChild(accent);
+  addText(heading, meta.title, 24, 8, { size: 18, bold: true, width: 240, height: 24 });
+  addText(heading, meta.description, 252, 12, { size: 11, color: COLORS.muted, width: meta.width - 276, height: 28 });
+  figma.currentPage.appendChild(heading);
+  return heading;
+}
+
+function renderProcessStageAt(project: ProjectData, stage: ProcessBoardStage, baseX: number, baseY: number): FrameNode {
+  const position = PROCESS_STAGE_POSITIONS[stage];
+  return renderProcessStage(project, stage, baseX + position.x, baseY + position.y);
+}
+
+function getDefaultStagePosition(stage: ProcessBoardStage): { x: number; y: number } {
+  const baseX = figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
+  const baseY = figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
+  const position = PROCESS_STAGE_POSITIONS[stage];
+  return { x: baseX + position.x, y: baseY + position.y };
 }
 
 function renderProcessStage(project: ProjectData, stage: ProcessBoardStage, x: number, y: number): FrameNode {
