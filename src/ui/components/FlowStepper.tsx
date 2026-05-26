@@ -18,7 +18,7 @@ export function FlowStepper({ activeTab, completedTabs = [] }: FlowStepperProps)
         const state: FlowStepState = tab === activeTab ? "current" : completedTabs.includes(tab) ? "completed" : "pending";
         return (
           <li key={tab} className={`flow-step ${state}`}>
-            <span className="flow-step-index">{state === "completed" ? <Check size={12} /> : index + 1}</span>
+            <span className="flow-step-index">{state === "completed" ? <Check size={12} aria-hidden="true" /> : index + 1}</span>
             <span className="flow-step-text">
               <strong>{tabLabels[tab].label}</strong>
               <small>{tabLabels[tab].shortDescription}</small>

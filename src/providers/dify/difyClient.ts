@@ -83,11 +83,28 @@ function normalizeDifyOutput<TOutput>(payload: unknown): TOutput {
 }
 
 function parseJson(text: string, label: string): unknown {
+  const normalized = extractJsonText(text);
   try {
-    return JSON.parse(text);
+    return JSON.parse(normalized);
   } catch {
     throw new Error(`${label} could not be parsed as JSON.`);
   }
+}
+
+function extractJsonText(text: string): string {
+  const trimmed = text.trim();
+  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+  if (fenced?.[1]) return fenced[1].trim();
+
+  const objectStart = trimmed.indexOf("{");
+  const objectEnd = trimmed.lastIndexOf("}");
+  if (objectStart >= 0 && objectEnd > objectStart) return trimmed.slice(objectStart, objectEnd + 1);
+
+  const arrayStart = trimmed.indexOf("[");
+  const arrayEnd = trimmed.lastIndexOf("]");
+  if (arrayStart >= 0 && arrayEnd > arrayStart) return trimmed.slice(arrayStart, arrayEnd + 1);
+
+  return trimmed;
 }
 
 function stripSensitiveText(text: string): string {

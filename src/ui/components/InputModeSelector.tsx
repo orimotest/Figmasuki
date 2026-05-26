@@ -6,26 +6,27 @@ type InputModeSelectorProps = {
   onChange: (mode: InputMode) => void;
 };
 
-const inputModes: Array<{ mode: InputMode; label: string; disabled?: boolean }> = [
-  { mode: "brief_text", label: inputModeLabels.brief_text },
-  { mode: "fixed_copy", label: inputModeLabels.fixed_copy },
-  { mode: "pdf", label: inputModeLabels.pdf, disabled: true },
-  { mode: "figma_variation", label: inputModeLabels.figma_variation, disabled: true },
+const inputModes: Array<{ mode: InputMode; description: string }> = [
+  { mode: "minimal_prompt", description: "作りたいものだけで開始" },
+  { mode: "brief_text", description: "概要文を貼り付け" },
+  { mode: "fixed_copy", description: "コピーを固定" },
+  { mode: "pdf", description: "資料から整理" },
+  { mode: "figma_reference", description: "選択フレームを参考" },
 ];
 
 export function InputModeSelector({ value, onChange }: InputModeSelectorProps) {
   return (
-    <div className="segmented-control" role="group" aria-label="入力モード">
-      {inputModes.map(({ mode, label, disabled }) => (
+    <div className="segmented-control input-mode-grid" role="group" aria-label="入力モード">
+      {inputModes.map(({ mode, description }) => (
         <button
           key={mode}
           type="button"
           className={mode === value ? "segment active" : "segment"}
-          disabled={disabled}
           onClick={() => onChange(mode)}
-          title={disabled ? "今後対応予定です" : label}
+          title={description}
         >
-          {label}
+          <strong>{inputModeLabels[mode]}</strong>
+          <small>{description}</small>
         </button>
       ))}
     </div>

@@ -1,7 +1,7 @@
-import { GitCompareArrows, ImagePlus, ScanSearch, Sparkles } from "lucide-react";
+import { GitCompareArrows, ImagePlus, ScanSearch, Settings, Sparkles } from "lucide-react";
 import { tabLabels } from "../labels";
 
-export type AppTab = "Explore" | "Diagnose" | "Compare" | "Finish";
+export type AppTab = "Explore" | "Diagnose" | "Compare" | "Finish" | "Settings";
 
 type TabNavProps = {
   tabs: AppTab[];
@@ -14,6 +14,7 @@ const tabIcons = {
   Diagnose: ScanSearch,
   Compare: GitCompareArrows,
   Finish: ImagePlus,
+  Settings,
 } satisfies Record<AppTab, typeof Sparkles>;
 
 export function TabNav({ tabs, activeTab, onChange }: TabNavProps) {
@@ -28,7 +29,7 @@ export function TabNav({ tabs, activeTab, onChange }: TabNavProps) {
             type="button"
             onClick={() => onChange(tab)}
             aria-pressed={tab === activeTab}
-            title={tab}
+            title={tabLabels[tab].label}
           >
             <Icon size={16} aria-hidden="true" />
             <span>{tabLabels[tab].label}</span>

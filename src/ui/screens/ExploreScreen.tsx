@@ -1,21 +1,24 @@
 import { useEffect, useState } from "react";
 import type { ContentType } from "../../schemas/content";
-import type { FixedCopyInput, InputMode } from "../../schemas/input";
+import type { FixedCopyInput, InputMode, ExploreInput } from "../../schemas/input";
 import type { ProjectData } from "../../schemas/project";
 import type { ProviderConfig } from "../../schemas/provider";
 import type { FigmaOutputRecord, ProcessBoardStage, ProductionStage } from "../../schemas/production";
 import type { ExploreResult, SvgCandidate } from "../../schemas/svg";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
+import { extractPdfText } from "../../utils/extractPdfText";
 import { runCompareWorkflow } from "../../workflows/compareWorkflow";
 import { runExploreWorkflow } from "../../workflows/exploreWorkflow";
 import { runFinishWorkflow } from "../../workflows/finishWorkflow";
 import { runGenerateSvgWorkflow } from "../../workflows/generateSvgWorkflow";
+import { normalizeCreativeInput } from "../../workflows/inputNormalizeWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
 import { CanvasBadge } from "../components/CanvasBadge";
-import { ErrorMessage } from "../components/ErrorMessage";
 import { EmptyState } from "../components/EmptyState";
+import { ErrorMessage } from "../components/ErrorMessage";
+import { InputModeSelector } from "../components/InputModeSelector";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
 import { ProductionTimeline, type ProductionTimelineItem } from "../components/ProductionTimeline";
@@ -32,7 +35,7 @@ type ExploreScreenProps = {
 };
 
 const sampleBriefs = {
-  note_thumbnail: "AI時代にデザイナーが持つべき思考と、これからの制作フローについての記事サムネイル。",
+  note_thumbnail: "AI時代にデザイナーが持つべき思考と、これからの制作フローについての記事サムネイルを作りたい。",
   seminar_banner:
     "オンラインセミナー集客用のバナー。時間のないビジネスパーソンに向けて、短時間で学べる価値を伝えたい。信頼感と親しみやすさを両立したい。",
 } satisfies Record<ContentType, string>;
@@ -40,20 +43,27 @@ const sampleBriefs = {
 const defaultFixedCopy: FixedCopyInput = {
   main: "60分でわかる\nAI活用の第一歩",
   sub: "業務改善に使える考え方と実践例を紹介",
-  cta: "今すぐ申し込む",
+  cta: "無料で参加する",
+  date: "6.18 WED",
+  time: "14:00-15:00",
 };
 
 export function ExploreScreen({ providers, projectData, onProjectData }: ExploreScreenProps) {
   const [contentType, setContentType] = useState<ContentType>("seminar_banner");
   const [inputMode, setInputMode] = useState<InputMode>("brief_text");
+  const [projectName, setProjectName] = useState("オンラインセミナー集客バナー");
   const [briefText, setBriefText] = useState(sampleBriefs.seminar_banner);
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(defaultFixedCopy);
   const [targetAudience, setTargetAudience] = useState("忙しいビジネスパーソン");
   const [appealPoint, setAppealPoint] = useState("60分で学べる / 明日から使える");
   const [toneValue, setToneValue] = useState("信頼感 + 親しみやすさ");
   const [ctaText, setCtaText] = useState(defaultFixedCopy.cta ?? "無料で参加する");
+  const [pdfFileName, setPdfFileName] = useState("");
+  const [pdfText, setPdfText] = useState("");
+  const [pdfStatus, setPdfStatus] = useState("");
+  const [referenceFrameSummary, setReferenceFrameSummary] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
-  const [statusLogs, setStatusLogs] = useState<string[]>(["要件を確認して、主ボタンを押すと自動で制作フローを開始します。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["要件を入力して、自動制作を開始できます。"]);
   const [exploreResult, setExploreResult] = useState<ExploreResult | null>(null);
   const [svgCandidates, setSvgCandidates] = useState<SvgCandidate[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -74,6 +84,11 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         setError(message.payload.message);
         setStatusLogs((entries) => [...entries, `Figmaエラー: ${message.payload.message}`]);
       }
+      if (message.type === "SELECTION_FRAME_RESULT") {
+        const summary = summarizeReferenceFrame(message.payload);
+        setReferenceFrameSummary(summary);
+        setStatusLogs((entries) => [...entries, `参考フレームを取得しました: ${message.payload.name}`]);
+      }
     };
     window.addEventListener("message", handleMessage);
     return () => window.removeEventListener("message", handleMessage);
@@ -85,63 +100,58 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     };
     window.addEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
     return () => window.removeEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
-  }, [isGenerating, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText]);
+  }, [isGenerating, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText, pdfText, referenceFrameSummary]);
 
   const workflow = projectData?.stageWorkflow;
   const visibleSvgCandidates = svgCandidates.length ? svgCandidates : projectData?.svgCandidates ?? [];
   const primaryCandidate =
     visibleSvgCandidates.find((candidate) => candidate.id === projectData?.comparisonResult?.recommendation.primaryFrameId) ?? visibleSvgCandidates[0];
 
-  function startDemoFlow() {
-    void runDemoSample("seminar_banner");
-  }
-
-  async function runDemoSample(type: ContentType, options?: { silent?: boolean }) {
+  function loadSample(type: ContentType = "seminar_banner") {
     setContentType(type);
     setInputMode("brief_text");
+    setProjectName(type === "seminar_banner" ? "オンラインセミナー集客バナー" : "AI時代のデザイン思考サムネイル");
     setBriefText(sampleBriefs[type]);
-    setTargetAudience(type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー / 編集者 / 個人クリエイター");
+    setTargetAudience(type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター");
     setAppealPoint(type === "seminar_banner" ? "60分で学べる / 明日から使える" : "AI時代の制作判断を考える");
     setToneValue(type === "seminar_banner" ? "信頼感 + 親しみやすさ" : "知的 + 静かな編集感");
     setCtaText(type === "seminar_banner" ? "無料で参加する" : "");
+    setPdfFileName("");
+    setPdfText("");
+    setReferenceFrameSummary("");
     setError(null);
-    setSuccess(null);
-    setIsGenerating(true);
-    setProductionStage("exploring_ideas");
-    setStatusLogs(["Demoフローを読み込んでいます。", "30案探索、15文字組みドラフト、5高品質SVGを準備しています。"]);
+    setSuccess("サンプルを読み込みました。自動制作を開始できます。");
+    setStatusLogs((entries) => [...entries, "サンプル要件を読み込みました。"]);
+  }
 
-    try {
-      await wait(350);
-      const project = await createProjectFromInput({
-        contentType: type,
-        inputMode: "brief_text",
-        briefText: sampleBriefs[type],
-        rawInput: sampleBriefs[type],
-        targetAudience: type === "seminar_banner" ? "忙しいビジネスパーソン" : "デザイナー / 編集者 / 個人クリエイター",
-      });
-      setStatusLogs((entries) => [
-        ...entries,
-        "Demoフローの読み込みが完了しました。",
-        "主ボタンを押すと、5つの実バナー案と横長プロセスボードをFigmaに配置します。",
-      ]);
-      setProductionStage("input_ready");
-      if (!options?.silent) setSuccess("Demoフローを読み込みました。");
-      return project;
-    } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "Demoフローの読み込みに失敗しました。";
-      setError(message);
-      setStatusLogs((entries) => [...entries, message]);
-      return null;
-    } finally {
-      setIsGenerating(false);
+  async function handlePdfFile(file: File | undefined) {
+    if (!file) return;
+    setPdfFileName(file.name);
+    setPdfStatus("PDFからテキストを抽出しています。");
+    const result = await extractPdfText(file);
+    if (result.ok) {
+      setPdfText(result.text);
+      setBriefText(result.text.slice(0, 1600));
+      setPdfStatus("PDFテキストを取得しました。内容を確認して自動制作を開始できます。");
+      setStatusLogs((entries) => [...entries, `PDFを読み込みました: ${file.name}`]);
+    } else {
+      setPdfText("");
+      setPdfStatus(result.message);
+      setStatusLogs((entries) => [...entries, result.message]);
     }
+  }
+
+  function requestReferenceFrame() {
+    setInputMode("figma_reference");
+    postToPlugin({ type: "REQUEST_SELECTED_FRAME" });
   }
 
   async function runFullAutoProduction() {
     setError(null);
     setSuccess(null);
     setFigmaOutputs([]);
-    const validationMessage = validateInput(inputMode, briefText, fixedCopy, contentType);
+    const rawInput = createExploreInput();
+    const validationMessage = validateInput(rawInput);
     if (validationMessage) {
       setError(validationMessage);
       setStatusLogs((entries) => [...entries, validationMessage]);
@@ -154,23 +164,27 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setStatusLogs(["自動制作ジョブを開始しました。", "AIがコピーと訴求軸を広げています。"]);
 
     try {
-      await wait(500);
-      const exploreResult = await runExploreWorkflow({
-        contentType,
-        inputMode,
-        briefText: inputMode === "brief_text" ? briefText : undefined,
-        fixedCopy: inputMode === "fixed_copy" ? { ...fixedCopy, cta: ctaText } : undefined,
-        rawInput:
-          inputMode === "brief_text"
-            ? `${briefText}\nターゲット: ${targetAudience}\n訴求ポイント: ${appealPoint}\nトーン: ${toneValue}\nCTA: ${ctaText}`
-            : `${fixedCopy.main}\n${fixedCopy.sub}\n${ctaText}`,
-        targetAudience,
-      });
-      setExploreResult(exploreResult);
-      setStatusLogs((entries) => [...entries, `${exploreResult.exploredCount}案を探索しました。`]);
+      const normalized = await normalizeCreativeInput(rawInput);
+      const workflowInput: ExploreInput = {
+        ...rawInput,
+        projectName: normalized.projectName,
+        goal: normalized.goal,
+        targetAudience: normalized.target,
+        tone: normalized.tone,
+        briefText: normalized.briefText ?? rawInput.briefText,
+        pdfText: normalized.pdfText,
+        referenceFrameSummary: normalized.referenceFrameSummary,
+        assumptions: normalized.assumptions,
+        rawInput: createRawInputText(normalized),
+      };
+
+      await wait(420);
+      const result = await runExploreWorkflow(workflowInput);
+      setExploreResult(result);
+      setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`]);
 
       let project = buildProjectData({
-        exploreResult,
+        exploreResult: result,
         svgCandidates: [],
         productionStatus: { stage: "placing_ideas_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas"]),
@@ -178,13 +192,14 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       onProjectData(project);
       setProductionStage("placing_ideas_board");
       postStageBoard(project, "project_header");
-      await wait(450);
+      await wait(360);
       postStageBoard(project, "ideas");
       setFigmaOutputs(project.figmaOutputs ?? []);
 
       setProductionStage("generating_typography_drafts");
       setStatusLogs((entries) => [...entries, "30案を整理し、文字組みドラフトに進める15案を選んでいます。"]);
-      await wait(650);
+      await wait(560);
+
       setProductionStage("placing_typography_board");
       project = {
         ...project,
@@ -196,38 +211,44 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setFigmaOutputs(project.figmaOutputs ?? []);
 
       setProductionStage("selecting_refined_candidates");
-      setStatusLogs((entries) => [...entries, "15案から比較しやすい5案を選んでいます。"]);
-      await wait(450);
+      setStatusLogs((entries) => [...entries, "15案から比較しやすい5案を選定しています。"]);
+      await wait(420);
+
       setProductionStage("generating_refined_svgs");
-      setStatusLogs((entries) => [...entries, "Gemini想定の工程として、5案を高品質SVGに整えています。"]);
-      const svgResult = await runGenerateSvgWorkflow(exploreResult);
+      setStatusLogs((entries) => [...entries, "5案を高品質SVGに整えています。"]);
+      const svgResult = await runGenerateSvgWorkflow(result);
       setSvgCandidates(svgResult.svgs);
       project = buildProjectData({
-        exploreResult,
+        exploreResult: result,
         svgCandidates: svgResult.svgs,
         productionStatus: { stage: "placing_refined_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs"]),
       });
       onProjectData(project);
-      await wait(650);
+      await wait(520);
+
       setProductionStage("placing_refined_board");
       postStageBoard(project, "refined_svgs");
-      postToPlugin({ type: "INSERT_SVG_BATCH", payload: { items: svgResult.svgs.map((candidate) => ({ svg: candidate.svg, name: candidate.name })) } });
+      postToPlugin({
+        type: "INSERT_SVG_BATCH",
+        payload: { items: svgResult.svgs.map((candidate) => ({ svg: candidate.svg, name: candidate.name })), x: 0, y: 980 },
+      });
       setFigmaOutputs(project.figmaOutputs ?? []);
 
       setProductionStage("running_auto_compare");
-      setStatusLogs((entries) => [...entries, "5案を自動比較し、ベース候補と次点候補を整理しています。"]);
+      setStatusLogs((entries) => [...entries, "5案を比較し、ベース候補と次点候補を整理しています。"]);
       const autoFrames = createAutoCompareFrames(project);
       const comparisonResult = await runCompareWorkflow(autoFrames, project.contentType);
       project = buildProjectData({
-        exploreResult,
+        exploreResult: result,
         svgCandidates: svgResult.svgs,
         comparisonResult,
         productionStatus: { stage: "placing_compare_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare"]),
       });
       onProjectData(project);
-      await wait(550);
+      await wait(480);
+
       setProductionStage("placing_compare_board");
       postStageBoard(project, "compare");
       setFigmaOutputs(project.figmaOutputs ?? []);
@@ -236,7 +257,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setStatusLogs((entries) => [...entries, "Primary案に合わせて背景3案を生成しています。"]);
       const backgroundResult = await runFinishWorkflow(comparisonResult.backgroundBrief);
       project = buildProjectData({
-        exploreResult,
+        exploreResult: result,
         svgCandidates: svgResult.svgs,
         comparisonResult,
         backgroundResult,
@@ -244,7 +265,8 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations"]),
       });
       onProjectData(project);
-      await wait(550);
+      await wait(480);
+
       setProductionStage("placing_background_board");
       postStageBoard(project, "background_variations");
       setFigmaOutputs(project.figmaOutputs ?? []);
@@ -256,39 +278,42 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations", "final_candidate"]),
       };
       onProjectData(project);
-      await wait(450);
+      await wait(360);
       postStageBoard(project, "final_candidate");
       setFigmaOutputs(project.figmaOutputs ?? []);
 
+      const completedProject = { ...project, productionStatus: { stage: "completed" as const, startedAt, completedAt: new Date().toISOString() } };
       setProductionStage("completed");
-      onProjectData({ ...project, productionStatus: { stage: "completed", startedAt, completedAt: new Date().toISOString() } });
+      onProjectData(completedProject);
       setSuccess("制作プロセスが完了しました。");
-      setStatusLogs((entries) => [...entries, "30案、15案、5案、比較結果、背景3案、最終候補をFigmaに記録しました。"]);
+      setStatusLogs((entries) => [...entries, "30案探索、15案ドラフト、5案SVG、比較結果、背景3案、Final CandidateをFigmaに記録しました。"]);
     } catch (caught) {
-      const message = caught instanceof Error ? caught.message : "生成と配置に失敗しました。";
+      const message = caught instanceof Error ? caught.message : "自動制作を実行できませんでした。";
       setError(message);
       setProductionStage("error");
-      setStatusLogs((entries) => [...entries, message]);
+      setStatusLogs((entries) => [...entries, message, "設定が未完了の場合は、設定画面でAPI設定を確認してください。"]);
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function createProjectFromInput(input: Parameters<typeof runExploreWorkflow>[0]): Promise<ProjectData> {
-    const result = await runExploreWorkflow(input);
-    if (result.providerMeta?.fallbackUsed) {
-      setStatusLogs((entries) => [...entries, "APIが未設定、または接続できないためDemo Modeに切り替えました。"]);
-    } else if (result.providerMeta?.provider === "demo") {
-      setStatusLogs((entries) => [...entries, "Demo Modeでサンプル方向性を表示しています。"]);
-    }
-
-    setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`]);
-    const svgResult = await runGenerateSvgWorkflow(result);
-    const project = buildProjectData({ exploreResult: result, svgCandidates: svgResult.svgs });
-    setExploreResult(result);
-    setSvgCandidates(svgResult.svgs);
-    onProjectData(project);
-    return project;
+  function createExploreInput(): ExploreInput {
+    const sourceMode = inputMode === "figma_variation" ? "figma_reference" : inputMode;
+    return {
+      contentType,
+      inputMode: sourceMode,
+      projectName,
+      briefText: sourceMode === "fixed_copy" ? undefined : briefText,
+      fixedCopy: sourceMode === "fixed_copy" ? { ...fixedCopy, cta: ctaText } : undefined,
+      rawInput: `${briefText}\nターゲット: ${targetAudience}\n訴求ポイント: ${appealPoint}\nトーン: ${toneValue}\nCTA: ${ctaText}`,
+      targetAudience,
+      tone: toneValue,
+      goal: appealPoint,
+      pdfText: sourceMode === "pdf" ? pdfText || briefText : undefined,
+      pdfFileName: sourceMode === "pdf" ? pdfFileName : undefined,
+      referenceFrameSummary: sourceMode === "figma_reference" ? referenceFrameSummary : undefined,
+      assumptions: [],
+    };
   }
 
   function handleReset() {
@@ -301,24 +326,67 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setFigmaOutputs([]);
     setContentType("seminar_banner");
     setInputMode("brief_text");
+    setProjectName("オンラインセミナー集客バナー");
     setBriefText(sampleBriefs.seminar_banner);
+    setFixedCopy(defaultFixedCopy);
     setTargetAudience("忙しいビジネスパーソン");
     setAppealPoint("60分で学べる / 明日から使える");
     setToneValue("信頼感 + 親しみやすさ");
     setCtaText(defaultFixedCopy.cta ?? "無料で参加する");
-    setStatusLogs(["結果をリセットしました。もう一度Demoフローを読み込むか、要件を入力してください。"]);
+    setPdfFileName("");
+    setPdfText("");
+    setPdfStatus("");
+    setReferenceFrameSummary("");
+    setStatusLogs(["結果をリセットしました。要件を入力して自動制作を開始できます。"]);
   }
 
   return (
     <div className="explore-layout auto-production-grid">
       <section className="panel requirement-panel">
-        <SectionHeader title="要件入力" description="制作ジョブの起点です。入力後は自動制作が最終候補まで進みます。" />
+        <SectionHeader title="要件入力" description="制作ジョブの起点です。最低限の入力でも、足りない情報はAIが仮説で補います。" />
         <div className="requirement-form">
+          <InputModeSelector value={inputMode} onChange={setInputMode} />
           <PresetSelector value={contentType} onChange={setContentType} />
-          <label className="field full-width">
-            <span>内容</span>
-            <textarea value={briefText} onChange={(event) => setBriefText(event.target.value)} placeholder={sampleBriefs[contentType]} />
+          <label className="field">
+            <span>プロジェクト名</span>
+            <input value={projectName} onChange={(event) => setProjectName(event.target.value)} />
           </label>
+          {inputMode === "fixed_copy" ? (
+            <div className="fixed-copy-fields">
+              <label className="field">
+                <span>メインコピー</span>
+                <textarea value={fixedCopy.main} onChange={(event) => setFixedCopy((current) => ({ ...current, main: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>サブコピー</span>
+                <input value={fixedCopy.sub} onChange={(event) => setFixedCopy((current) => ({ ...current, sub: event.target.value }))} />
+              </label>
+              <label className="field">
+                <span>日時</span>
+                <input value={`${fixedCopy.date ?? ""} ${fixedCopy.time ?? ""}`.trim()} onChange={(event) => setFixedCopy((current) => ({ ...current, date: event.target.value }))} />
+              </label>
+            </div>
+          ) : (
+            <label className="field full-width">
+              <span>{inputMode === "minimal_prompt" ? "作りたいもの" : inputMode === "pdf" ? "資料から抽出した内容 / 補足" : "内容"}</span>
+              <textarea value={briefText} onChange={(event) => setBriefText(event.target.value)} placeholder={sampleBriefs[contentType]} />
+            </label>
+          )}
+          {inputMode === "pdf" && (
+            <div className="pdf-input-box">
+              <input type="file" accept="application/pdf" onChange={(event) => void handlePdfFile(event.target.files?.[0])} />
+              <p>{pdfFileName ? `選択中: ${pdfFileName}` : "PDFを選択してください。抽出できない場合は内容を要件欄へ貼り付けてください。"}</p>
+              {pdfStatus && <small>{pdfStatus}</small>}
+            </div>
+          )}
+          {inputMode === "figma_reference" && (
+            <div className="pdf-input-box">
+              <button className="secondary-button" type="button" onClick={requestReferenceFrame}>
+                選択中フレームを参考にする
+              </button>
+              <p>{referenceFrameSummary || "Figma上で参考にしたいフレームを1つ選択してから取得してください。"}</p>
+            </div>
+          )}
           <label className="field">
             <span>ターゲット</span>
             <input value={targetAudience} onChange={(event) => setTargetAudience(event.target.value)} />
@@ -336,13 +404,13 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
             <input value={ctaText} onChange={(event) => setCtaText(event.target.value)} placeholder="無料で参加する" />
           </label>
         </div>
-        <UsageGuide note="AIが入力内容をもとに、探索 → 文字組み → 高品質SVG → 比較 → 背景生成まで自動で進行します。" />
+        <UsageGuide note="AIが入力内容をもとに、探索、文字組み、高品質SVG、比較、背景生成まで自動で進行します。" />
         <ActionBar>
           <button className="primary-button" type="button" disabled={isGenerating} onClick={runFullAutoProduction}>
             {isGenerating ? "制作中..." : productionStage === "completed" ? "再実行" : "自動制作を開始"}
           </button>
-          <button className="secondary-button" type="button" disabled={isGenerating} onClick={startDemoFlow}>
-            Demoデータを読み込む
+          <button className="secondary-button" type="button" disabled={isGenerating} onClick={() => loadSample("seminar_banner")}>
+            サンプルから開始
           </button>
           <button className="ghost-button" type="button" onClick={handleReset}>
             リセット
@@ -353,7 +421,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       <section className="panel production-panel">
         <SectionHeader
           title="段階型Explore / 自動制作フロー"
-          description="タブを順番に押すのではなく、制作ジョブとしてFinal Candidateまで進行します。"
+          description="タブを順番に押すのではなく、1つの制作ジョブとしてFinal Candidateまで進めます。"
           aside={<ProviderBadge label="SVG" provider={providers.svg} />}
         />
         <div className="badge-row">
@@ -364,7 +432,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         </div>
         <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
         {isGenerating && <LoadingState title={getProductionStageLabel(productionStage)} description={getProductionStageMessage(productionStage)} />}
-        {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="API未設定時はDemo Modeで再実行できます。入力内容を確認してください。" />}
+        {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="設定画面でAPI設定を確認するか、入力内容を調整してください。" />}
         {productionStage === "completed" && (
           <SuccessMessage
             title="制作プロセスが完了しました"
@@ -504,16 +572,16 @@ function MiniSvgPreview({ svg, label, large = false }: { svg: string; label: str
 
 const productionTimelineItems: ProductionTimelineItem[] = [
   { stage: "input_ready", title: "要件を確認", description: "入力内容と用途を確認します。" },
-  { stage: "exploring_ideas", title: "30案を探索", description: "コピー、訴求軸、トーンを広げます。" },
+  { stage: "exploring_ideas", title: "30案を探索", description: "コピー、訴求軸、トーン、レイアウト方向を広げます。" },
   { stage: "placing_ideas_board", title: "30案探索ボードを記録", description: "探索結果をFigmaに記録します。", figmaStage: true },
   { stage: "generating_typography_drafts", title: "15案の文字組みを生成", description: "余白、CTA位置、情報優先順位を検討します。" },
-  { stage: "placing_typography_board", title: "15案ドラフトを記録", description: "文字組みドラフトをFigmaに記録します。", figmaStage: true },
+  { stage: "placing_typography_board", title: "15案ドラフトボードを記録", description: "文字組みドラフトをFigmaに記録します。", figmaStage: true },
   { stage: "selecting_refined_candidates", title: "5案を選定", description: "比較しやすい方向性へ絞ります。" },
-  { stage: "generating_refined_svgs", title: "5案を高品質SVG化", description: "実バナーとして見られるSVGに整えます。" },
+  { stage: "generating_refined_svgs", title: "5案を高品質SVG化", description: "Figmaで見せられるSVGに整えます。" },
   { stage: "placing_refined_board", title: "5案SVGを記録", description: "5案ボードと実SVGをFigmaに配置します。", figmaStage: true },
-  { stage: "running_auto_compare", title: "5案を比較", description: "AIがPrimary / Secondary候補を整理します。" },
+  { stage: "running_auto_compare", title: "5案を比較", description: "Primary / Secondary候補を整理します。" },
   { stage: "placing_compare_board", title: "比較結果を記録", description: "比較表とbackground briefをFigmaに記録します。", figmaStage: true },
-  { stage: "generating_backgrounds", title: "背景3案を生成", description: "Primary案に合わせた背景方向を作ります。" },
+  { stage: "generating_backgrounds", title: "背景3案を生成", description: "Primary案に合わせた背景方針を作ります。" },
   { stage: "placing_background_board", title: "背景案を記録", description: "背景3案をFigmaに記録します。", figmaStage: true },
   { stage: "placing_final_candidate", title: "最終候補を記録", description: "Final CandidateをFigmaに記録します。", figmaStage: true },
   { stage: "completed", title: "制作完了", description: "自動制作ジョブが完了しました。" },
@@ -572,7 +640,7 @@ function createAutoCompareFrames(project: ProjectData): FigmaFrameData[] {
   return project.svgCandidates.map((candidate, index) => {
     const direction = project.copyDirections.find((item) => item.id === candidate.directionId);
     const main = direction?.copy.main ?? candidate.name;
-    const sub = direction?.copy.sub ?? direction?.summary ?? "比較用の自動生成候補";
+    const sub = direction?.copy.sub ?? candidate.previewLabel ?? "比較用の自動生成候補";
     const cta = direction?.copy.cta ?? "無料で参加する";
     const textNodes = [
       createTextNode(`auto_${candidate.id}_main`, "Main Copy", main, 56, 112, 520, 96, 56),
@@ -627,16 +695,46 @@ function createTextNode(id: string, name: string, characters: string, x: number,
   };
 }
 
+function createRawInputText(input: Awaited<ReturnType<typeof normalizeCreativeInput>>): string {
+  return [
+    `プロジェクト名: ${input.projectName}`,
+    `用途: ${input.contentType}`,
+    input.goal ? `ゴール: ${input.goal}` : "",
+    input.target ? `ターゲット: ${input.target}` : "",
+    input.tone ? `トーン: ${input.tone}` : "",
+    input.briefText ? `要件: ${input.briefText}` : "",
+    input.fixedCopy ? `確定コピー: ${input.fixedCopy.main} / ${input.fixedCopy.sub ?? ""} / ${input.fixedCopy.cta ?? ""}` : "",
+    input.pdfText ? `PDF要約元テキスト: ${input.pdfText.slice(0, 1200)}` : "",
+    input.referenceFrameSummary ? `参考Figma案: ${input.referenceFrameSummary}` : "",
+    input.assumptions.length ? `AI補完: ${input.assumptions.join(" / ")}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function summarizeReferenceFrame(frame: FigmaFrameData): string {
+  const title = frame.derived.possibleMainTitle?.characters ?? frame.textNodes[0]?.characters ?? frame.name;
+  const text = frame.textNodes.map((node) => node.characters).join(" / ").slice(0, 420);
+  return `${frame.name} (${Math.round(frame.width)}x${Math.round(frame.height)})。主見出し候補: ${title}。テキスト: ${text}`;
+}
+
 function wait(ms: number): Promise<void> {
   return new Promise((resolve) => window.setTimeout(resolve, ms));
 }
 
-function validateInput(inputMode: InputMode, briefText: string, fixedCopy: FixedCopyInput, contentType: ContentType): string | null {
-  if (inputMode === "brief_text" && briefText.trim().length === 0) return "要件を入力してください。";
-  if (inputMode === "fixed_copy") {
-    if (fixedCopy.main.trim().length === 0) return "メインコピーを入力してください。";
-    if (fixedCopy.sub.trim().length === 0) return "サブコピーを入力してください。";
-    if (contentType === "seminar_banner" && (fixedCopy.cta ?? "").trim().length === 0) return "セミナーバナーではCTAを入力してください。";
+function validateInput(input: ExploreInput): string | null {
+  if (input.inputMode === "minimal_prompt" && (input.briefText ?? "").trim().length === 0) return "作りたいものを入力してください。";
+  if (input.inputMode === "brief_text" && (input.briefText ?? "").trim().length === 0) return "要件テキストを入力してください。";
+  if (input.inputMode === "pdf" && !(input.pdfText || input.briefText)?.trim()) {
+    return "PDFからテキストを取得できない場合は、要件欄に内容を貼り付けてください。";
+  }
+  if (input.inputMode === "figma_reference" && !(input.referenceFrameSummary || input.briefText)?.trim()) {
+    return "参考にしたいFigmaフレームを選択するか、補足要件を入力してください。";
+  }
+  if (input.inputMode === "fixed_copy") {
+    if (!input.fixedCopy?.main.trim()) return "メインコピーを入力してください。";
+    if (!input.fixedCopy.sub.trim()) return "サブコピーを入力してください。";
+    if (input.contentType === "seminar_banner" && !input.fixedCopy.cta?.trim()) return "セミナーバナーではCTAを入力してください。";
   }
   return null;
 }

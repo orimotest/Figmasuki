@@ -2,6 +2,7 @@ import type { BackgroundResult } from "../../schemas/background";
 import type { ComparisonResult } from "../../schemas/comparison";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
+import type { RuntimeApiSettings } from "../../schemas/apiSettings";
 import type { ProjectData } from "../../schemas/project";
 import type { ProcessBoardStage } from "../../schemas/production";
 import { hasString, isRecord } from "../../utils/guards";
@@ -18,11 +19,17 @@ export type PluginRequestMessage =
   | { type: "REQUEST_SELECTED_FRAME" }
   | { type: "REQUEST_SELECTED_FRAMES" }
   | { type: "RESIZE_UI"; payload: { width: number; height: number } }
+  | { type: "LOAD_API_SETTINGS" }
+  | { type: "SAVE_API_SETTINGS"; payload: RuntimeApiSettings }
+  | { type: "TEST_API_SETTINGS"; payload: RuntimeApiSettings }
   | { type: "APPLY_BACKGROUND"; payload: { targetFrameId: string; backgroundResult: BackgroundResult } };
 
 export type PluginResponseMessage =
   | { type: "SELECTION_FRAME_RESULT"; payload: FigmaFrameData }
   | { type: "SELECTION_FRAMES_RESULT"; payload: FigmaFrameData[] }
+  | { type: "API_SETTINGS_LOADED"; payload: { settings?: RuntimeApiSettings } }
+  | { type: "API_SETTINGS_SAVED"; payload: { saved: true } }
+  | { type: "API_SETTINGS_TEST_RESULT"; payload: { ok: boolean; message: string } }
   | { type: "PLUGIN_ERROR"; payload: { message: string } }
   | { type: "PLUGIN_SUCCESS"; payload: { message: string } };
 
@@ -41,8 +48,12 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
     return null;
   }
 
-  if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES") {
+  if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES" || value.type === "LOAD_API_SETTINGS") {
     return { type: value.type };
+  }
+
+  if ((value.type === "SAVE_API_SETTINGS" || value.type === "TEST_API_SETTINGS") && isRecord(value.payload)) {
+    return { type: value.type, payload: value.payload as RuntimeApiSettings };
   }
 
   if (value.type === "RESIZE_UI" && isRecord(value.payload)) {

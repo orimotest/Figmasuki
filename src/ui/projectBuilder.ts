@@ -33,7 +33,7 @@ export function buildProjectData(params: {
     inputSummary: {
       brief: input.briefText || input.fixedCopy?.main || input.rawInput || "入力要件",
       targetAudience: input.targetAudience ?? (isSeminar ? "忙しいビジネスパーソン" : "デザイナー、編集者、個人クリエイター"),
-      goal: isSeminar ? "短時間で学べる価値を伝え、申込につなげる" : "記事を読みたくなる入口を作る",
+      goal: input.goal ?? (isSeminar ? "短時間で学べる価値を伝え、申込につなげる" : "記事を読みたくなる入口を作る"),
       rawInput: input.rawInput,
     },
     copyDirections: exploreResult.directions,
@@ -67,6 +67,7 @@ export function buildProjectData(params: {
 }
 
 function inferProjectName(input: ExploreInput): string {
+  if (input.projectName) return input.projectName;
   if (input.contentType === "seminar_banner") return "オンラインセミナー集客バナー";
   if (input.fixedCopy?.main) return input.fixedCopy.main.split("\n")[0]?.slice(0, 24) || "AI制作プロジェクト";
   const brief = input.briefText || input.rawInput || "AI制作プロジェクト";
@@ -75,7 +76,7 @@ function inferProjectName(input: ExploreInput): string {
 
 function createProviderMode(svgCandidates: SvgCandidate[]): string {
   const fallback = svgCandidates.some((candidate) => candidate.meta.fallbackUsed);
-  if (fallback) return "Demo Mode（API未設定またはfallback）";
+  if (fallback) return "Demo Mode / fallback";
   if (providerConfig.copy === "demo" && providerConfig.svg === "demo") return "Demo Mode";
   return `copy:${providerConfig.copy} / layout:${providerConfig.layout} / svg:${providerConfig.svg} / diagnosis:${providerConfig.diagnosis} / compare:${providerConfig.compare} / background:${providerConfig.background}`;
 }

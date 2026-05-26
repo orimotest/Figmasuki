@@ -251,7 +251,7 @@ input {
 
 .tab-nav {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 5px;
 }
 
@@ -479,6 +479,149 @@ input {
   padding: 4px;
   border-radius: 8px;
   background: #eef2f7;
+}
+
+.input-mode-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.input-mode-grid .segment {
+  display: grid;
+  gap: 2px;
+  justify-items: start;
+  min-height: 42px;
+  padding: 7px 8px;
+  text-align: left;
+}
+
+.input-mode-grid .segment strong {
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.input-mode-grid .segment small {
+  color: inherit;
+  font-size: 9px;
+  line-height: 1.15;
+  opacity: 0.72;
+}
+
+.pdf-input-box {
+  display: grid;
+  gap: 6px;
+  padding: 9px;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #475569;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.pdf-input-box p,
+.pdf-input-box small {
+  margin: 0;
+}
+
+.settings-screen {
+  display: grid;
+  gap: 12px;
+}
+
+.settings-summary-panel {
+  display: grid;
+  gap: 10px;
+}
+
+.settings-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.settings-summary span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 26px;
+  padding: 0 9px;
+  border: 1px solid #dbe5f2;
+  border-radius: 999px;
+  background: #f8fbff;
+  color: #0f2b5f;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.settings-note {
+  margin: 0;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(260px, 0.75fr);
+  gap: 12px;
+  align-items: start;
+}
+
+.settings-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.settings-form-grid.single {
+  grid-template-columns: 1fr;
+}
+
+.settings-fieldset {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid #dbe5f2;
+  border-radius: 8px;
+  background: #fbfdff;
+}
+
+.settings-fieldset legend {
+  padding: 0 5px;
+  color: #0f2b5f;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.settings-fieldset p {
+  margin: 0;
+  color: #64748b;
+  font-size: 10px;
+}
+
+.settings-form-grid label {
+  display: grid;
+  gap: 5px;
+  color: #475569;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.settings-form-grid input {
+  width: 100%;
+  min-height: 30px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #0f172a;
+  background: #ffffff;
+}
+
+.settings-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
 }
 
 .segment {

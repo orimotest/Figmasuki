@@ -5,14 +5,14 @@ type UsageGuideProps = {
 };
 
 const defaultSteps = [
-  "探索でDemoサンプルを読み込む",
-  "5案をFigmaに配置",
-  "1案を選択して診断",
-  "2〜5案を選択して比較",
-  "比較で選ばれた案に背景を適用",
+  "要件を入力する、またはサンプルから開始する",
+  "自動制作を開始する",
+  "30案探索、15案ドラフト、5案SVGを順番に確認する",
+  "比較結果と背景3案をFigma上で確認する",
+  "Final Candidateを編集・調整する",
 ];
 
-export function UsageGuide({ title = "APIなしで試す場合", steps = defaultSteps, note }: UsageGuideProps) {
+export function UsageGuide({ title = "制作フロー", steps = defaultSteps, note }: UsageGuideProps) {
   return (
     <section className="usage-guide">
       <div>

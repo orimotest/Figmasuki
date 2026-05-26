@@ -7,7 +7,7 @@ export const backgroundSamples: BackgroundResult[] = [
     colors: ["#FAFAF7", "#E5E7EB", "#CCFBF1", "#8B5CF6"],
     styleName: "editorial paper gradient",
     status: "stub",
-    message: "Demo background generation is stubbed.",
+    message: "サンプル背景を生成しました。",
     createdAt: "2026-05-25T00:00:00.000Z",
     brief: {
       id: "brief_demo_background_001",

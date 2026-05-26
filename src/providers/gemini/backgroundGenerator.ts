@@ -7,11 +7,11 @@ export async function generateBackgroundWithGemini(brief: BackgroundBrief): Prom
     ...result,
     id: `gemini_ready_${result.id}`,
     status: "stub",
-    message: "Gemini background generation is prepared but still uses editable demo Figma shapes in this MVP.",
+    message: "Gemini背景生成の接続準備があります。現在は編集可能なFigma図形背景で続行しました。",
     providerMeta: {
       provider: "gemini",
       fallbackUsed: true,
-      fallbackReason: "Gemini image generation is intentionally stubbed for this local MVP.",
+      fallbackReason: "Gemini image generation is not configured, so editable Figma shape backgrounds were used.",
     },
   };
 }

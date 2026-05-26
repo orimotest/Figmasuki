@@ -1,8 +1,19 @@
 # API Settings
 
-API設定は `src/config/apiSettings.ts` に集約します。
+API設定は、プラグイン内の設定タブ、または `src/config/apiSettings.ts` で管理します。
 
-## 作成方法
+## 推奨: 設定タブで保存する
+
+1. プラグインを起動
+2. `設定` タブを開く
+3. Dify Workflow URL / API Keyを入力
+4. Gemini API Key / modelを入力
+5. `接続設定を確認`
+6. `設定を保存`
+
+保存先はFigma `clientStorage` です。API KeyはUIではマスク表示され、ログには出しません。
+
+## ファイルで設定する
 
 ```bash
 cp src/config/apiSettings.example.ts src/config/apiSettings.ts
@@ -14,47 +25,35 @@ Windows PowerShell:
 Copy-Item src\config\apiSettings.example.ts src\config\apiSettings.ts
 ```
 
-## 設定する値
+`apiSettings.ts` へURL / Keyを入れます。実キーはGitへコミットしないでください。
 
-- `dify.copy.url`
-- `dify.copy.apiKey`
-- `dify.layout.url`
-- `dify.layout.apiKey`
-- `dify.ideas.url`
-- `dify.ideas.apiKey`
-- `dify.draftSelection.url`
-- `dify.draftSelection.apiKey`
-- `dify.typographyDraft.url`
-- `dify.typographyDraft.apiKey`
-- `dify.refinedSelection.url`
-- `dify.refinedSelection.apiKey`
-- `dify.diagnosis.url`
-- `dify.diagnosis.apiKey`
-- `dify.compare.url`
-- `dify.compare.apiKey`
-- `gemini.apiKey`
-- `gemini.textModel`
-- `gemini.imageModel`
+## 設定の優先順位
 
-段階型Live APIへ拡張する場合は、以下のDify workflowを用意します。
+1. Figma `clientStorage`
+2. `src/config/apiSettings.ts`
+3. `src/config/apiSettings.example.ts` はサンプルのみ
 
-- 30案探索
-- 15案整理
-- Typography Draft Layout JSON生成
-- 5案選定
-- 診断コメント生成
-- 比較コメント生成
+## Dify設定項目
 
-現在のMVP実装では、既存互換の `copy` / `layout` / `diagnosis` / `compare` 入口を使い、段階型Live APIでは `ideas` / `draftSelection` / `typographyDraft` / `refinedSelection` を接続できる形にしています。API未設定または失敗時はDemo Modeへfallbackします。15案ドラフトSVGは、Difyが返すLayout JSONをプラグイン側テンプレートでSVG化する方針です。
+- `inputOrganizer`
+- `ideaExplorer`
+- `typographyPlanner`
+- `candidateSelector`
+- `diagnosis`
+- `compare`
 
-## provider切り替え
+各項目に `url` と `apiKey` を設定します。
 
-`src/config/providers.ts` で `demo` / `dify` / `gemini` を切り替えます。
+## Gemini設定項目
 
-`apiSettings.ts` はAPIのURLとkey、`providers.ts` はどのproviderを使うか、という責務です。
+- `apiKey`
+- `textModel`
+- `svgModel`
+- `imageModel`
 
-`providers.ts` を `demo` のままにするとAPIは呼びません。Live APIを試す時だけ、必要なproviderを `dify` / `gemini` に切り替えます。
+## providerConfigとの関係
 
-## 注意
+`src/config/providers.ts` は、どのproviderを使うかを決めます。  
+`apiSettings.ts` と設定タブは、Dify / GeminiのURLやKeyを管理します。
 
-`src/config/apiSettings.ts` は `.gitignore` 対象です。実キーはコミットしないでください。
+API設定が未完了、またはAPI呼び出しに失敗した場合はDemo Modeで継続できるようにしています。

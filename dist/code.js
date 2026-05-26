@@ -27,6 +27,9 @@
     uiHeight: 720
   };
 
+  // src/config/runtimeApiSettings.ts
+  var RUNTIME_API_SETTINGS_STORAGE_KEY = "ai-cover-studio-runtime-api-settings";
+
   // src/plugin/figma/createSvgNode.ts
   var insertedSvgCount = 0;
   function createSvgNode(svg, name = "Generated SVG Layout", options = {}) {
@@ -354,8 +357,11 @@
     if (!isRecord(value) || !hasString(value, "type")) {
       return null;
     }
-    if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES") {
+    if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES" || value.type === "LOAD_API_SETTINGS") {
       return { type: value.type };
+    }
+    if ((value.type === "SAVE_API_SETTINGS" || value.type === "TEST_API_SETTINGS") && isRecord(value.payload)) {
+      return { type: value.type, payload: value.payload };
     }
     if (value.type === "RESIZE_UI" && isRecord(value.payload)) {
       const width = typeof value.payload.width === "number" ? value.payload.width : 960;
@@ -1061,6 +1067,28 @@
         figma.ui.resize(message.payload.width, message.payload.height);
         return;
       }
+      if (message.type === "LOAD_API_SETTINGS") {
+        const settings = await figma.clientStorage.getAsync(RUNTIME_API_SETTINGS_STORAGE_KEY);
+        postToUi({ type: "API_SETTINGS_LOADED", payload: { settings } });
+        return;
+      }
+      if (message.type === "SAVE_API_SETTINGS") {
+        await figma.clientStorage.setAsync(RUNTIME_API_SETTINGS_STORAGE_KEY, message.payload);
+        postToUi({ type: "API_SETTINGS_SAVED", payload: { saved: true } });
+        return;
+      }
+      if (message.type === "TEST_API_SETTINGS") {
+        const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
+        const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
+        postToUi({
+          type: "API_SETTINGS_TEST_RESULT",
+          payload: {
+            ok: hasDify || hasGemini,
+            message: hasDify || hasGemini ? "\u4FDD\u5B58\u6E08\u307F\u8A2D\u5B9A\u3092\u78BA\u8A8D\u3057\u307E\u3057\u305F\u3002Live Mode\u3078\u5207\u308A\u66FF\u3048\u308B\u6E96\u5099\u304C\u3042\u308A\u307E\u3059\u3002" : "API\u8A2D\u5B9A\u304C\u672A\u5B8C\u4E86\u3067\u3059\u3002Dify\u307E\u305F\u306FGemini\u306EURL / Key\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+          }
+        });
+        return;
+      }
       if (message.type === "INSERT_SVG") {
         createSvgNode(message.payload.svg, message.payload.name);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "SVG\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002" } });
@@ -1070,7 +1098,7 @@
         const nodes = placeSvgCandidates(message.payload.items, message.payload.x !== void 0 && message.payload.y !== void 0 ? { x: message.payload.x, y: message.payload.y } : void 0);
         figma.currentPage.selection = nodes;
         figma.viewport.scrollAndZoomIntoView(nodes);
-        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}\u6848\u3092\u6A2A\u4E26\u3073\u3067Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}\u6848\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
         return;
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
@@ -1088,10 +1116,7 @@
         const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
         figma.currentPage.selection = [...boards, ...nodes];
         figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
-        postToUi({
-          type: "PLUGIN_SUCCESS",
-          payload: { message: `${nodes.length}\u6848\u3068\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` }
-        });
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${nodes.length}\u6848\u3068\u5DE5\u7A0B\u5225\u30DC\u30FC\u30C9\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {
@@ -1101,7 +1126,7 @@
         const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
         figma.currentPage.selection = [...boards, ...nodes];
         figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
-        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5404\u30D5\u30A7\u30FC\u30BA\u306E\u8A18\u9332\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u5225\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {

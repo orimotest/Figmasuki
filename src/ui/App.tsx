@@ -17,8 +17,11 @@ import { CompareScreen } from "./screens/CompareScreen";
 import { DiagnoseScreen } from "./screens/DiagnoseScreen";
 import { ExploreScreen } from "./screens/ExploreScreen";
 import { FinishScreen } from "./screens/FinishScreen";
+import { SettingsScreen } from "./screens/SettingsScreen";
 
-const tabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish"];
+const tabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish", "Settings"];
+const productionTabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish"];
+
 const uiSizePresets = {
   S: { width: 720, height: 680 },
   M: { width: 960, height: 720 },
@@ -65,6 +68,10 @@ export default function App() {
       window.dispatchEvent(new Event("START_AUTO_PRODUCTION"));
       return;
     }
+    if (activeTab === "Settings") {
+      window.dispatchEvent(new Event("SAVE_API_SETTINGS_FROM_HEADER"));
+      return;
+    }
     handleRenderFullProcess();
   }
 
@@ -80,13 +87,13 @@ export default function App() {
           <p className="eyebrow">AI Creative Process Board</p>
           <h1>AI Cover Studio</h1>
           <p className="header-description">
-            {activeTab !== "Explore" && <span className="step-pill">{getStepLabel(activeTab)}</span>}
-            {activeTab === "Explore" ? "要件入力からFinal Candidateまで、AI制作ジョブとして自動進行します。" : tabLabels[activeTab].description}
+            {activeTab !== "Explore" && productionTabs.includes(activeTab) && <span className="step-pill">{getStepLabel(activeTab)}</span>}
+            {tabLabels[activeTab].description}
           </p>
         </div>
         <div className="header-meta">
           <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo Mode</span>
+          <span className="provider-badge warning">実行モード: Demo</span>
           <ProviderBadge label="provider" provider={providers.copy} />
           <div className="ui-size-control" aria-label="UI size">
             {(["S", "M", "L"] as UiSizePreset[]).map((size) => (
@@ -95,15 +102,15 @@ export default function App() {
               </button>
             ))}
           </div>
-          <button className="header-button" type="button" disabled={activeTab !== "Explore" && !projectData} onClick={handleHeaderAction}>
-            {activeTab === "Explore" ? "\u81ea\u52d5\u5236\u4f5c\u3092\u958b\u59cb" : "\u4e00\u9023\u306e\u30d7\u30ed\u30bb\u30b9\u3092Figma\u306b\u51fa\u529b"}
+          <button className="header-button" type="button" disabled={activeTab !== "Explore" && activeTab !== "Settings" && !projectData} onClick={handleHeaderAction}>
+            {activeTab === "Explore" ? "自動制作を開始" : activeTab === "Settings" ? "設定を保存" : "一連のプロセスをFigmaに出力"}
           </button>
         </div>
       </header>
 
       <div className="plugin-stepper">
         <TabNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-        <FlowStepper activeTab={activeTab} completedTabs={completedTabs} />
+        {activeTab !== "Settings" && <FlowStepper activeTab={activeTab} completedTabs={completedTabs} />}
       </div>
 
       <section className="plugin-scroll-area nice-scrollbar scroll-fade-bottom screen-area">
@@ -152,13 +159,14 @@ export default function App() {
             onBackground={setBackground}
           />
         )}
+        {activeTab === "Settings" && <SettingsScreen />}
       </section>
 
       <ActionFooter>
         <StatusLog
           entries={[
-            "\u73fe\u5728\u306e\u5de5\u7a0b\u306f\u4e0a\u90e8\u306e\u30b9\u30c6\u30c3\u30d1\u30fc\u3067\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002",
-            "demo mode\u3067\u5168\u5de5\u7a0b\u3092\u78ba\u8a8d\u3067\u304d\u307e\u3059\u3002",
+            "現在の工程は上部のステッパーで確認できます。",
+            "API設定を保存するとLive Modeで実行できます。未設定の場合はDemo Modeで進行します。",
           ]}
         />
       </ActionFooter>
@@ -167,11 +175,11 @@ export default function App() {
 }
 
 function getStepLabel(tab: AppTab): string {
-  const labels: Record<AppTab, string> = {
+  const labels: Partial<Record<AppTab, string>> = {
     Explore: "Step 1/4",
     Diagnose: "Step 2/4",
     Compare: "Step 3/4",
     Finish: "Step 4/4",
   };
-  return labels[tab];
+  return labels[tab] ?? "";
 }

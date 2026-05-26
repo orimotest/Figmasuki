@@ -12,8 +12,8 @@ export function DirectionList({ directions, onLoadDemo }: DirectionListProps) {
     return (
       <EmptyState
         title="コピー方向性はまだありません"
-        body="要件を入力して探索を開始すると、5方向のコピー案がここに表示されます。APIなしでもDemoサンプルで確認できます。"
-        actionLabel={onLoadDemo ? "Demoサンプルを読み込む" : undefined}
+        body="要件を入力して自動制作を開始すると、AIが探索した方向性がここに表示されます。サンプルから開始すると、すぐに制作フローを確認できます。"
+        actionLabel={onLoadDemo ? "サンプルから開始" : undefined}
         onAction={onLoadDemo}
       />
     );

@@ -1,4 +1,6 @@
 import { appConfig } from "../config/app";
+import { RUNTIME_API_SETTINGS_STORAGE_KEY } from "../config/runtimeApiSettings";
+import type { RuntimeApiSettings } from "../schemas/apiSettings";
 import type { ProjectData } from "../schemas/project";
 import { createSvgNode } from "./figma/createSvgNode";
 import { extractFrameData } from "./figma/extractFrameData";
@@ -37,6 +39,31 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       return;
     }
 
+    if (message.type === "LOAD_API_SETTINGS") {
+      const settings = (await figma.clientStorage.getAsync(RUNTIME_API_SETTINGS_STORAGE_KEY)) as RuntimeApiSettings | undefined;
+      postToUi({ type: "API_SETTINGS_LOADED", payload: { settings } });
+      return;
+    }
+
+    if (message.type === "SAVE_API_SETTINGS") {
+      await figma.clientStorage.setAsync(RUNTIME_API_SETTINGS_STORAGE_KEY, message.payload);
+      postToUi({ type: "API_SETTINGS_SAVED", payload: { saved: true } });
+      return;
+    }
+
+    if (message.type === "TEST_API_SETTINGS") {
+      const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
+      const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
+      postToUi({
+        type: "API_SETTINGS_TEST_RESULT",
+        payload: {
+          ok: hasDify || hasGemini,
+          message: hasDify || hasGemini ? "保存済み設定を確認しました。Live Modeへ切り替える準備があります。" : "API設定が未完了です。DifyまたはGeminiのURL / Keyを入力してください。",
+        },
+      });
+      return;
+    }
+
     if (message.type === "INSERT_SVG") {
       createSvgNode(message.payload.svg, message.payload.name);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "SVGをFigmaに配置しました。" } });
@@ -47,7 +74,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       const nodes = placeSvgCandidates(message.payload.items, message.payload.x !== undefined && message.payload.y !== undefined ? { x: message.payload.x, y: message.payload.y } : undefined);
       figma.currentPage.selection = nodes;
       figma.viewport.scrollAndZoomIntoView(nodes);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案を横並びでFigmaに配置しました。` } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${message.payload.items.length}案をFigmaに配置しました。` } });
       return;
     }
 
@@ -66,10 +93,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
       figma.currentPage.selection = [...boards, ...nodes];
       figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
-      postToUi({
-        type: "PLUGIN_SUCCESS",
-        payload: { message: `${nodes.length}案と各フェーズの記録ボードをFigmaに配置しました。` },
-      });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${nodes.length}案と工程別ボードをFigmaに配置しました。` } });
       return;
     }
 
@@ -80,7 +104,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
       figma.currentPage.selection = [...boards, ...nodes];
       figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
-      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "各フェーズの記録ボードをFigmaに作成しました。" } });
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "工程別ボードをFigmaに作成しました。" } });
       return;
     }
 
