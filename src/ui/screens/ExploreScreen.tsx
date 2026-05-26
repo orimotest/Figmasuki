@@ -238,10 +238,6 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
 
       setProductionStage("placing_refined_board");
       postStageBoard(project, "refined_svgs");
-      postToPlugin({
-        type: "INSERT_SVG_BATCH",
-        payload: { items: svgResult.svgs.map((candidate) => ({ svg: candidate.svg, name: candidate.name })), x: 0, y: 980 },
-      });
       setFigmaOutputs(project.figmaOutputs ?? []);
 
       setProductionStage("running_auto_compare");

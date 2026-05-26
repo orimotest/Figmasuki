@@ -39,19 +39,19 @@ type RenderOptions = {
 };
 
 const DEFAULT_LAYOUT_BASE = {
-  xOffset: -4250,
-  yOffset: -900,
+  xOffset: -3800,
+  yOffset: -760,
 };
 
-const PROCESS_STAGE_POSITIONS: Record<ProcessBoardStage, { x: number; y: number }> = {
+export const PROCESS_STAGE_POSITIONS: Record<ProcessBoardStage, { x: number; y: number }> = {
   project_header: { x: 0, y: 0 },
-  ideas: { x: 660, y: 0 },
-  typography_drafts: { x: 1920, y: 0 },
-  refined_svgs: { x: 3380, y: 0 },
-  diagnosis: { x: 4860, y: -780 },
-  compare: { x: 4860, y: 0 },
-  background_variations: { x: 4860, y: 820 },
-  final_candidate: { x: 4860, y: 1600 },
+  ideas: { x: 700, y: 0 },
+  typography_drafts: { x: 1992, y: 0 },
+  refined_svgs: { x: 3484, y: 0 },
+  diagnosis: { x: 4916, y: 800 },
+  compare: { x: 4916, y: 0 },
+  background_variations: { x: 5888, y: 0 },
+  final_candidate: { x: 6840, y: 0 },
 };
 
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode[]> {

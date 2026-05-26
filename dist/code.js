@@ -483,18 +483,18 @@
   var FONT_REGULAR = { family: "Inter", style: "Regular" };
   var FONT_BOLD = { family: "Inter", style: "Bold" };
   var DEFAULT_LAYOUT_BASE = {
-    xOffset: -4250,
-    yOffset: -900
+    xOffset: -3800,
+    yOffset: -760
   };
   var PROCESS_STAGE_POSITIONS = {
     project_header: { x: 0, y: 0 },
-    ideas: { x: 660, y: 0 },
-    typography_drafts: { x: 1920, y: 0 },
-    refined_svgs: { x: 3380, y: 0 },
-    diagnosis: { x: 4860, y: -780 },
-    compare: { x: 4860, y: 0 },
-    background_variations: { x: 4860, y: 820 },
-    final_candidate: { x: 4860, y: 1600 }
+    ideas: { x: 700, y: 0 },
+    typography_drafts: { x: 1992, y: 0 },
+    refined_svgs: { x: 3484, y: 0 },
+    diagnosis: { x: 4916, y: 800 },
+    compare: { x: 4916, y: 0 },
+    background_variations: { x: 5888, y: 0 },
+    final_candidate: { x: 6840, y: 0 }
   };
   async function renderProcessBoard(project, options = {}) {
     var _a, _b;
@@ -1048,9 +1048,10 @@
 
   // src/plugin/code.ts
   var PROCESS_LAYOUT = {
-    baseXOffset: -4250,
-    baseYOffset: -900,
-    bannersY: 1220
+    baseXOffset: -3800,
+    baseYOffset: -760,
+    bannersY: 1140,
+    candidateGap: 80
   };
   figma.showUI(__html__, {
     width: appConfig.uiWidth,
@@ -1102,39 +1103,48 @@
         return;
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
-        const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
-        const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
+        const { startX, startY } = getProcessBase();
         const boards = [];
         boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
         await sleep(350);
-        boards.push(await renderProcessStageBoard(message.payload, "ideas", { x: startX + 660, y: startY, zoom: false }));
+        boards.push(await renderProcessStageBoard(message.payload, "ideas", __spreadProps(__spreadValues({}, getStagePosition("ideas", startX, startY)), { zoom: false })));
         await sleep(500);
-        boards.push(await renderProcessStageBoard(message.payload, "typography_drafts", { x: startX + 1920, y: startY, zoom: false }));
+        boards.push(await renderProcessStageBoard(message.payload, "typography_drafts", __spreadProps(__spreadValues({}, getStagePosition("typography_drafts", startX, startY)), { zoom: false })));
         await sleep(500);
-        boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
+        boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", __spreadProps(__spreadValues({}, getStagePosition("refined_svgs", startX, startY)), { zoom: false })));
         await sleep(350);
-        const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
-        figma.currentPage.selection = [...boards, ...nodes];
-        figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
+        boards.push(await renderProcessStageBoard(message.payload, "compare", __spreadProps(__spreadValues({}, getStagePosition("compare", startX, startY)), { zoom: false })));
+        boards.push(await renderProcessStageBoard(message.payload, "background_variations", __spreadProps(__spreadValues({}, getStagePosition("background_variations", startX, startY)), { zoom: false })));
+        boards.push(await renderProcessStageBoard(message.payload, "final_candidate", __spreadProps(__spreadValues({}, getStagePosition("final_candidate", startX, startY)), { zoom: false })));
+        const nodes = placeProjectCandidates(message.payload, getArtifactPosition(startX, startY));
+        const finalNodes = placeFinalCandidate(message.payload, getFinalArtifactPosition(startX, startY));
+        figma.currentPage.selection = [...boards, ...nodes, ...finalNodes];
+        figma.viewport.scrollAndZoomIntoView([...boards, ...nodes, ...finalNodes]);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: `${nodes.length}\u6848\u3068\u5DE5\u7A0B\u5225\u30DC\u30FC\u30C9\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002` } });
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {
-        const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
-        const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
+        const { startX, startY } = getProcessBase();
         const boards = await renderProcessBoard(message.payload, { x: startX, y: startY, zoom: false });
-        const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
-        figma.currentPage.selection = [...boards, ...nodes];
-        figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
+        const nodes = placeProjectCandidates(message.payload, getArtifactPosition(startX, startY));
+        const finalNodes = placeFinalCandidate(message.payload, getFinalArtifactPosition(startX, startY));
+        figma.currentPage.selection = [...boards, ...nodes, ...finalNodes];
+        figma.viewport.scrollAndZoomIntoView([...boards, ...nodes, ...finalNodes]);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u5225\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
-        await renderProcessStageBoard(message.payload.project, message.payload.stage, {
+        const board = await renderProcessStageBoard(message.payload.project, message.payload.stage, {
           x: message.payload.x,
           y: message.payload.y,
           zoom: message.payload.zoom
         });
+        const { startX, startY } = getProcessBase();
+        const artifactNodes = message.payload.stage === "refined_svgs" ? placeProjectCandidates(message.payload.project, getArtifactPosition(startX, startY)) : message.payload.stage === "final_candidate" ? placeFinalCandidate(message.payload.project, getFinalArtifactPosition(startX, startY)) : [];
+        if (artifactNodes.length > 0) {
+          figma.currentPage.selection = [board, ...artifactNodes];
+          figma.viewport.scrollAndZoomIntoView([board, ...artifactNodes]);
+        }
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
@@ -1181,12 +1191,45 @@
     const startY = (_b = position == null ? void 0 : position.y) != null ? _b : figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset + PROCESS_LAYOUT.bannersY;
     return items.map(
       (item, index) => createSvgNode(item.svg, item.name, {
-        x: startX + index * 900,
+        x: startX + index * (800 + PROCESS_LAYOUT.candidateGap),
         y: startY,
         select: false,
         zoom: false
       })
     );
+  }
+  function placeFinalCandidate(project, position) {
+    var _a, _b, _c;
+    const finalCandidateId = (_b = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate) == null ? void 0 : _b.refinedCandidateId;
+    const candidate = (_c = project.svgCandidates.find((item) => item.id === finalCandidateId)) != null ? _c : project.svgCandidates[0];
+    if (!candidate) return [];
+    return [
+      createSvgNode(candidate.svg, `FINAL_${candidate.name}`, {
+        x: position.x,
+        y: position.y,
+        select: false,
+        zoom: false
+      })
+    ];
+  }
+  function getProcessBase() {
+    return {
+      startX: figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset,
+      startY: figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset
+    };
+  }
+  function getStagePosition(stage, startX, startY) {
+    const position = PROCESS_STAGE_POSITIONS[stage];
+    return { x: startX + position.x, y: startY + position.y };
+  }
+  function getArtifactPosition(startX, startY) {
+    return { x: startX, y: startY + PROCESS_LAYOUT.bannersY };
+  }
+  function getFinalArtifactPosition(startX, startY) {
+    return {
+      x: startX + PROCESS_STAGE_POSITIONS.final_candidate.x,
+      y: startY + PROCESS_LAYOUT.bannersY
+    };
   }
   function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
