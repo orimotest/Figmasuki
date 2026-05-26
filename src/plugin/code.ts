@@ -52,7 +52,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       await sleep(500);
       boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
       await sleep(350);
-      const nodes = placeProjectCandidates(message.payload, { x: startX + 3380, y: startY - 620 });
+      const nodes = placeProjectCandidates(message.payload, { x: startX + 3380, y: startY - 760 });
       figma.currentPage.selection = [...nodes, ...boards];
       figma.viewport.scrollAndZoomIntoView([...nodes, ...boards]);
       postToUi({
@@ -124,7 +124,7 @@ function placeProjectCandidates(project: ProjectData, position?: { x: number; y:
 
 function placeSvgCandidates(items: Array<{ svg: string; name?: string }>, position?: { x: number; y: number }) {
   const startX = position?.x ?? figma.viewport.center.x - 400;
-  const startY = position?.y ?? figma.viewport.center.y - 225;
+  const startY = position?.y ?? figma.viewport.center.y - 340;
   return items.map((item, index) =>
     createSvgNode(item.svg, item.name, {
       x: startX + index * 900,

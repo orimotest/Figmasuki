@@ -2,8 +2,9 @@ import type { ReactNode } from "react";
 
 type ActionBarProps = {
   children: ReactNode;
+  className?: string;
 };
 
-export function ActionBar({ children }: ActionBarProps) {
-  return <div className="action-bar">{children}</div>;
+export function ActionBar({ children, className }: ActionBarProps) {
+  return <div className={className ? `action-bar ${className}` : "action-bar"}>{children}</div>;
 }

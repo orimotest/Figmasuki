@@ -157,14 +157,20 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
         </section>
       </div>
 
-      <ActionBar>
-        <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Diagnose" }))}>診断フェーズに戻る</button>
-        <button className="secondary-button" type="button" onClick={handleRenderCompareBoard}>Figmaに比較ボードを出力</button>
-        <button className="secondary-button" type="button" onClick={handleCopyReport}>比較レポートをコピー</button>
-        <button className="primary-button" type="button" onClick={handleCompareSelectedFrames}>{isComparing ? "比較中..." : "選択中の案を比較"}</button>
-        <button className="primary-button" type="button" onClick={() => onSendToFinish(display.brief)}>仕上げフェーズへ進む</button>
-      </ActionBar>
       <StatusLog entries={statusLogs.slice(-4)} />
+      <ActionBar className="review-action-bar">
+        <div className="action-group action-group-left">
+          <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Diagnose" }))}>診断に戻る</button>
+        </div>
+        <div className="action-group action-group-center">
+          <button className="secondary-button" type="button" onClick={handleRenderCompareBoard}>比較ボードをFigmaに出力</button>
+          <button className="secondary-button" type="button" onClick={handleCopyReport}>レポートをコピー</button>
+        </div>
+        <div className="action-group action-group-right">
+          <button className="primary-button" type="button" onClick={handleCompareSelectedFrames}>{isComparing ? "比較中..." : "選択案を比較"}</button>
+          <button className="primary-button" type="button" onClick={() => onSendToFinish(display.brief)}>仕上げへ進む</button>
+        </div>
+      </ActionBar>
     </div>
   );
 }

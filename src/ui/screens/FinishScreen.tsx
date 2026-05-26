@@ -179,14 +179,20 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
         </section>
       </div>
 
-      <ActionBar>
-        <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Compare" }))}>比較フェーズに戻る</button>
-        <button className="secondary-button" type="button" onClick={handleRenderFinishBoard}>Figmaに仕上げボードを出力</button>
-        <button className="secondary-button" type="button" onClick={handleCopyBrief}>background briefをコピー</button>
-        <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerateBackground}>{isGenerating ? "生成中..." : "背景3案を生成"}</button>
-        <button className="primary-button" type="button" disabled={!activeResult || isApplying} onClick={handleApplyBackground}>{isApplying ? "反映中..." : "Final Candidateを確定"}</button>
-      </ActionBar>
       <StatusLog entries={statusLogs.slice(-4)} />
+      <ActionBar className="review-action-bar">
+        <div className="action-group action-group-left">
+          <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Compare" }))}>比較に戻る</button>
+        </div>
+        <div className="action-group action-group-center">
+          <button className="secondary-button" type="button" onClick={handleRenderFinishBoard}>仕上げボードをFigmaに出力</button>
+          <button className="secondary-button" type="button" onClick={handleCopyBrief}>briefをコピー</button>
+        </div>
+        <div className="action-group action-group-right">
+          <button className="primary-button" type="button" disabled={isGenerating} onClick={handleGenerateBackground}>{isGenerating ? "生成中..." : "背景3案を生成"}</button>
+          <button className="primary-button" type="button" disabled={!activeResult || isApplying} onClick={handleApplyBackground}>{isApplying ? "反映中..." : "Final候補を確定"}</button>
+        </div>
+      </ActionBar>
     </div>
   );
 }
