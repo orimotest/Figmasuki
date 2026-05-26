@@ -79,7 +79,8 @@ input {
   position: relative;
   min-height: 0;
   padding: 10px;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   overscroll-behavior: contain;
   scroll-behavior: smooth;
   scrollbar-gutter: stable;
@@ -250,7 +251,8 @@ input {
 
 .screen-area {
   min-height: 0;
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .flow-stepper {
@@ -699,7 +701,8 @@ input {
 .insight-card li,
 .insight-hero strong {
   line-break: strict;
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: normal;
 }
 
 .step-pill {
@@ -726,12 +729,13 @@ input {
   gap: 12px;
   align-items: stretch;
   min-height: 0;
+  max-width: 100%;
 }
 
 .diagnose-review-layout,
 .compare-review-layout,
 .finish-review-layout {
-  grid-template-columns: minmax(250px, 0.84fr) minmax(430px, 1.42fr) minmax(300px, 1fr);
+  grid-template-columns: minmax(220px, 0.78fr) minmax(0, 1.42fr) minmax(230px, 0.9fr);
 }
 
 .review-side-panel,
@@ -740,6 +744,7 @@ input {
   display: grid;
   align-content: start;
   gap: 12px;
+  min-width: 0;
   min-height: 0;
 }
 
@@ -1214,6 +1219,7 @@ input {
 .action-group {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
   min-width: 0;
 }
@@ -2059,6 +2065,89 @@ input {
 
 .usage-guide li {
   padding-left: 2px;
+}
+
+@media (max-width: 1080px) {
+  .plugin-header {
+    padding: 9px 10px 8px;
+  }
+
+  .plugin-stepper {
+    padding: 7px 9px 8px;
+  }
+
+  .plugin-scroll-area {
+    padding: 8px;
+  }
+
+  .review-page-heading {
+    align-items: stretch;
+  }
+
+  .review-page-heading h2 {
+    font-size: 20px;
+  }
+
+  .badge-row {
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .diagnose-review-layout,
+  .compare-review-layout,
+  .finish-review-layout {
+    grid-template-columns: minmax(220px, 0.82fr) minmax(0, 1.28fr);
+  }
+
+  .review-preview-panel {
+    grid-column: 1 / -1;
+    grid-template-columns: minmax(260px, 0.9fr) minmax(0, 1fr);
+    align-items: start;
+  }
+
+  .review-preview-panel > .section-header,
+  .review-preview-panel > .review-preview-figure.large {
+    grid-column: 1;
+  }
+
+  .review-preview-panel > .review-card {
+    grid-column: 2;
+  }
+
+  .review-preview-panel > .review-card + .review-card {
+    grid-column: 2;
+  }
+
+  .review-svg-canvas {
+    max-height: 230px;
+  }
+
+  .review-preview-figure.large .review-svg-canvas {
+    max-height: 250px;
+  }
+
+  .insight-grid.three {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .review-action-bar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+
+  .action-group-left,
+  .action-group-center,
+  .action-group-right {
+    justify-content: stretch;
+  }
+
+  .review-action-bar button {
+    flex: 1 1 168px;
+    min-width: 0;
+    min-height: 34px;
+    padding: 0 10px;
+  }
 }
 
 @media (max-width: 560px) {
