@@ -7,6 +7,8 @@ import type { FigmaOutputRecord, ProcessBoardStage, ProductionStage } from "../.
 import type { ExploreResult, SvgCandidate } from "../../schemas/svg";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
+import { getRuntimeExecutionModeLabel, RUNTIME_API_SETTINGS_CHANGED_EVENT } from "../../config/runtimeApiSettings";
+import { organizeInputWithDify } from "../../providers/dify/inputOrganizerClient";
 import { extractPdfText } from "../../utils/extractPdfText";
 import { runCompareWorkflow } from "../../workflows/compareWorkflow";
 import { runExploreWorkflow } from "../../workflows/exploreWorkflow";
@@ -70,6 +72,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
   const [success, setSuccess] = useState<string | null>(null);
   const [productionStage, setProductionStage] = useState<ProductionStage>("input_ready");
   const [figmaOutputs, setFigmaOutputs] = useState<FigmaOutputRecord[]>([]);
+  const [executionMode, setExecutionMode] = useState<"Live" | "Demo">(() => getRuntimeExecutionModeLabel());
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -101,6 +104,12 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     window.addEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
     return () => window.removeEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
   }, [isGenerating, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText, pdfText, referenceFrameSummary]);
+
+  useEffect(() => {
+    const refreshExecutionMode = () => setExecutionMode(getRuntimeExecutionModeLabel());
+    window.addEventListener(RUNTIME_API_SETTINGS_CHANGED_EVENT, refreshExecutionMode);
+    return () => window.removeEventListener(RUNTIME_API_SETTINGS_CHANGED_EVENT, refreshExecutionMode);
+  }, []);
 
   const workflow = projectData?.stageWorkflow;
   const visibleSvgCandidates = svgCandidates.length ? svgCandidates : projectData?.svgCandidates ?? [];
@@ -136,8 +145,8 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
       setStatusLogs((entries) => [...entries, `PDFを読み込みました: ${file.name}`]);
     } else {
       setPdfText("");
-      setPdfStatus(result.message);
-      setStatusLogs((entries) => [...entries, result.message]);
+      setPdfStatus(result.reason);
+      setStatusLogs((entries) => [...entries, result.reason]);
     }
   }
 
@@ -164,7 +173,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
     setStatusLogs(["自動制作ジョブを開始しました。", "AIがコピーと訴求軸を広げています。"]);
 
     try {
-      const normalized = await normalizeCreativeInput(rawInput);
+      const normalized = await organizeInputWithDify(rawInput);
       const workflowInput: ExploreInput = {
         ...rawInput,
         projectName: normalized.projectName,
@@ -426,7 +435,7 @@ export function ExploreScreen({ providers, projectData, onProjectData }: Explore
         />
         <div className="badge-row">
           <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo</span>
+          <span className={executionMode === "Live" ? "provider-badge success" : "provider-badge warning"}>実行モード: {executionMode}</span>
           <ProviderBadge label="provider" provider={providers.copy} />
           <span className="provider-badge">現在: {getProductionStageLabel(productionStage)}</span>
         </div>

@@ -1,6 +1,7 @@
 import { providerConfig } from "../config/providers";
 import { CANVAS_SIZE } from "../config/canvas";
 import { env } from "../config/env";
+import { hasDifyWorkflowSettings, hasGeminiSettings } from "../config/runtimeApiSettings";
 import type { BackgroundBrief, BackgroundResult } from "../schemas/background";
 import type { ContentType } from "../schemas/content";
 import type { ComparisonResult, FrameCompareSummary } from "../schemas/comparison";
@@ -35,7 +36,7 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
     }
     return withDemoFallback("dify", () => exploreLayoutWithDify(input), () => demoExplore(input));
   }
-  if (activeProviderConfig.copy === "dify") {
+  if (activeProviderConfig.copy === "dify" || hasDifyWorkflowSettings("ideaExplorer")) {
     if (!input) {
       throw new Error("Explore input is required for live providers.");
     }
@@ -65,7 +66,7 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
 }
 
 export async function generateSvg(direction: Direction): Promise<SvgCandidate> {
-  if (activeProviderConfig.svg === "gemini") {
+  if (activeProviderConfig.svg === "gemini" || hasGeminiSettings()) {
     const missing = missingGeminiSettings();
     if (missing.length > 0) {
       return attachProviderMeta(await demoGenerateSvg(direction), "gemini", createMissingApiReason("Gemini", missing));
@@ -76,7 +77,7 @@ export async function generateSvg(direction: Direction): Promise<SvgCandidate> {
 }
 
 export async function diagnose(frame: FigmaFrameData, contentType: ContentType, ruleCheck?: RuleCheckReport): Promise<DiagnosisResult> {
-  if (activeProviderConfig.diagnosis === "dify") {
+  if (activeProviderConfig.diagnosis === "dify" || hasDifyWorkflowSettings("diagnosis")) {
     const missing = missingDifySettings("diagnosis");
     if (missing.length > 0) {
       return attachProviderMeta(await demoDiagnose(frame, contentType, ruleCheck), "dify", createMissingApiReason("Dify diagnosis", missing));
@@ -91,7 +92,7 @@ export async function compare(
   contentType: ContentType,
   frameSummaries?: FrameCompareSummary[],
 ): Promise<ComparisonResult> {
-  if (activeProviderConfig.compare === "dify") {
+  if (activeProviderConfig.compare === "dify" || hasDifyWorkflowSettings("compare")) {
     const missing = missingDifySettings("compare");
     if (missing.length > 0) {
       return attachProviderMeta(await demoCompare(frames, contentType, frameSummaries), "dify", createMissingApiReason("Dify compare", missing));
@@ -102,7 +103,7 @@ export async function compare(
 }
 
 export async function generateBackground(brief: BackgroundBrief): Promise<BackgroundResult> {
-  if (activeProviderConfig.background === "gemini") {
+  if (activeProviderConfig.background === "gemini" || hasGeminiSettings()) {
     const missing = missingGeminiSettings();
     if (missing.length > 0) {
       return attachProviderMeta(await demoGenerateBackground(brief), "gemini", createMissingApiReason("Gemini", missing));

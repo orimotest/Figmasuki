@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { emptyRuntimeApiSettings, type RuntimeApiSettings } from "../../schemas/apiSettings";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
-import { maskSecret, saveRuntimeApiSettings } from "../../config/runtimeApiSettings";
+import { isRuntimeLiveReady, maskSecret, saveRuntimeApiSettings } from "../../config/runtimeApiSettings";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
@@ -89,7 +89,7 @@ export function SettingsScreen() {
         {success && <SuccessMessage title={success} />}
         {error && <ErrorMessage title="設定を確認してください" detail={error} />}
         <div className="settings-summary">
-          <span>実行モード: {isLiveReady(settings) ? "Live" : "Demo"}</span>
+          <span>実行モード: {isRuntimeLiveReady(settings) ? "Live" : "Demo"}</span>
           <span>Dify: {configuredDifyCount(settings)}/6 workflow</span>
           <span>Gemini: {maskSecret(settings.gemini.apiKey)}</span>
         </div>
@@ -165,8 +165,4 @@ export function SettingsScreen() {
 
 function configuredDifyCount(settings: RuntimeApiSettings): number {
   return Object.values(settings.dify).filter((workflow) => workflow.url.trim() && workflow.apiKey.trim()).length;
-}
-
-function isLiveReady(settings: RuntimeApiSettings): boolean {
-  return configuredDifyCount(settings) > 0 || settings.gemini.apiKey.trim().length > 0;
 }

@@ -1,5 +1,5 @@
 import { CANVAS_SIZE } from "../config/canvas";
-import { providerConfig } from "../config/providers";
+import { getRuntimeExecutionModeLabel } from "../config/runtimeApiSettings";
 import { createDemoStageWorkflow } from "../data/demo/stagedWorkflowDemo";
 import type { BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
@@ -55,7 +55,7 @@ export function buildProjectData(params: {
     figmaOutputs,
     createdAt: new Date().toISOString(),
     providerMeta: {
-      mode: createProviderMode(svgCandidates),
+      mode: createProviderMode(exploreResult, svgCandidates),
       copy: exploreResult.providerMeta,
       layout: exploreResult.providerMeta,
       svg: createSvgProviderMeta(svgCandidates),
@@ -74,11 +74,14 @@ function inferProjectName(input: ExploreInput): string {
   return brief.replace(/[。\n].*$/s, "").slice(0, 28);
 }
 
-function createProviderMode(svgCandidates: SvgCandidate[]): string {
+function createProviderMode(exploreResult: ExploreResult, svgCandidates: SvgCandidate[]): string {
+  const exploreFallback = exploreResult.providerMeta?.fallbackUsed;
   const fallback = svgCandidates.some((candidate) => candidate.meta.fallbackUsed);
-  if (fallback) return "Demo Mode / fallback";
-  if (providerConfig.copy === "demo" && providerConfig.svg === "demo") return "Demo Mode";
-  return `copy:${providerConfig.copy} / layout:${providerConfig.layout} / svg:${providerConfig.svg} / diagnosis:${providerConfig.diagnosis} / compare:${providerConfig.compare} / background:${providerConfig.background}`;
+  if (fallback || exploreFallback) return "Demo Mode / fallback";
+  if (exploreResult.providerMeta?.provider === "dify" || svgCandidates.some((candidate) => candidate.meta.provider === "gemini")) {
+    return "Live Mode";
+  }
+  return `${getRuntimeExecutionModeLabel()} Mode`;
 }
 
 function createSvgProviderMeta(svgCandidates: SvgCandidate[]) {

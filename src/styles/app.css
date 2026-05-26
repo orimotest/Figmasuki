@@ -222,6 +222,12 @@ input {
   background: #fffbeb;
 }
 
+.provider-badge.success {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
 .ui-size-control {
   display: inline-flex;
   align-items: center;

@@ -2,6 +2,7 @@ import { apiSettings } from "./apiSettings";
 import { emptyRuntimeApiSettings, type RuntimeApiSettings } from "../schemas/apiSettings";
 
 export const RUNTIME_API_SETTINGS_STORAGE_KEY = "ai-cover-studio-runtime-api-settings";
+export const RUNTIME_API_SETTINGS_CHANGED_EVENT = "RUNTIME_API_SETTINGS_CHANGED";
 
 export function getRuntimeApiSettings(): RuntimeApiSettings {
   return mergeRuntimeSettings(readLocalSettings(), readFileSettings());
@@ -10,6 +11,24 @@ export function getRuntimeApiSettings(): RuntimeApiSettings {
 export function saveRuntimeApiSettings(settings: RuntimeApiSettings): void {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(RUNTIME_API_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  window.dispatchEvent(new CustomEvent(RUNTIME_API_SETTINGS_CHANGED_EVENT, { detail: settings }));
+}
+
+export function isRuntimeLiveReady(settings = getRuntimeApiSettings()): boolean {
+  return hasAnyDifyWorkflow(settings) || settings.gemini.apiKey.trim().length > 0;
+}
+
+export function getRuntimeExecutionModeLabel(settings = getRuntimeApiSettings()): "Live" | "Demo" {
+  return isRuntimeLiveReady(settings) ? "Live" : "Demo";
+}
+
+export function hasDifyWorkflowSettings(workflow: keyof RuntimeApiSettings["dify"], settings = getRuntimeApiSettings()): boolean {
+  const target = settings.dify[workflow];
+  return target.url.trim().length > 0 && target.apiKey.trim().length > 0;
+}
+
+export function hasGeminiSettings(settings = getRuntimeApiSettings()): boolean {
+  return settings.gemini.apiKey.trim().length > 0;
 }
 
 export function maskSecret(value: string): string {
@@ -26,6 +45,10 @@ function readLocalSettings(): Partial<RuntimeApiSettings> | undefined {
   } catch {
     return undefined;
   }
+}
+
+function hasAnyDifyWorkflow(settings: RuntimeApiSettings): boolean {
+  return Object.values(settings.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
 }
 
 function readFileSettings(): RuntimeApiSettings {

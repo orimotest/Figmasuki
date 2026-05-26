@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { providerConfig } from "../config/providers";
+import { getRuntimeExecutionModeLabel, RUNTIME_API_SETTINGS_CHANGED_EVENT } from "../config/runtimeApiSettings";
 import type { BackgroundBrief, BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
 import type { DiagnosisResult } from "../schemas/diagnosis";
@@ -38,6 +39,7 @@ export default function App() {
   const [diagnoses, setDiagnoses] = useState<DiagnosisResult[]>([]);
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
   const [background, setBackground] = useState<BackgroundResult | undefined>();
+  const [executionMode, setExecutionMode] = useState<"Live" | "Demo">(() => getRuntimeExecutionModeLabel());
   const providers: ProviderConfig = providerConfig;
 
   const completedTabs = useMemo<AppTab[]>(() => {
@@ -56,6 +58,16 @@ export default function App() {
     };
     window.addEventListener("CHANGE_APP_TAB", handleTabChange);
     return () => window.removeEventListener("CHANGE_APP_TAB", handleTabChange);
+  }, []);
+
+  useEffect(() => {
+    const refreshExecutionMode = () => setExecutionMode(getRuntimeExecutionModeLabel());
+    window.addEventListener(RUNTIME_API_SETTINGS_CHANGED_EVENT, refreshExecutionMode);
+    window.addEventListener("focus", refreshExecutionMode);
+    return () => {
+      window.removeEventListener(RUNTIME_API_SETTINGS_CHANGED_EVENT, refreshExecutionMode);
+      window.removeEventListener("focus", refreshExecutionMode);
+    };
   }, []);
 
   function handleRenderFullProcess() {
@@ -93,7 +105,7 @@ export default function App() {
         </div>
         <div className="header-meta">
           <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo</span>
+          <span className={executionMode === "Live" ? "provider-badge success" : "provider-badge warning"}>実行モード: {executionMode}</span>
           <ProviderBadge label="provider" provider={providers.copy} />
           <div className="ui-size-control" aria-label="UI size">
             {(["S", "M", "L"] as UiSizePreset[]).map((size) => (

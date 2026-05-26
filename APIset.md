@@ -27,9 +27,11 @@ Gemini:
 
 ### 1. Settings画面で設定する
 
-プラグインの「設定」タブで、Dify Workflow URL / API Key、Gemini API Key / modelを入力し、「設定を保存」を押します。
+プラグインの「設定」タブで、Dify Workflow URL / API Key、Gemini API Key / modelを入力し、「接続設定を確認」してから「設定を保存」を押します。
 
 保存先はFigma `clientStorage` です。API KeyはUI上ではマスク表示し、ログには出しません。
+
+保存後、UI側の一時設定にも同期されます。DifyまたはGeminiの有効な設定が1つ以上ある場合、通常画面の実行モードは `Live` と表示されます。未設定の場合は `Demo` と表示され、サンプル制作フローで進行します。
 
 ### 2. apiSettings.tsで設定する
 
