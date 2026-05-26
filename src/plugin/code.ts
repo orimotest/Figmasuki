@@ -7,7 +7,6 @@ import { insertBackgroundImage } from "./figma/insertBackgroundImage";
 import { getErrorMessage, parsePluginRequestMessage, postToUi } from "./figma/messageBridge";
 import {
   renderProcessBoard,
-  renderProcessLayoutHeading,
   renderProcessStageBoard,
   renderStandaloneCompareBoard,
   renderStandaloneDiagnosisBoard,
@@ -51,7 +50,6 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
       const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
       const boards = [];
-      const planningHeading = await renderProcessLayoutHeading("planning", startX, startY);
       boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
       await sleep(350);
       boards.push(await renderProcessStageBoard(message.payload, "ideas", { x: startX + 660, y: startY, zoom: false }));
@@ -60,10 +58,9 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       await sleep(500);
       boards.push(await renderProcessStageBoard(message.payload, "refined_svgs", { x: startX + 3380, y: startY, zoom: false }));
       await sleep(350);
-      const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
       const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
-      figma.currentPage.selection = [...nodes, ...boards, planningHeading, bannerHeading];
-      figma.viewport.scrollAndZoomIntoView([...nodes, ...boards, planningHeading, bannerHeading]);
+      figma.currentPage.selection = [...boards, ...nodes];
+      figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
       postToUi({
         type: "PLUGIN_SUCCESS",
         payload: { message: `${nodes.length}案と各フェーズの記録ボードをFigmaに配置しました。` },
@@ -75,10 +72,9 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       const startX = figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset;
       const startY = figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset;
       const boards = await renderProcessBoard(message.payload, { x: startX, y: startY, zoom: false });
-      const bannerHeading = await renderProcessLayoutHeading("banners", startX, startY);
       const nodes = placeProjectCandidates(message.payload, { x: startX, y: startY + PROCESS_LAYOUT.bannersY });
-      figma.currentPage.selection = [...boards, bannerHeading, ...nodes];
-      figma.viewport.scrollAndZoomIntoView([...boards, bannerHeading, ...nodes]);
+      figma.currentPage.selection = [...boards, ...nodes];
+      figma.viewport.scrollAndZoomIntoView([...boards, ...nodes]);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "各フェーズの記録ボードをFigmaに作成しました。" } });
       return;
     }

@@ -54,43 +54,10 @@ const PROCESS_STAGE_POSITIONS: Record<ProcessBoardStage, { x: number; y: number 
   final_candidate: { x: 4860, y: 1600 },
 };
 
-type ProcessLayoutGroup = "planning" | "banners" | "complete";
-
-const PROCESS_LAYOUT_HEADINGS: Record<ProcessLayoutGroup, { title: string; description: string; x: number; y: number; width: number; accent: RGB }> = {
-  planning: {
-    title: "検討フェーズ",
-    description: "要件、30案探索、15案文字組み、5案の方向性をまとめて確認します。",
-    x: 0,
-    y: -82,
-    width: 4740,
-    accent: COLORS.blue,
-  },
-  banners: {
-    title: "5案のSVGバナー",
-    description: "比較対象になる実物サイズの800×450バナーです。Figma上で直接確認・編集できます。",
-    x: 0,
-    y: 1134,
-    width: 4400,
-    accent: COLORS.green,
-  },
-  complete: {
-    title: "その後の完全版生成",
-    description: "比較、背景3案、Final Candidateを右側に積み上げて記録します。",
-    x: 4860,
-    y: -82,
-    width: 900,
-    accent: COLORS.orange,
-  },
-};
-
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode[]> {
   await loadFonts();
   const startX = options.x ?? figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
   const startY = options.y ?? figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
-  const headings = [
-    ensureLayoutHeading("planning", startX, startY),
-    ensureLayoutHeading("complete", startX, startY),
-  ];
   const boards = [
     renderProcessStageAt(project, "project_header", startX, startY),
     renderProcessStageAt(project, "ideas", startX, startY),
@@ -103,10 +70,10 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
   ];
 
   if (options.zoom !== false) {
-    figma.currentPage.selection = [...headings, ...boards];
-    figma.viewport.scrollAndZoomIntoView([...headings, ...boards]);
+    figma.currentPage.selection = boards;
+    figma.viewport.scrollAndZoomIntoView(boards);
   }
-  return [...headings, ...boards];
+  return boards;
 }
 
 export async function renderProcessStageBoard(project: ProjectData, stage: ProcessBoardStage, options: RenderOptions = {}): Promise<FrameNode> {
@@ -114,56 +81,12 @@ export async function renderProcessStageBoard(project: ProjectData, stage: Proce
   const defaultPosition = getDefaultStagePosition(stage);
   const startX = options.x ?? defaultPosition.x;
   const startY = options.y ?? defaultPosition.y;
-  if (options.x === undefined && options.y === undefined) {
-    ensureLayoutHeading(getLayoutGroupForStage(stage), figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset, figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset);
-  }
   const board = renderProcessStage(project, stage, startX, startY);
   if (options.zoom !== false) {
     figma.currentPage.selection = [board];
     figma.viewport.scrollAndZoomIntoView([board]);
   }
   return board;
-}
-
-export async function renderProcessLayoutHeading(group: ProcessLayoutGroup, baseX: number, baseY: number): Promise<FrameNode> {
-  await loadFonts();
-  return ensureLayoutHeading(group, baseX, baseY);
-}
-
-function getLayoutGroupForStage(stage: ProcessBoardStage): ProcessLayoutGroup {
-  if (stage === "compare" || stage === "background_variations" || stage === "final_candidate" || stage === "diagnosis") {
-    return "complete";
-  }
-  return "planning";
-}
-
-function ensureLayoutHeading(group: ProcessLayoutGroup, baseX: number, baseY: number): FrameNode {
-  const meta = PROCESS_LAYOUT_HEADINGS[group];
-  const x = baseX + meta.x;
-  const y = baseY + meta.y;
-  const name = `Process Layout Heading / ${meta.title}`;
-  for (const node of figma.currentPage.children) {
-    if (node.type === "FRAME" && node.name === name && Math.abs(node.x - x) < 4 && Math.abs(node.y - y) < 4) {
-      return node;
-    }
-  }
-
-  const heading = createFrame(name, x, y, meta.width, 54, COLORS.board);
-  heading.cornerRadius = 16;
-  heading.strokes = [{ type: "SOLID", color: COLORS.border }];
-  heading.strokeWeight = 1;
-  const accent = figma.createRectangle();
-  accent.name = "Accent";
-  accent.x = 0;
-  accent.y = 0;
-  accent.resize(8, 54);
-  accent.cornerRadius = 4;
-  accent.fills = [{ type: "SOLID", color: meta.accent }];
-  heading.appendChild(accent);
-  addText(heading, meta.title, 24, 8, { size: 18, bold: true, width: 240, height: 24 });
-  addText(heading, meta.description, 252, 12, { size: 11, color: COLORS.muted, width: meta.width - 276, height: 28 });
-  figma.currentPage.appendChild(heading);
-  return heading;
 }
 
 function renderProcessStageAt(project: ProjectData, stage: ProcessBoardStage, baseX: number, baseY: number): FrameNode {
