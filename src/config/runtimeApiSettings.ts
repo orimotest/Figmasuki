@@ -10,8 +10,16 @@ export function getRuntimeApiSettings(): RuntimeApiSettings {
 
 export function saveRuntimeApiSettings(settings: RuntimeApiSettings): void {
   if (typeof window === "undefined") return;
-  window.localStorage.setItem(RUNTIME_API_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
-  window.dispatchEvent(new CustomEvent(RUNTIME_API_SETTINGS_CHANGED_EVENT, { detail: settings }));
+  try {
+    window.localStorage?.setItem(RUNTIME_API_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch {
+    // FigmaのUI iframeでlocalStorageが使えない場合も、clientStorage側の保存は継続します。
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(RUNTIME_API_SETTINGS_CHANGED_EVENT, { detail: settings }));
+  } catch {
+    window.dispatchEvent(new Event(RUNTIME_API_SETTINGS_CHANGED_EVENT));
+  }
 }
 
 export function isRuntimeLiveReady(settings = getRuntimeApiSettings()): boolean {
@@ -38,9 +46,9 @@ export function maskSecret(value: string): string {
 
 function readLocalSettings(): Partial<RuntimeApiSettings> | undefined {
   if (typeof window === "undefined") return undefined;
-  const raw = window.localStorage.getItem(RUNTIME_API_SETTINGS_STORAGE_KEY);
-  if (!raw) return undefined;
   try {
+    const raw = window.localStorage?.getItem(RUNTIME_API_SETTINGS_STORAGE_KEY);
+    if (!raw) return undefined;
     return JSON.parse(raw) as Partial<RuntimeApiSettings>;
   } catch {
     return undefined;

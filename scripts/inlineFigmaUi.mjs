@@ -13,9 +13,9 @@ const [html, css, js] = await Promise.all([
 ]);
 
 const toBase64 = (value) => Buffer.from(value, "utf8").toString("base64");
+const escapeScript = (value) => value.replace(/<\/script/gi, "<\\/script");
 
 const cssBase64 = toBase64(css);
-const jsBase64 = toBase64(js);
 
 const decodeHelper = `
 const decodeUtf8Base64 = (base64) => {
@@ -37,19 +37,12 @@ const inlineCss = `<script>
 </script>`;
 
 const inlineJs = `<script>
-(() => {
-  ${decodeHelper}
-  const source = decodeUtf8Base64("${jsBase64}");
-  const blob = new Blob([source], { type: "text/javascript;charset=utf-8" });
-  const script = document.createElement("script");
-  script.src = URL.createObjectURL(blob);
-  script.onload = () => URL.revokeObjectURL(script.src);
-  document.head.appendChild(script);
-})();
+${escapeScript(js)}
 </script>`;
 
 const output = html
-  .replace(/<script[^>]*src="\.\/ui\.js"[^>]*><\/script>/, () => inlineJs)
+  .replace(/<script[^>]*src="\.\/ui\.js"[^>]*><\/script>/, "")
+  .replace(/<\/body>/, () => `    ${inlineJs}\n  </body>`)
   .replace(/<link[^>]*href="\.\/assets\/index\.css"[^>]*>/, () => inlineCss);
 
 if (output === html) {

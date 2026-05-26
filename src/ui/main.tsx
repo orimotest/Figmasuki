@@ -1,6 +1,7 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App";
+import { FatalErrorBoundary } from "./components/FatalErrorBoundary";
 import "../styles/app.css";
 
 const root = document.getElementById("root");
@@ -11,6 +12,8 @@ if (!root) {
 
 createRoot(root).render(
   <React.StrictMode>
-    <App />
+    <FatalErrorBoundary>
+      <App />
+    </FatalErrorBoundary>
   </React.StrictMode>,
 );
