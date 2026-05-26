@@ -17,6 +17,7 @@ export type PluginRequestMessage =
   | { type: "RENDER_FINISH_BOARD"; payload: { backgroundResult: BackgroundResult; comparisonResult?: ComparisonResult } }
   | { type: "REQUEST_SELECTED_FRAME" }
   | { type: "REQUEST_SELECTED_FRAMES" }
+  | { type: "RESIZE_UI"; payload: { width: number; height: number } }
   | { type: "APPLY_BACKGROUND"; payload: { targetFrameId: string; backgroundResult: BackgroundResult } };
 
 export type PluginResponseMessage =
@@ -42,6 +43,18 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
 
   if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES") {
     return { type: value.type };
+  }
+
+  if (value.type === "RESIZE_UI" && isRecord(value.payload)) {
+    const width = typeof value.payload.width === "number" ? value.payload.width : 960;
+    const height = typeof value.payload.height === "number" ? value.payload.height : 720;
+    return {
+      type: "RESIZE_UI",
+      payload: {
+        width: Math.max(560, Math.min(1280, Math.round(width))),
+        height: Math.max(560, Math.min(920, Math.round(height))),
+      },
+    };
   }
 
   if (value.type === "INSERT_SVG" && isRecord(value.payload) && hasString(value.payload, "svg")) {

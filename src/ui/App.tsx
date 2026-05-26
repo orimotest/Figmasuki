@@ -19,9 +19,17 @@ import { ExploreScreen } from "./screens/ExploreScreen";
 import { FinishScreen } from "./screens/FinishScreen";
 
 const tabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish"];
+const uiSizePresets = {
+  S: { width: 720, height: 680 },
+  M: { width: 960, height: 720 },
+  L: { width: 1180, height: 820 },
+} as const;
+
+type UiSizePreset = keyof typeof uiSizePresets;
 
 export default function App() {
   const [activeTab, setActiveTab] = useState<AppTab>("Explore");
+  const [uiSize, setUiSize] = useState<UiSizePreset>("M");
   const [latestBackgroundBrief, setLatestBackgroundBrief] = useState<BackgroundBrief | null>(null);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [diagnoses, setDiagnoses] = useState<DiagnosisResult[]>([]);
@@ -60,6 +68,11 @@ export default function App() {
     handleRenderFullProcess();
   }
 
+  function handleResizeUi(size: UiSizePreset) {
+    setUiSize(size);
+    postToPlugin({ type: "RESIZE_UI", payload: uiSizePresets[size] });
+  }
+
   return (
     <main className="app-shell">
       <header className="plugin-header app-header">
@@ -75,6 +88,13 @@ export default function App() {
           <CanvasBadge />
           <span className="provider-badge warning">実行モード: Demo Mode</span>
           <ProviderBadge label="provider" provider={providers.copy} />
+          <div className="ui-size-control" aria-label="UI size">
+            {(["S", "M", "L"] as UiSizePreset[]).map((size) => (
+              <button key={size} className={uiSize === size ? "active" : ""} type="button" onClick={() => handleResizeUi(size)}>
+                {size}
+              </button>
+            ))}
+          </div>
           <button className="header-button" type="button" disabled={activeTab !== "Explore" && !projectData} onClick={handleHeaderAction}>
             {activeTab === "Explore" ? "\u81ea\u52d5\u5236\u4f5c\u3092\u958b\u59cb" : "\u4e00\u9023\u306e\u30d7\u30ed\u30bb\u30b9\u3092Figma\u306b\u51fa\u529b"}
           </button>

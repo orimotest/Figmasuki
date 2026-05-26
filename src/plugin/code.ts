@@ -32,6 +32,11 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
   }
 
   try {
+    if (message.type === "RESIZE_UI") {
+      figma.ui.resize(message.payload.width, message.payload.height);
+      return;
+    }
+
     if (message.type === "INSERT_SVG") {
       createSvgNode(message.payload.svg, message.payload.name);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "SVGをFigmaに配置しました。" } });

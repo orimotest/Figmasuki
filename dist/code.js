@@ -357,6 +357,17 @@
     if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES") {
       return { type: value.type };
     }
+    if (value.type === "RESIZE_UI" && isRecord(value.payload)) {
+      const width = typeof value.payload.width === "number" ? value.payload.width : 960;
+      const height = typeof value.payload.height === "number" ? value.payload.height : 720;
+      return {
+        type: "RESIZE_UI",
+        payload: {
+          width: Math.max(560, Math.min(1280, Math.round(width))),
+          height: Math.max(560, Math.min(920, Math.round(height)))
+        }
+      };
+    }
     if (value.type === "INSERT_SVG" && isRecord(value.payload) && hasString(value.payload, "svg")) {
       return {
         type: "INSERT_SVG",
@@ -1046,6 +1057,10 @@
       return;
     }
     try {
+      if (message.type === "RESIZE_UI") {
+        figma.ui.resize(message.payload.width, message.payload.height);
+        return;
+      }
       if (message.type === "INSERT_SVG") {
         createSvgNode(message.payload.svg, message.payload.name);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "SVG\u3092Figma\u306B\u914D\u7F6E\u3057\u307E\u3057\u305F\u3002" } });
