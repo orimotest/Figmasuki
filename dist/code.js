@@ -1229,10 +1229,17 @@
     );
   }
   function placeFinalCandidate(project, position) {
-    var _a, _b, _c;
+    var _a, _b, _c, _d;
     const finalCandidateId = (_b = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate) == null ? void 0 : _b.refinedCandidateId;
     const candidate = (_c = project.svgCandidates.find((item) => item.id === finalCandidateId)) != null ? _c : project.svgCandidates[0];
+    const selectedBackground = (_d = project.stageWorkflow) == null ? void 0 : _d.backgroundVariations.find((item) => {
+      var _a2, _b2;
+      return item.id === ((_b2 = (_a2 = project.stageWorkflow) == null ? void 0 : _a2.finalCandidate) == null ? void 0 : _b2.selectedBackgroundId) || item.selected;
+    });
     if (!candidate) return [];
+    if (selectedBackground == null ? void 0 : selectedBackground.imageDataUrl) {
+      return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, `FINAL_${candidate.name}`, position)];
+    }
     return [
       createSvgNode(candidate.svg, `FINAL_${candidate.name}`, {
         x: position.x,
@@ -1241,6 +1248,42 @@
         zoom: false
       })
     ];
+  }
+  function createFinalCandidateFrame(svg, backgroundDataUrl, name, position) {
+    const frame = figma.createFrame();
+    frame.name = name;
+    frame.x = position.x;
+    frame.y = position.y;
+    frame.resize(800, 450);
+    frame.cornerRadius = 0;
+    frame.clipsContent = true;
+    frame.fills = [{ type: "IMAGE", scaleMode: "FILL", imageHash: figma.createImage(dataUrlToBytes2(backgroundDataUrl)).hash }];
+    figma.currentPage.appendChild(frame);
+    const overlay = figma.createNodeFromSvg(stripSvgBackground(svg));
+    overlay.name = `${name}_editable_foreground`;
+    const scale = Math.min(800 / Math.max(overlay.width, 1), 450 / Math.max(overlay.height, 1));
+    const scalableOverlay = overlay;
+    if (typeof scalableOverlay.rescale === "function") {
+      scalableOverlay.rescale(scale);
+    } else {
+      overlay.resize(overlay.width * scale, overlay.height * scale);
+    }
+    overlay.x = (800 - overlay.width) / 2;
+    overlay.y = (450 - overlay.height) / 2;
+    frame.appendChild(overlay);
+    return frame;
+  }
+  function stripSvgBackground(svg) {
+    return svg.replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "").replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");
+  }
+  function dataUrlToBytes2(dataUrl) {
+    const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
   }
   function getProcessBase() {
     return {

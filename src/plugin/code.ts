@@ -201,7 +201,11 @@ function placeSvgCandidates(items: Array<{ svg: string; name?: string }>, positi
 function placeFinalCandidate(project: ProjectData, position: { x: number; y: number }) {
   const finalCandidateId = project.stageWorkflow?.finalCandidate?.refinedCandidateId;
   const candidate = project.svgCandidates.find((item) => item.id === finalCandidateId) ?? project.svgCandidates[0];
+  const selectedBackground = project.stageWorkflow?.backgroundVariations.find((item) => item.id === project.stageWorkflow?.finalCandidate?.selectedBackgroundId || item.selected);
   if (!candidate) return [];
+  if (selectedBackground?.imageDataUrl) {
+    return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, `FINAL_${candidate.name}`, position)];
+  }
   return [
     createSvgNode(candidate.svg, `FINAL_${candidate.name}`, {
       x: position.x,
@@ -210,6 +214,48 @@ function placeFinalCandidate(project: ProjectData, position: { x: number; y: num
       zoom: false,
     }),
   ];
+}
+
+function createFinalCandidateFrame(svg: string, backgroundDataUrl: string, name: string, position: { x: number; y: number }): FrameNode {
+  const frame = figma.createFrame();
+  frame.name = name;
+  frame.x = position.x;
+  frame.y = position.y;
+  frame.resize(800, 450);
+  frame.cornerRadius = 0;
+  frame.clipsContent = true;
+  frame.fills = [{ type: "IMAGE", scaleMode: "FILL", imageHash: figma.createImage(dataUrlToBytes(backgroundDataUrl)).hash }];
+  figma.currentPage.appendChild(frame);
+
+  const overlay = figma.createNodeFromSvg(stripSvgBackground(svg));
+  overlay.name = `${name}_editable_foreground`;
+  const scale = Math.min(800 / Math.max(overlay.width, 1), 450 / Math.max(overlay.height, 1));
+  const scalableOverlay = overlay as SceneNode & { rescale?: (scale: number) => void };
+  if (typeof scalableOverlay.rescale === "function") {
+    scalableOverlay.rescale(scale);
+  } else {
+    overlay.resize(overlay.width * scale, overlay.height * scale);
+  }
+  overlay.x = (800 - overlay.width) / 2;
+  overlay.y = (450 - overlay.height) / 2;
+  frame.appendChild(overlay);
+  return frame;
+}
+
+function stripSvgBackground(svg: string): string {
+  return svg
+    .replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "")
+    .replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");
+}
+
+function dataUrlToBytes(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return bytes;
 }
 
 function getProcessBase() {
