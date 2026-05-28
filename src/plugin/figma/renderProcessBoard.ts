@@ -49,9 +49,9 @@ export const PROCESS_STAGE_POSITIONS: Record<ProcessBoardStage, { x: number; y: 
   typography_drafts: { x: 1992, y: 0 },
   refined_svgs: { x: 3484, y: 0 },
   diagnosis: { x: 4916, y: 800 },
-  compare: { x: 5236, y: 0 },
-  background_variations: { x: 6208, y: 0 },
-  final_candidate: { x: 7160, y: 0 },
+  compare: { x: 5416, y: 0 },
+  background_variations: { x: 6388, y: 0 },
+  final_candidate: { x: 7340, y: 0 },
 };
 
 export async function renderProcessBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode[]> {
