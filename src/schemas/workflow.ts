@@ -41,6 +41,7 @@ export type BackgroundVariation = {
   name: string;
   direction: string;
   svg: string;
+  imageDataUrl?: string;
   selected: boolean;
 };
 

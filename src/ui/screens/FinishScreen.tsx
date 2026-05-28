@@ -221,7 +221,13 @@ function buildBackgroundOptions(project: ProjectData | null, result: BackgroundR
     id: index === 0 ? "soft" : index === 1 ? "paper" : "geometry",
     label: `${String.fromCharCode(65 + index)}案`,
     name: item.name,
-    preview: index === 0 ? "linear-gradient(135deg,#dbeafe,#eff6ff)" : index === 1 ? "linear-gradient(135deg,#f5efe4,#fffaf0)" : "linear-gradient(135deg,#eef6ff,#f8fafc)",
+    preview: item.imageDataUrl
+      ? `url("${item.imageDataUrl}") center / cover`
+      : index === 0
+        ? "linear-gradient(135deg,#dbeafe,#eff6ff)"
+        : index === 1
+          ? "linear-gradient(135deg,#f5efe4,#fffaf0)"
+          : "linear-gradient(135deg,#eef6ff,#f8fafc)",
   }));
   if (workflowOptions?.length) return workflowOptions;
   return [

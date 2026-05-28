@@ -4,6 +4,7 @@ import type { LayoutDraftInput, TypographyDraftLayoutType } from "../../schemas/
 import type { SvgCandidate } from "../../schemas/svg";
 import type { BackgroundVariation, DemoComparison, FinalCandidate, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
 import { createTypographyDraftSvg } from "../../utils/typographyDraftSvg";
+import { editorialPaperBackgroundDataUrl, softGradientBackgroundDataUrl, subtleGeometryBackgroundDataUrl } from "./backgroundImageData";
 
 const draftLayouts: TypographyDraftLayoutType[] = [
   "left_hero",
@@ -175,6 +176,7 @@ function createBackgroundVariations(backgroundResult?: BackgroundResult): Backgr
       name: "Soft Tech Gradient",
       direction: `${target} の文字領域を邪魔しない、淡いブルーのテック系背景。`,
       svg: createBackgroundSvg("#EFF6FF", "#DBEAFE", "#93C5FD"),
+      imageDataUrl: softGradientBackgroundDataUrl,
       selected: true,
     },
     {
@@ -182,6 +184,7 @@ function createBackgroundVariations(backgroundResult?: BackgroundResult): Backgr
       name: "Subtle Geometry",
       direction: "右側に控えめな幾何学パターンを置き、中央の文字可読性を保つ。",
       svg: createBackgroundSvg("#F8FAFC", "#E0F2FE", "#38BDF8"),
+      imageDataUrl: subtleGeometryBackgroundDataUrl,
       selected: false,
     },
     {
@@ -189,6 +192,7 @@ function createBackgroundVariations(backgroundResult?: BackgroundResult): Backgr
       name: "Editorial Texture",
       direction: "紙面感のある薄い質感で、セミナー告知を落ち着いて見せる。",
       svg: createBackgroundSvg("#FAFAF7", "#E5E7EB", "#2563EB"),
+      imageDataUrl: editorialPaperBackgroundDataUrl,
       selected: false,
     },
   ];

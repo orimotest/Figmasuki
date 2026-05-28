@@ -813,7 +813,11 @@
       const card = createCard(x + index * (cardWidth + 16), y, cardWidth, 360);
       parent2.appendChild(card);
       addText(card, variation.name, 12, 12, { size: 12, bold: true, color: variation.selected ? COLORS.green : COLORS.blue, width: cardWidth - 24 });
-      appendSvg(card, variation.svg, 12, 42, cardWidth - 24, 148, variation.name);
+      if (variation.imageDataUrl) {
+        appendImage(card, variation.imageDataUrl, 12, 42, cardWidth - 24, 148, variation.name);
+      } else {
+        appendSvg(card, variation.svg, 12, 42, cardWidth - 24, 148, variation.name);
+      }
       addText(card, variation.direction, 12, 212, { size: 9, color: COLORS.muted, width: cardWidth - 24, height: 60 });
       addPill(card, 12, 306, variation.selected ? "\u9078\u629E\u4E2D" : `\u80CC\u666F\u6848 ${String.fromCharCode(65 + index)}`, variation.selected ? COLORS.green : COLORS.muted, 90);
     });
@@ -935,6 +939,31 @@
     svgNode.x = (width - svgNode.width) / 2;
     svgNode.y = (height - svgNode.height) / 2;
     preview.appendChild(svgNode);
+  }
+  function appendImage(parent2, dataUrl, x, y, width, height, name) {
+    const preview = createFrame(`Preview / ${name}`, x, y, width, height, COLORS.board);
+    preview.cornerRadius = 8;
+    preview.strokes = [{ type: "SOLID", color: COLORS.border }];
+    preview.strokeWeight = 1;
+    preview.clipsContent = true;
+    parent2.appendChild(preview);
+    const image = figma.createImage(dataUrlToBytes(dataUrl));
+    const rect = figma.createRectangle();
+    rect.name = `Image / ${name}`;
+    rect.x = 0;
+    rect.y = 0;
+    rect.resize(width, height);
+    rect.fills = [{ type: "IMAGE", scaleMode: "FILL", imageHash: image.hash }];
+    preview.appendChild(rect);
+  }
+  function dataUrlToBytes(dataUrl) {
+    const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) {
+      bytes[index] = binary.charCodeAt(index);
+    }
+    return bytes;
   }
   function createStandaloneBoard(title, description, width, height) {
     const board = createFrame(title, 0, 0, width, height, COLORS.board);
