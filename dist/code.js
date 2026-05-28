@@ -1051,6 +1051,7 @@
     bannersY: 1140,
     candidateGap: 80
   };
+  var activeProcessBase = null;
   figma.showUI(__html__, {
     width: appConfig.uiWidth,
     height: appConfig.uiHeight
@@ -1101,7 +1102,7 @@
         return;
       }
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
-        const { startX, startY } = getProcessBase();
+        const { startX, startY } = resetProcessBase();
         const boards = [];
         boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
         await sleep(350);
@@ -1122,7 +1123,7 @@
         return;
       }
       if (message.type === "RENDER_PROCESS_BOARD") {
-        const { startX, startY } = getProcessBase();
+        const { startX, startY } = resetProcessBase();
         const boards = await renderProcessBoard(message.payload, { x: startX, y: startY, zoom: false });
         const nodes = placeProjectCandidates(message.payload, getArtifactPosition(startX, startY));
         const finalNodes = placeFinalCandidate(message.payload, getFinalArtifactPosition(startX, startY));
@@ -1132,12 +1133,14 @@
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
+        const processBase = message.payload.stage === "project_header" ? resetProcessBase() : getActiveProcessBase();
+        const stagePosition = typeof message.payload.x === "number" && typeof message.payload.y === "number" ? { x: message.payload.x, y: message.payload.y } : getStagePosition(message.payload.stage, processBase.startX, processBase.startY);
         const board = await renderProcessStageBoard(message.payload.project, message.payload.stage, {
-          x: message.payload.x,
-          y: message.payload.y,
+          x: stagePosition.x,
+          y: stagePosition.y,
           zoom: message.payload.zoom
         });
-        const { startX, startY } = getProcessBase();
+        const { startX, startY } = processBase;
         const artifactNodes = message.payload.stage === "refined_svgs" ? placeProjectCandidates(message.payload.project, getArtifactPosition(startX, startY)) : message.payload.stage === "final_candidate" ? placeFinalCandidate(message.payload.project, getFinalArtifactPosition(startX, startY)) : [];
         if (artifactNodes.length > 0) {
           figma.currentPage.selection = [board, ...artifactNodes];
@@ -1215,6 +1218,16 @@
       startX: figma.viewport.center.x + PROCESS_LAYOUT.baseXOffset,
       startY: figma.viewport.center.y + PROCESS_LAYOUT.baseYOffset
     };
+  }
+  function resetProcessBase() {
+    activeProcessBase = getProcessBase();
+    return activeProcessBase;
+  }
+  function getActiveProcessBase() {
+    if (!activeProcessBase) {
+      activeProcessBase = getProcessBase();
+    }
+    return activeProcessBase;
   }
   function getStagePosition(stage, startX, startY) {
     const position = PROCESS_STAGE_POSITIONS[stage];
