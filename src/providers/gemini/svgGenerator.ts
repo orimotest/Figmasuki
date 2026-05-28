@@ -67,6 +67,11 @@ Direction:
 Design rules:
 - Use <text> elements. Do not convert text to paths.
 - Use rect + text for CTA when CTA exists.
+- Buttons, CTAs, badges, and pills must have generous padding: at least 24px horizontal padding and 10-14px vertical padding around the visible label.
+- Do not let Japanese text touch the rounded rectangle edge. If the label is long, make the pill wider or reduce font size slightly.
+- Avoid one-character line breaks in Japanese. Keep short labels on one line; split long headlines into balanced lines only.
+- If a CTA includes an arrow/icon, reserve a separate 40-56px area on the right and center the text within the remaining label area.
+- Prefer explicit x/y text positioning with text-anchor="middle" for buttons. Use letter-spacing="0"; avoid negative letter spacing.
 - Group layers with g id="background", g id="headline", g id="subcopy", g id="meta", g id="cta", g id="decoration" where relevant.
 - Keep important text and CTA inside the safe area.
 - Prioritize readability, whitespace, and text hierarchy.

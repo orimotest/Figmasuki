@@ -192,9 +192,14 @@ function metaRow(x: number, y: number, draft: LayoutDraftInput): string {
 }
 
 function cta(x: number, y: number, value = "無料で参加する", color: string, width = 190, height = 52): string {
+  const label = value || "無料で参加する";
+  const paddedWidth = Math.max(width, Math.min(248, label.length * 16 + 64));
+  const fontSize = label.length > 8 ? 15 : 17;
+  const baselineY = y + height / 2 + Math.round(fontSize * 0.38);
+
   return `
-    <rect x="${x}" y="${y}" width="${width}" height="${height}" rx="${height / 2}" fill="${color}"/>
-    <text x="${x + width / 2}" y="${y + height / 2 + 7}" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="850" font-family="${FONT}">${escapeXml(value)}</text>
+    <rect x="${x}" y="${y}" width="${paddedWidth}" height="${height}" rx="${height / 2}" fill="${color}"/>
+    <text x="${x + paddedWidth / 2}" y="${baselineY}" text-anchor="middle" fill="#FFFFFF" font-size="${fontSize}" font-weight="850" letter-spacing="0" font-family="${FONT}">${escapeXml(label)}</text>
   `;
 }
 

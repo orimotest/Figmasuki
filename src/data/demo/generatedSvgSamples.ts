@@ -60,8 +60,8 @@ function seminarProblemSvg(): string {
     <rect x="24" y="24" width="752" height="10" rx="5" fill="#E9F1FF"/>
   </g>
   <g id="top-badge">
-    <rect x="56" y="46" width="228" height="40" rx="20" fill="#1D63FF"/>
-    <text x="170" y="66" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="16" font-weight="700" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">初心者向け｜導入セミナー</text>
+    <rect x="56" y="44" width="304" height="46" rx="23" fill="#1D63FF"/>
+    <text x="208" y="73" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="700" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">初心者向け｜導入セミナー</text>
   </g>
   <g id="headline">
     <text x="56" y="150" fill="url(#problem-title-grad)" font-size="72" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">AI</text>
@@ -105,8 +105,8 @@ function seminarProblemSvg(): string {
     <text x="56" y="396" fill="#64748B" font-size="14" font-weight="500" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">専門知識なしでも参加しやすい、やさしい導入セミナーです</text>
   </g>
   <g id="cta">
-    <rect x="544" y="356" width="200" height="52" rx="26" fill="#16A34A"/>
-    <text x="632" y="382" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="18" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">無料で参加する</text>
+    <rect x="532" y="354" width="212" height="56" rx="28" fill="#16A34A"/>
+    <text x="626" y="389" text-anchor="middle" fill="#FFFFFF" font-size="18" font-weight="800" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">無料で参加する</text>
     <circle cx="714" cy="382" r="12" fill="#FFFFFF" opacity="0.18"/>
     <path d="M710 378L716 382L710 386" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
@@ -136,10 +136,10 @@ function seminarBenefitSvg(): string {
     <rect x="590" y="56" width="130" height="130" rx="32" fill="#F7FBFF" stroke="#E0ECFA"/>
   </g>
   <g id="top-label">
-    <rect x="56" y="46" width="210" height="40" rx="20" fill="#EFF6FF" stroke="#BCD7FF"/>
+    <rect x="56" y="44" width="238" height="44" rx="22" fill="#EFF6FF" stroke="#BCD7FF"/>
     <circle cx="77" cy="66" r="8" fill="#2563EB"/>
-    <text x="96" y="66" dominant-baseline="middle" fill="#1D4ED8" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">参加メリット型</text>
-    <text x="212" y="66" dominant-baseline="middle" fill="#64748B" font-size="13" font-weight="600" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Webinar</text>
+    <text x="96" y="72" fill="#1D4ED8" font-size="15" font-weight="800" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">参加メリット型</text>
+    <text x="226" y="72" fill="#64748B" font-size="13" font-weight="600" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Webinar</text>
   </g>
   <g id="headline">
     <text x="56" y="152" fill="#0F235C" font-size="64" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">60分でわかる</text>
@@ -217,8 +217,8 @@ function seminarBenefitSvg(): string {
     </g>
   </g>
   <g id="cta">
-    <rect x="556" y="354" width="188" height="50" rx="25" fill="#16A34A"/>
-    <text x="638" y="379" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="17" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">今すぐ申し込む</text>
+    <rect x="548" y="352" width="196" height="54" rx="27" fill="#16A34A"/>
+    <text x="632" y="386" text-anchor="middle" fill="#FFFFFF" font-size="17" font-weight="800" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">今すぐ申し込む</text>
     <circle cx="718" cy="379" r="12" fill="#FFFFFF" opacity="0.18"/>
     <path d="M714 375L720 379L714 383" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
@@ -248,10 +248,10 @@ function seminarPracticalSvg(): string {
     <rect x="604" y="64" width="92" height="92" rx="28" fill="#FFFFFF" fill-opacity="0.06"/>
   </g>
   <g id="top-meta">
-    <rect x="56" y="46" width="188" height="38" rx="19" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.20"/>
+    <rect x="56" y="44" width="214" height="42" rx="21" fill="#FFFFFF" fill-opacity="0.10" stroke="#FFFFFF" stroke-opacity="0.20"/>
     <circle cx="78" cy="65" r="7" fill="#67E8F9"/>
-    <text x="96" y="65" dominant-baseline="middle" fill="#E0F2FE" font-size="15" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実務ノウハウ型</text>
-    <text x="642" y="65" text-anchor="middle" dominant-baseline="middle" fill="#BAE6FD" font-size="14" font-weight="700" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Online Seminar</text>
+    <text x="96" y="71" fill="#E0F2FE" font-size="15" font-weight="800" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">実務ノウハウ型</text>
+    <text x="642" y="70" text-anchor="middle" fill="#BAE6FD" font-size="14" font-weight="700" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">Online Seminar</text>
   </g>
   <g id="headline">
     <text x="400" y="154" text-anchor="middle" fill="#FFFFFF" font-size="54" font-weight="800" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">明日から使える</text>
@@ -307,10 +307,10 @@ function seminarPracticalSvg(): string {
     </g>
   </g>
   <g id="cta">
-    <rect x="562" y="386" width="182" height="52" rx="26" fill="#16A34A"/>
-    <text x="640" y="412" text-anchor="middle" dominant-baseline="middle" fill="#FFFFFF" font-size="16" font-weight="850" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">無料で視聴する</text>
-    <circle cx="718" cy="412" r="11" fill="#FFFFFF" opacity="0.18"/>
-    <path d="M714 408L719 412L714 416" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="548" y="384" width="196" height="54" rx="27" fill="#16A34A"/>
+    <text x="632" y="417" text-anchor="middle" fill="#FFFFFF" font-size="16" font-weight="850" letter-spacing="0" font-family="Inter, 'Noto Sans JP', 'Hiragino Sans', sans-serif">無料で視聴する</text>
+    <circle cx="718" cy="411" r="11" fill="#FFFFFF" opacity="0.18"/>
+    <path d="M714 407L719 411L714 415" stroke="#FFFFFF" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 </svg>`;
 }
@@ -332,8 +332,8 @@ function seminarTrustSvg(): string {
   <text x="94" y="93" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="800">Online Seminar / 6.18 WED 14:00</text>
   <text x="628" y="184" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="800">FOR BUSINESS</text>
   <g id="cta">
-    <rect x="624" y="322" width="96" height="44" rx="22" fill="#93C5FD"/>
-    <text x="643" y="350" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="850">詳細を見る</text>
+    <rect x="600" y="320" width="132" height="48" rx="24" fill="#93C5FD"/>
+    <text x="666" y="350" text-anchor="middle" fill="#111827" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="850" letter-spacing="0">詳細を見る</text>
   </g>
 </svg>`;
 }
@@ -355,8 +355,8 @@ function seminarBeginnerSvg(): string {
   <text x="108" y="105" fill="#9A3412" font-family="Inter, Arial, sans-serif" font-size="15" font-weight="850">Beginner Welcome</text>
   <text x="92" y="344" fill="#64748B" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="700">6.18 WED 14:00 / Online Seminar</text>
   <g id="cta">
-    <rect x="548" y="322" width="168" height="52" rx="26" fill="#2563EB"/>
-    <text x="578" y="355" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="850">無料で参加する</text>
+    <rect x="520" y="320" width="196" height="56" rx="28" fill="#2563EB"/>
+    <text x="618" y="355" text-anchor="middle" fill="#FFFFFF" font-family="Inter, Arial, sans-serif" font-size="18" font-weight="850" letter-spacing="0">無料で参加する</text>
   </g>
 </svg>`;
 }

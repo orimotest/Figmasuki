@@ -1,5 +1,15 @@
 # SVG Template Strategy
 
+## CTA / Badge Padding Policy
+
+Typography Draft SVGでも、CTAやバッジは「読めること」だけでなく、上下左右の余白が整っていることを必須にします。
+
+- CTAとバッジは文字幅に対して左右24px以上の余白を確保する。
+- 高さ44〜58px程度のピルでは、上下10〜14px程度の余白を確保する。
+- ラベルが長い場合はボタン幅を広げ、1文字だけの改行を避ける。
+- 矢印付きCTAでは、右側のアイコン領域を別に確保し、ラベルはテキスト領域の中央に揃える。
+- Plugin側テンプレートでは `letter-spacing="0"` を基本にし、負の字間は使わない。
+
 15案のTypography Draftは、Difyに自由なSVGを丸ごと書かせるのではなく、Difyが返すLayout Draft JSONをプラグイン側のテンプレートに流し込んでSVG化します。
 
 ## 判断
