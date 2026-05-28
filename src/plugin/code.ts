@@ -243,9 +243,11 @@ function createFinalCandidateFrame(svg: string, backgroundDataUrl: string, name:
 }
 
 function stripSvgBackground(svg: string): string {
-  return svg
+  const foregroundOnly = svg
     .replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "")
     .replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");
+
+  return foregroundOnly.replace(/<svg([^>]*)>/i, '<svg$1><rect width="800" height="450" fill="#FFFFFF" opacity="0"/>');
 }
 
 function dataUrlToBytes(dataUrl: string): Uint8Array {

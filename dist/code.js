@@ -1274,7 +1274,8 @@
     return frame;
   }
   function stripSvgBackground(svg) {
-    return svg.replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "").replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");
+    const foregroundOnly = svg.replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "").replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");
+    return foregroundOnly.replace(/<svg([^>]*)>/i, '<svg$1><rect width="800" height="450" fill="#FFFFFF" opacity="0"/>');
   }
   function dataUrlToBytes2(dataUrl) {
     const base64 = dataUrl.includes(",") ? dataUrl.split(",")[1] : dataUrl;
