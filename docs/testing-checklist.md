@@ -16,9 +16,9 @@
 
 - Import `manifest.json` in Figma as a development plugin.
 - Confirm the plugin opens at 800x450.
-- Confirm A/B/C/D tabs render.
+- Confirm 要件 / 制作 / 評価 / 設定 tabs render.
 - Confirm CanvasBadge displays 800x450 / 16:9.
-- Confirm provider badges show demo mode.
+- Confirm provider badges show Demo Mode or Live Mode accurately.
 
 ## Message Bridge
 

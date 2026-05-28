@@ -1,7 +1,7 @@
-import { GitCompareArrows, ImagePlus, ScanSearch, Settings, Sparkles } from "lucide-react";
+import { ClipboardList, GitCompareArrows, Layers, SlidersHorizontal } from "lucide-react";
 import { tabLabels } from "../labels";
 
-export type AppTab = "Explore" | "Diagnose" | "Compare" | "Finish" | "Settings";
+export type AppTab = "Brief" | "Explore" | "Compare" | "Settings";
 
 type TabNavProps = {
   tabs: AppTab[];
@@ -10,12 +10,11 @@ type TabNavProps = {
 };
 
 const tabIcons = {
-  Explore: Sparkles,
-  Diagnose: ScanSearch,
+  Brief: ClipboardList,
+  Explore: Layers,
   Compare: GitCompareArrows,
-  Finish: ImagePlus,
-  Settings,
-} satisfies Record<AppTab, typeof Sparkles>;
+  Settings: SlidersHorizontal,
+} satisfies Record<AppTab, typeof Layers>;
 
 export function TabNav({ tabs, activeTab, onChange }: TabNavProps) {
   return (

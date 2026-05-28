@@ -9,7 +9,6 @@ import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/mes
 import { runDiagnoseWorkflow } from "../../workflows/diagnoseWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
-import { CanvasBadge } from "../components/CanvasBadge";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
@@ -83,7 +82,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), diagnosisResults: [...projectData.diagnosisResults, result] }));
       }
       setError(null);
-      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定のためDemo診断で続行しました。" : "診断が完了しました。"]);
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定の工程を代替処理で診断しました。" : "診断が完了しました。"]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "診断に失敗しました。";
       setError(message);
@@ -111,14 +110,12 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
     <div className="review-screen">
       <div className="review-page-heading">
         <div>
-          <p className="eyebrow">AI CREATIVE PROCESS BOARD <span className="step-pill">Step 2/4</span></p>
+          <p className="eyebrow">Content Production Board</p>
           <h2>診断</h2>
           <p>自動制作後の1案を読み取り、最初に伝わることと改善方針を整理します。</p>
         </div>
         <div className="badge-row">
-          <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo Mode</span>
-          <ProviderBadge label="provider" provider={latestDiagnosis?.providerMeta?.provider ?? providers.diagnosis} fallbackUsed={latestDiagnosis?.providerMeta?.fallbackUsed} />
+          <ProviderBadge label="接続先" provider={latestDiagnosis?.providerMeta?.provider ?? providers.diagnosis} fallbackUsed={latestDiagnosis?.providerMeta?.fallbackUsed} />
         </div>
       </div>
 
@@ -133,7 +130,7 @@ export function DiagnoseScreen({ providers, projectData, onProjectData, onDiagno
         </section>
 
         <section className="panel review-main-panel">
-          <SectionHeader title="診断サマリー" description={`診断時間: ${display.createdAt} / provider: ${display.provider}`} />
+          <SectionHeader title="診断サマリー" description={`診断時間: ${display.createdAt} / 接続先: ${display.provider}`} />
           {isDiagnosing && <LoadingState title="フレームを診断しています" description="文字階層、余白、CTA、用途との相性を確認しています。" />}
           {error && <ErrorMessage title="診断を実行できませんでした" detail={error} action="Figma上でフレームを1つ選択して、もう一度実行してください。" />}
           {success && <SuccessMessage title={success} />}
@@ -207,8 +204,8 @@ function buildDiagnosisDisplay(result: DiagnosisResult | undefined, frame: Figma
       "人物写真を追加して親近感を出す構成",
       "左右分割で右にビジュアルを置く構成",
     ],
-    provider: result?.providerMeta?.provider ?? "demo",
-    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : contentType === "seminar_banner" ? "Demo" : "Demo",
+    provider: result?.providerMeta?.provider === "demo" ? "代替処理" : result?.providerMeta?.provider ?? "代替処理",
+    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : "未実行",
   };
 }
 
@@ -230,7 +227,7 @@ function ChecklistCard({ title, items, completed = false }: { title: string; ite
 }
 
 function InsightHero({ text }: { text: string }) {
-  return <section className="insight-hero"><span>💡</span><strong>{text}</strong></section>;
+  return <section className="insight-hero"><span aria-hidden="true">i</span><strong>{text}</strong></section>;
 }
 
 function InsightCard({ title, icon, items, tone }: { title: string; icon: string; items: string[]; tone?: "warn" }) {

@@ -11,7 +11,7 @@ export function ProviderBadge({ label, provider, fallbackUsed }: ProviderBadgePr
   return (
     <span className={fallbackUsed ? "provider-badge warning" : "provider-badge"}>
       {label}: {providerLabels[provider]}
-      {fallbackUsed ? " / Demo Modeに切替" : ""}
+      {fallbackUsed ? " / 代替処理" : ""}
     </span>
   );
 }

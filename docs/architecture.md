@@ -2,7 +2,7 @@
 
 ## UI
 
-React / TypeScriptで、A/B/C/Dのタブを維持しています。
+React / TypeScriptで、Figmaプラグイン内の狭い画面を前提に、要件 / 制作 / 評価の3タブへ整理しています。
 
 - `src/ui/screens/ExploreScreen.tsx`
 - `src/ui/screens/DiagnoseScreen.tsx`

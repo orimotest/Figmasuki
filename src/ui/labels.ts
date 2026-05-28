@@ -4,30 +4,25 @@ import type { ProviderMode } from "../schemas/provider";
 import type { AppTab } from "./components/TabNav";
 
 export const tabLabels: Record<AppTab, { label: string; description: string; shortDescription: string }> = {
-  Explore: {
-    label: "自動制作",
-    description: "要件入力からFinal Candidateまで、AI制作ジョブとして段階的に進行します。",
-    shortDescription: "最終候補まで",
+  Brief: {
+    label: "要件",
+    description: "制作前のブリーフを整理します。まずは作りたい内容だけを書けば、詳細条件はあとから調整できます。",
+    shortDescription: "ブリーフ作成",
   },
-  Diagnose: {
-    label: "診断",
-    description: "自動制作後の詳細確認として、選択中の1案の伝わり方と改善方針を整理します。",
-    shortDescription: "1案を読む",
+  Explore: {
+    label: "制作",
+    description: "要件をもとに比較・背景画像生成・最終候補のFigma記録まで一括で進行します。",
+    shortDescription: "画像生成まで完走",
   },
   Compare: {
-    label: "比較",
-    description: "自動制作後の詳細確認として、複数案の役割、強み、向いている用途を比べます。",
-    shortDescription: "複数案を比べる",
-  },
-  Finish: {
-    label: "仕上げ",
-    description: "比較で選ばれた案に対して、背景方針と最終候補を確認・再出力します。",
-    shortDescription: "背景で整える",
+    label: "評価",
+    description: "選択したFigmaフレームや制作済み案を、単体ツールとして比較・評価できます。",
+    shortDescription: "単体評価ツール",
   },
   Settings: {
     label: "設定",
-    description: "Dify / Geminiの接続情報を保存し、実行モードを確認します。",
-    shortDescription: "API設定",
+    description: "Dify / Geminiの接続情報と実行モードを確認します。",
+    shortDescription: "API接続",
   },
 };
 
@@ -46,7 +41,7 @@ export const inputModeLabels: Record<InputMode, string> = {
 };
 
 export const providerLabels: Record<ProviderMode, string> = {
-  demo: "demo",
+  demo: "代替処理",
   dify: "Dify",
   gemini: "Gemini",
 };

@@ -1,5 +1,5 @@
 export const appConfig = {
   name: "AI Cover Studio",
-  uiWidth: 760,
-  uiHeight: 640,
+  uiWidth: 800,
+  uiHeight: 450,
 } as const;

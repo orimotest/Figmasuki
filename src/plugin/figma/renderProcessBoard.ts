@@ -15,10 +15,10 @@ const COLORS = {
   border: { r: 0.898, g: 0.918, b: 0.949 },
   text: { r: 0.067, g: 0.094, b: 0.153 },
   muted: { r: 0.294, g: 0.333, b: 0.388 },
-  blue: { r: 0.145, g: 0.388, b: 0.922 },
-  paleBlue: { r: 0.929, g: 0.961, b: 1 },
-  green: { r: 0.086, g: 0.639, b: 0.29 },
-  orange: { r: 0.961, g: 0.62, b: 0.043 },
+  blue: { r: 0.122, g: 0.435, b: 0.357 },
+  paleBlue: { r: 0.91, g: 0.957, b: 0.937 },
+  green: { r: 0.137, g: 0.478, b: 0.294 },
+  orange: { r: 0.678, g: 0.424, b: 0.153 },
 };
 
 const FONT_REGULAR: FontName = { family: "Inter", style: "Regular" };
@@ -190,7 +190,7 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
 }
 
 function renderProjectHeaderBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
-  const board = createSection("01 Project Header", "制作条件と実行モード", x, y, 620, 720);
+  const board = createSection("01 Project Header", "案件前提、入力内容、実行モードを後から追えるようにまとめます。", x, y, 620, 720);
   appendBoard(parent, board);
   renderProjectHeaderContent(board, project, 24, 92, 572);
   return board;
@@ -217,7 +217,7 @@ function renderProjectHeaderContent(parent: FrameNode, project: ProjectData, x: 
 }
 
 function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[], x: number, y: number): FrameNode {
-  const board = createSection("02 30 Ideas Explore", "30案を5つの方向に整理し、15案の文字組みへ進める候補を見える化します。ここではSVGは置きません。", x, y, 1220, 900);
+  const board = createSection("02 30 Ideas Explore", "30案を5つの訴求方向に分け、なぜ残すか・落とすかを確認します。", x, y, 1220, 900);
   appendBoard(parent, board);
   addStageStats(board, [
     ["探索", "30案"],
@@ -228,7 +228,7 @@ function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[]
 }
 
 function renderTypographyDraftBoard(parent: FrameNode | null, drafts: TypographyDraft[], x: number, y: number): FrameNode {
-  const board = createSection("03 15 Typography Drafts", "完成デザインではなく、文字組み・余白・CTA位置を検討する軽量SVG。", x, y, 1420, 1060);
+  const board = createSection("03 15 Typography Drafts", "完成案の前に、文字階層・余白・CTA位置を軽量SVGで検討します。", x, y, 1420, 1060);
   appendBoard(parent, board);
   addStageStats(board, [
     ["ドラフト", "15案"],
@@ -240,7 +240,7 @@ function renderTypographyDraftBoard(parent: FrameNode | null, drafts: Typography
 }
 
 function renderRefinedSvgBoard(parent: FrameNode | null, workflow: StageWorkflowData | undefined, candidates: SvgCandidate[], x: number, y: number): FrameNode {
-  const board = createSection("04 5 Refined SVGs", "Geminiで仕上げる想定の高品質SVG。実物フレームは上部にも配置されます。", x, y, 1360, 1060);
+  const board = createSection("04 5 Refined SVGs", "比較しやすい5案に絞り、強みと懸念を添えてレビューできる形にします。", x, y, 1360, 1060);
   appendBoard(parent, board);
   addStageStats(board, [
     ["高品質SVG", "5案"],
@@ -259,7 +259,7 @@ function renderDiagnosisBoardPanel(parent: FrameNode | null, results: DiagnosisR
 }
 
 function renderCompareBoardPanel(parent: FrameNode | null, result: ComparisonResult | undefined, demoComparison: DemoComparison | undefined, x: number, y: number): FrameNode {
-  const board = createSection("05 Compare Result", "5案の役割と向き不向きを比較し、Primary / Secondaryを決める。", x, y, 900, 720);
+  const board = createSection("05 Compare Result", "5案の役割と用途を比較し、Primary / Secondaryと背景方針を決めます。", x, y, 900, 720);
   appendBoard(parent, board);
   renderCompareContent(board, result, 24, 104, 852, demoComparison);
   return board;
@@ -272,9 +272,9 @@ function renderBackgroundVariationsBoard(
   x: number,
   y: number,
 ): FrameNode {
-  const board = createSection("06 Background Variations", "Primary案にだけ背景3案を作る。文字とCTAは編集可能なまま残します。", x, y, 880, 720);
+  const board = createSection("06 Background Variations", "Primary案に背景3案を当て、文字とCTAは編集可能なまま残します。", x, y, 880, 720);
   appendBoard(parent, board);
-  addText(board, result?.brief.promptText ?? "比較後にbackground briefが入ります。Demoでは背景3案の方向性を確認できます。", 24, 88, {
+  addText(board, result?.brief.promptText ?? "比較後にbackground briefが入ります。代替処理では背景3案の方向性を確認できます。", 24, 88, {
     size: 11,
     color: COLORS.muted,
     width: 820,
@@ -304,7 +304,7 @@ function renderFinalCandidateBoard(parent: FrameNode | null, project: ProjectDat
 
 function renderIdeaGrid(parent: FrameNode, ideas: IdeaDirection[], x: number, y: number, width: number): void {
   if (ideas.length === 0) {
-    addEmpty(parent, "30案探索はまだありません。Demoフローを読み込むと表示されます。", x, y, width);
+    addEmpty(parent, "30案探索はまだありません。サンプルフローを読み込むと表示されます。", x, y, width);
     return;
   }
   const groups = chunk(ideas.slice(0, 30), 6);
@@ -369,7 +369,7 @@ function chunk<T>(items: T[], size: number): T[][] {
 
 function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number, y: number, width: number): void {
   if (drafts.length === 0) {
-    addEmpty(parent, "15案のTypography Draftはまだありません。Demoフローを読み込むと表示されます。", x, y, width);
+    addEmpty(parent, "15案のTypography Draftはまだありません。サンプルフローを読み込むと表示されます。", x, y, width);
     return;
   }
   const cardWidth = (width - 48) / 5;
@@ -396,7 +396,7 @@ function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number
 
 function renderRefinedGrid(parent: FrameNode, workflow: StageWorkflowData | undefined, candidates: SvgCandidate[], directions: Direction[], x: number, y: number, width: number): void {
   if (candidates.length === 0) {
-    addEmpty(parent, "5案の高品質SVGはまだありません。Demoフローを読み込むと表示されます。", x, y, width);
+    addEmpty(parent, "5案の高品質SVGはまだありません。サンプルフローを読み込むと表示されます。", x, y, width);
     return;
   }
   const byDirection = new Map(directions.map((direction) => [direction.id, direction]));
@@ -558,7 +558,7 @@ function createIdeaFallback(directions: Direction[]): IdeaDirection[] {
       risk: direction.riskNote ?? "比較時に確認します。",
       bestFor: direction.tags?.join(" / ") ?? "検討案",
       status: index < 3 && directionIndex < 5 ? "selected_for_typography" : "rejected",
-      selectionReason: "Demo fallback",
+      selectionReason: "代替処理",
     })),
   );
 }

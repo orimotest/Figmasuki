@@ -19,7 +19,7 @@ const difyFields: Array<[keyof RuntimeApiSettings["dify"], string, string]> = [
 export function SettingsScreen() {
   const [settings, setSettings] = useState<RuntimeApiSettings>(emptyRuntimeApiSettings);
   const [logs, setLogs] = useState<string[]>([
-    "API設定を保存するとLive Modeで制作フローを実行できます。未設定の場合はDemo Modeで動作します。",
+    "API設定を保存すると外部APIに接続して制作フローを実行できます。未設定の場合は代替処理で動作します。",
   ]);
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export function SettingsScreen() {
         {success && <SuccessMessage title={success} />}
         {error && <ErrorMessage title="設定を確認してください" detail={error} />}
         <div className="settings-summary">
-          <span>実行モード: {isRuntimeLiveReady(settings) ? "Live" : "Demo"}</span>
+          <span>接続状態: {isRuntimeLiveReady(settings) ? "API接続中" : "接続設定待ち"}</span>
           <span>Dify: {configuredDifyCount(settings)}/6 workflow</span>
           <span>Gemini: {maskSecret(settings.gemini.apiKey)}</span>
         </div>

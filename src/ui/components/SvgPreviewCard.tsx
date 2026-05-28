@@ -24,7 +24,7 @@ export function SvgPreviewCard({ candidate, direction, onInsert, onDiagnose, onF
         <span className={candidate.validation.valid ? "validation-badge valid" : "validation-badge invalid"}>
           {candidate.validation.valid ? (candidate.validation.warnings.length > 0 ? "SVG確認OK / 注意あり" : "SVG確認OK") : "SVG確認NG"}
         </span>
-        {candidate.meta.fallbackUsed && <span className="validation-badge invalid">Demo表示</span>}
+        {candidate.meta.fallbackUsed && <span className="validation-badge invalid">代替SVG</span>}
         <button className="primary-button compact" type="button" disabled={!candidate.validation.valid} onClick={() => onInsert?.(candidate)}>
           この案をFigmaに配置
         </button>

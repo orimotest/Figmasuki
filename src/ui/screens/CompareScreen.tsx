@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import type { BackgroundBrief } from "../../schemas/background";
+import type { BackgroundBrief, BackgroundResult } from "../../schemas/background";
 import type { ContentType } from "../../schemas/content";
 import type { ComparisonResult } from "../../schemas/comparison";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
@@ -8,9 +8,9 @@ import type { ProviderConfig } from "../../schemas/provider";
 import type { SvgCandidate } from "../../schemas/svg";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
 import { runCompareWorkflow } from "../../workflows/compareWorkflow";
+import { runFinishWorkflow } from "../../workflows/finishWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
-import { CanvasBadge } from "../components/CanvasBadge";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { PresetSelector } from "../components/PresetSelector";
@@ -24,23 +24,27 @@ type CompareScreenProps = {
   projectData: ProjectData | null;
   onProjectData: (project: ProjectData) => void;
   onComparison: (result: ComparisonResult) => void;
-  onSendToFinish: (brief: BackgroundBrief) => void;
+  onBackground: (result: BackgroundResult) => void;
 };
 
-const demoSvgA = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#eff6ff"/><rect x="28" y="28" width="744" height="394" rx="20" fill="#fff" stroke="#bfdbfe"/><text x="64" y="150" font-size="58" font-weight="800" fill="#1d4ed8" font-family="Inter, sans-serif">AI活用</text><text x="64" y="222" font-size="54" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">何から始める？</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">明日から使える実践ステップを60分で解説</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#16a34a"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
+const demoSvgA = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#f6f8f7"/><rect x="28" y="28" width="744" height="394" rx="20" fill="#fff" stroke="#cfe0d8"/><text x="64" y="150" font-size="58" font-weight="800" fill="#1f6f5b" font-family="Inter, sans-serif">AI活用</text><text x="64" y="222" font-size="54" font-weight="800" fill="#0f172a" font-family="Inter, sans-serif">何から始める？</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">明日試せる実践ステップを60分で整理</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#237a4b"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
 const demoSvgB = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg"><rect width="800" height="450" rx="24" fill="#ecfdf5"/><rect x="30" y="30" width="740" height="390" rx="20" fill="#fff" stroke="#bbf7d0"/><text x="64" y="145" font-size="50" font-weight="800" fill="#064e3b" font-family="Inter, sans-serif">60分でわかる</text><text x="64" y="220" font-size="62" font-weight="800" fill="#16a34a" font-family="Inter, sans-serif">AI活用の第一歩</text><text x="64" y="286" font-size="24" font-weight="700" fill="#334155" font-family="Inter, sans-serif">現場で使える知識と具体例をわかりやすく解説</text><rect x="548" y="348" width="190" height="52" rx="26" fill="#16a34a"/><text x="643" y="381" text-anchor="middle" font-size="18" font-weight="800" fill="#fff" font-family="Inter, sans-serif">無料で参加する</text></svg>`;
 
-export function CompareScreen({ providers, projectData, onProjectData, onComparison, onSendToFinish }: CompareScreenProps) {
+export function CompareScreen({ providers, projectData, onProjectData, onComparison, onBackground }: CompareScreenProps) {
   const [contentType, setContentType] = useState<ContentType>(projectData?.contentType ?? "seminar_banner");
   const [frames, setFrames] = useState<FigmaFrameData[]>([]);
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
+  const [backgroundBrief, setBackgroundBrief] = useState<BackgroundBrief | undefined>();
+  const [backgroundResult, setBackgroundResult] = useState<BackgroundResult | undefined>(projectData?.backgroundResult);
   const [statusLogs, setStatusLogs] = useState<string[]>(["自動制作後の比較確認画面です。必要に応じてFigma上の2〜5案を選択し、比較を再実行できます。"]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isComparing, setIsComparing] = useState(false);
+  const [isGeneratingBackground, setIsGeneratingBackground] = useState(false);
 
   const activeComparison = comparison ?? projectData?.comparisonResult;
   const display = useMemo(() => buildCompareDisplay(activeComparison, projectData?.svgCandidates ?? [], frames, contentType), [activeComparison, projectData?.svgCandidates, frames, contentType]);
+  const editableBrief = backgroundBrief ?? activeComparison?.backgroundBrief ?? display.brief;
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -80,18 +84,63 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       setStatusLogs((entries) => [...entries, "比較コメントを生成しています。"]);
       const result = await runCompareWorkflow(selectedFrames, preset);
       setComparison(result);
+      setBackgroundBrief(result.backgroundBrief);
       onComparison(result);
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), comparisonResult: result }));
       }
       setError(null);
-      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定のためDemo比較で続行しました。" : "比較が完了しました。"]);
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定の工程を代替処理で比較しました。" : "比較が完了しました。"]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "比較に失敗しました。";
       setError(message);
       setStatusLogs((entries) => [...entries, message]);
     } finally {
       setIsComparing(false);
+    }
+  }
+
+  async function handleCompareGeneratedCandidates() {
+      if (!projectData?.svgCandidates.length) {
+      setError("評価する5案がまだありません。制作タブで5案SVGまで生成するか、Figma上で2〜5案を選択してください。");
+      return;
+    }
+    setError(null);
+    setSuccess(null);
+    setIsComparing(true);
+    setStatusLogs(["生成済み5案を評価しています。"]);
+    await runComparison(createAutoCompareFrames(projectData), projectData.contentType);
+  }
+
+  async function handleGenerateBackground() {
+    if (!editableBrief) return;
+    setError(null);
+    setSuccess(null);
+    setIsGeneratingBackground(true);
+    setStatusLogs((entries) => [...entries, "確認済みの背景ブリーフで背景生成を開始します。"]);
+    try {
+      const result = await runFinishWorkflow(editableBrief);
+      setBackgroundResult(result);
+      onBackground(result);
+      if (projectData) {
+        const updated = buildProjectData({
+          ...projectDataToBuilder(projectData),
+          comparisonResult: activeComparison,
+          backgroundResult: result,
+          productionStatus: projectData.productionStatus,
+          figmaOutputs: upsertFigmaOutput(projectData.figmaOutputs ?? [], "background_variations"),
+        });
+        onProjectData(updated);
+      }
+      postToPlugin({ type: "RENDER_FINISH_BOARD", payload: { backgroundResult: result, comparisonResult: activeComparison } });
+      setSuccess("背景案を生成し、Figmaに記録しました。");
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "代替処理で背景案を生成しました。" : "背景案の生成が完了しました。"]);
+    } catch (caught) {
+      const message = caught instanceof Error ? caught.message : "背景生成に失敗しました。";
+      setError(message);
+      setStatusLogs((entries) => [...entries, message]);
+    } finally {
+      setIsGeneratingBackground(false);
     }
   }
 
@@ -113,30 +162,33 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
     <div className="review-screen">
       <div className="review-page-heading">
         <div>
-          <p className="eyebrow">AI CREATIVE PROCESS BOARD <span className="step-pill">Step 3/4</span></p>
-          <h2>比較</h2>
-          <p>2〜5案を比べ、ベース候補と次点候補、background briefを整理します。</p>
+          <p className="eyebrow">Content Production Board <span className="step-pill">Sub Tool</span></p>
+          <h2>評価</h2>
+          <p>選択フレームや制作済み案を、採用判断に使える粒度で比較します。</p>
         </div>
         <div className="badge-row">
-          <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo Mode</span>
-          <ProviderBadge label="provider" provider={activeComparison?.providerMeta?.provider ?? providers.compare} fallbackUsed={activeComparison?.providerMeta?.fallbackUsed} />
+          <ProviderBadge label="接続先" provider={activeComparison?.providerMeta?.provider ?? providers.compare} fallbackUsed={activeComparison?.providerMeta?.fallbackUsed} />
         </div>
       </div>
 
       <div className="review-layout compare-review-layout">
         <section className="panel review-side-panel">
-          <SectionHeader title="比較対象" description="選択中または自動制作済みの案を比較しています。" />
+          <SectionHeader title="比較対象" description="見た目の好みではなく、役割と用途の違いを確認します。" />
           <CompareTargetCard label="案A" item={display.a} badge="ベース候補" />
           <CompareTargetCard label="案B" item={display.b} badge="次点候補" />
-          <ChecklistCard title="比較の観点" items={["役割", "向いている用途", "強い点", "懸念", "ベース候補", "次点候補"]} />
-          <ChecklistCard title="処理の流れ" items={["2案を取得", "差分を抽出", "コメント生成", "ベース候補整理"]} completed />
+          <ChecklistCard title="比較の観点" items={["最初に伝わること", "申込導線", "情報量", "背景を足す余地", "ベース候補", "次点候補"]} />
+          <ChecklistCard title="出力される判断材料" items={["役割の違い", "向いている用途", "懸念点", "背景生成ブリーフ"]} completed />
           <PresetSelector value={contentType} onChange={setContentType} />
         </section>
 
         <section className="panel review-main-panel">
-          <SectionHeader title="比較サマリー" description={`比較時間: ${display.createdAt} / provider: ${display.provider}`} />
-          {isComparing && <LoadingState title="複数案を比較しています" description="役割、強み、懸念、背景生成briefを整理しています。" />}
+          <SectionHeader title="比較サマリー" description={`比較時間: ${display.createdAt} / 接続先: ${display.provider}`} />
+          {(isComparing || isGeneratingBackground) && (
+            <LoadingState
+              title={isGeneratingBackground ? "背景を生成しています" : "複数案を比較しています"}
+              description={isGeneratingBackground ? "確認済みの背景ブリーフをもとに背景案を生成しています。" : "役割、強み、懸念、背景生成ブリーフを整理しています。"}
+            />
+          )}
           {error && <ErrorMessage title="比較を実行できませんでした" detail={error} action="Figma上で2〜5案を選択して、もう一度実行してください。" />}
           {success && <SuccessMessage title={success} />}
           <InsightHero text={display.summary} />
@@ -145,7 +197,7 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
             <CandidateReasonCard title="ベース候補" item={display.primary} />
             <CandidateReasonCard title="次点候補" item={display.secondary} />
           </div>
-          <BriefCard brief={display.brief} />
+          <BackgroundBriefEditor brief={editableBrief} onChange={setBackgroundBrief} generated={Boolean(backgroundResult)} />
         </section>
 
         <section className="panel review-preview-panel">
@@ -160,15 +212,20 @@ export function CompareScreen({ providers, projectData, onProjectData, onCompari
       <StatusLog entries={statusLogs.slice(-4)} />
       <ActionBar className="review-action-bar">
         <div className="action-group action-group-left">
-          <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Diagnose" }))}>診断に戻る</button>
+          <button className="ghost-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Explore" }))}>制作結果へ戻る</button>
         </div>
         <div className="action-group action-group-center">
           <button className="secondary-button" type="button" onClick={handleRenderCompareBoard}>比較ボードをFigmaに出力</button>
           <button className="secondary-button" type="button" onClick={handleCopyReport}>レポートをコピー</button>
         </div>
         <div className="action-group action-group-right">
+          <button className="secondary-button" type="button" disabled={isComparing} onClick={() => void handleCompareGeneratedCandidates()}>
+            {isComparing ? "評価中..." : "生成済み5案を評価"}
+          </button>
           <button className="primary-button" type="button" onClick={handleCompareSelectedFrames}>{isComparing ? "比較中..." : "選択案を比較"}</button>
-          <button className="primary-button" type="button" onClick={() => onSendToFinish(display.brief)}>仕上げへ進む</button>
+          <button className="primary-button" type="button" disabled={isGeneratingBackground} onClick={() => void handleGenerateBackground()}>
+            {isGeneratingBackground ? "背景生成中..." : "背景を生成して記録"}
+          </button>
         </div>
       </ActionBar>
     </div>
@@ -189,27 +246,33 @@ type CompareDisplay = {
 };
 
 function buildCompareDisplay(result: ComparisonResult | undefined, candidates: SvgCandidate[], frames: FigmaFrameData[], contentType: ContentType): CompareDisplay {
-  const a = candidateToItem(candidates[0], frames[0], "AI活用 何から始める？", demoSvgA);
-  const b = candidateToItem(candidates[1], frames[1], "60分でわかる AI活用の第一歩", demoSvgB);
+  const primaryCandidate = result ? candidates.find((candidate) => candidate.id === result.recommendation.primaryFrameId) : candidates[0];
+  const secondaryCandidate = result?.recommendation.secondaryFrameId
+    ? candidates.find((candidate) => candidate.id === result.recommendation.secondaryFrameId)
+    : candidates.find((candidate) => candidate.id !== primaryCandidate?.id);
+  const primaryFrame = result ? result.frames.find((frame) => frame.id === result.recommendation.primaryFrameId) : frames[0];
+  const secondaryFrame = result?.recommendation.secondaryFrameId ? result.frames.find((frame) => frame.id === result.recommendation.secondaryFrameId) : frames.find((frame) => frame.id !== primaryFrame?.id);
+  const a = candidateToItem(primaryCandidate ?? candidates[0], primaryFrame ?? frames[0], "AI活用 何から始める？", demoSvgA);
+  const b = candidateToItem(secondaryCandidate ?? candidates[1], secondaryFrame ?? frames[1], "60分でわかる AI活用の第一歩", demoSvgB);
   const roles = result?.frameRoles ?? [];
   return {
     a,
     b,
     summary:
       result?.comparisonSummary ??
-      "課題共感型は集客向き、参加メリット型は内容理解向き。今回は入口として強い「AI活用、何から始める？」をベース候補とします。",
+      "案Aは課題に気づかせる入口、案Bは参加後の価値を説明する補強案です。初回接点では案Aをベースにし、背景で信頼感を足す方針にします。",
     rows:
       roles.length > 0
         ? roles.map((role) => ({ name: role.frameName, role: role.role, bestFor: role.bestFor, strength: role.strength, concern: role.risk }))
         : [
-            { name: a.name, role: "課題想起・入口", bestFor: "セミナー集客の入口", strength: "問いかけで関心を引きやすい", concern: "内容イメージがやや曖昧" },
-            { name: b.name, role: "参加メリット・内容訴求", bestFor: "理解促進の告知", strength: "時間と内容が明確で安心感がある", concern: "入口としてのインパクトは控えめ" },
+            { name: a.name, role: "課題想起・入口", bestFor: "SNS告知やLPファーストビュー", strength: "問いかけで自分ごと化しやすい", concern: "内容の具体性はサブコピーで補いたい" },
+            { name: b.name, role: "参加メリット・内容訴求", bestFor: "メール告知や申込直前の訴求", strength: "時間と得られる内容が明確", concern: "新規接点では少し説明的に見える" },
           ],
-    primary: { name: result ? findFrameName(result, result.recommendation.primaryFrameId) : a.name, reason: result?.recommendation.primaryReason ?? "入口として強く、初心者層の関心を引きやすいためベース候補に向いています。" },
-    secondary: { name: result?.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : b.name, reason: result?.recommendation.secondaryReason ?? "内容理解と安心感の補強として残す価値があります。" },
+    primary: { name: result ? findFrameName(result, result.recommendation.primaryFrameId) : a.name, reason: result?.recommendation.primaryReason ?? "初回接点で不安を言語化でき、初心者層のクリック理由を作りやすいためベース候補に向いています。" },
+    secondary: { name: result?.recommendation.secondaryFrameId ? findFrameName(result, result.recommendation.secondaryFrameId) : b.name, reason: result?.recommendation.secondaryReason ?? "得られる内容を補足する案として、LP内やリマインド告知に転用しやすいです。" },
     brief: result?.backgroundBrief ?? demoBrief(a.id, a.name, contentType),
-    provider: result?.providerMeta?.provider ?? "demo",
-    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : "Demo",
+    provider: result?.providerMeta?.provider === "demo" ? "代替処理" : result?.providerMeta?.provider ?? "代替処理",
+    createdAt: result ? new Date(result.createdAt).toLocaleTimeString("ja-JP", { hour: "2-digit", minute: "2-digit" }) : "未実行",
   };
 }
 
@@ -229,12 +292,12 @@ function demoBrief(targetFrameId: string, targetFrameName: string, contentType: 
     contentType,
     targetFrameId,
     targetFrameName,
-    mood: "calm / trustworthy / friendly",
-    style: "soft tech gradient with subtle geometry",
-    avoid: ["文字の生成", "ロゴ", "過度な装飾", "中央の細かすぎる模様"],
+    mood: "calm / trustworthy / approachable",
+    style: "quiet tech texture with soft depth and restrained geometry",
+    avoid: ["文字の生成", "ロゴ", "過度な装飾", "中央の細かすぎる模様", "派手なネオン表現"],
     safeAreaHint: "主見出しとCTAの背面は低コントラストにし、文字領域を邪魔しない。",
-    suggestedStyleKeywords: ["soft tech gradient", "business calm", "low contrast center"],
-    promptText: "初心者が安心して一歩を踏み出せる、信頼感と親しみのある背景で構成する。",
+    suggestedStyleKeywords: ["quiet tech texture", "business calm", "low contrast center", "soft depth"],
+    promptText: "初心者が安心して一歩を踏み出せるよう、文字領域を空けた落ち着いたテック系背景で構成する。",
   };
 }
 
@@ -266,11 +329,55 @@ function CandidateReasonCard({ title, item }: { title: string; item: { name: str
   return <article className="insight-card"><h3>{title}</h3><strong>{item.name}</strong><p>{item.reason}</p></article>;
 }
 
-function BriefCard({ brief }: { brief: BackgroundBrief }) {
+function BackgroundBriefEditor({ brief, onChange, generated }: { brief: BackgroundBrief; onChange: (brief: BackgroundBrief) => void; generated: boolean }) {
+  function updateField<K extends keyof BackgroundBrief>(key: K, value: BackgroundBrief[K]) {
+    onChange({ ...brief, [key]: value });
+  }
+
+  function updateList(key: "avoid" | "suggestedStyleKeywords", value: string) {
+    onChange({
+      ...brief,
+      [key]: value
+        .split("\n")
+        .map((item) => item.trim())
+        .filter(Boolean),
+    });
+  }
+
   return (
-    <section className="review-card brief-card">
-      <h3>background brief</h3>
-      <InfoList items={[["背景の方向性", brief.promptText], ["雰囲気", brief.mood], ["背景スタイル", brief.style], ["避けること", brief.avoid.join(" / ")], ["文字領域への配慮", brief.safeAreaHint]]} />
+    <section className="review-card background-brief-editor">
+      <div className="brief-editor-header">
+        <h3>背景生成ブリーフ</h3>
+        <span className={generated ? "mini-badge complete" : "mini-badge"}>{generated ? "生成済み" : "生成前確認"}</span>
+      </div>
+      <label className="field">
+        <span>背景の狙い</span>
+        <textarea value={brief.promptText} onChange={(event) => updateField("promptText", event.target.value)} />
+      </label>
+      <div className="background-brief-grid">
+        <label className="field">
+          <span>雰囲気</span>
+          <input value={brief.mood} onChange={(event) => updateField("mood", event.target.value)} />
+        </label>
+        <label className="field">
+          <span>スタイル</span>
+          <input value={brief.style} onChange={(event) => updateField("style", event.target.value)} />
+        </label>
+      </div>
+      <label className="field">
+        <span>文字領域への配慮</span>
+        <textarea value={brief.safeAreaHint} onChange={(event) => updateField("safeAreaHint", event.target.value)} />
+      </label>
+      <div className="background-brief-grid">
+        <label className="field">
+          <span>避けること</span>
+          <textarea value={brief.avoid.join("\n")} onChange={(event) => updateList("avoid", event.target.value)} />
+        </label>
+        <label className="field">
+          <span>キーワード</span>
+          <textarea value={brief.suggestedStyleKeywords.join("\n")} onChange={(event) => updateList("suggestedStyleKeywords", event.target.value)} />
+        </label>
+      </div>
     </section>
   );
 }
@@ -293,7 +400,7 @@ function ChecklistCard({ title, items, completed = false }: { title: string; ite
 }
 
 function InsightHero({ text }: { text: string }) {
-  return <section className="insight-hero"><span>💡</span><strong>{text}</strong></section>;
+  return <section className="insight-hero"><span aria-hidden="true">i</span><strong>{text}</strong></section>;
 }
 
 function CompatibilityCard({ rows }: { rows: [string, string][] }) {
@@ -302,6 +409,68 @@ function CompatibilityCard({ rows }: { rows: [string, string][] }) {
 
 function findFrameName(result: ComparisonResult, frameId: string): string {
   return result.frames.find((frame) => frame.id === frameId)?.name ?? frameId;
+}
+
+function createAutoCompareFrames(project: ProjectData): FigmaFrameData[] {
+  return project.svgCandidates.map((candidate, index) => {
+    const title = candidate.name;
+    const subtitle = project.copyDirections.find((direction) => direction.id === candidate.directionId)?.title ?? project.inputSummary.brief;
+    const cta = project.contentType === "seminar_banner" ? "詳細を見る" : "";
+    const textNodes = [
+      createTextNode(`${candidate.id}_title`, "Title", title, 56, 86, 540, 70, 44),
+      createTextNode(`${candidate.id}_subtitle`, "Subtitle", subtitle, 58, 170, 620, 52, 22),
+      cta ? createTextNode(`${candidate.id}_cta`, "CTA", cta, 560, 352, 140, 32, 16) : undefined,
+    ].filter((node): node is FigmaFrameData["textNodes"][number] => Boolean(node));
+
+    return {
+      id: candidate.id,
+      name: candidate.name || `生成案 ${index + 1}`,
+      x: 0,
+      y: index * 500,
+      width: candidate.width,
+      height: candidate.height,
+      textNodes,
+      shapeNodes: [],
+      derived: {
+        textCount: textNodes.length,
+        shapeCount: 0,
+        totalTextChars: textNodes.reduce((sum, node) => sum + node.characters.length, 0),
+        maxFontSize: Math.max(...textNodes.map((node) => node.fontSize ?? 0)),
+        minFontSize: Math.min(...textNodes.map((node) => node.fontSize ?? 999)),
+        colors: [],
+        colorCount: 0,
+        elementDensity: textNodes.length / (candidate.width * candidate.height),
+        frameSizeMatchesCanvas: true,
+        possibleMainTitle: textNodes[0],
+        possibleCTA: cta ? textNodes[textNodes.length - 1] : undefined,
+        possibleDate: undefined,
+        safeAreaIssues: [],
+      },
+    };
+  });
+}
+
+function createTextNode(id: string, name: string, characters: string, x: number, y: number, width: number, height: number, fontSize: number): FigmaFrameData["textNodes"][number] {
+  return {
+    id,
+    name,
+    characters,
+    x,
+    y,
+    width,
+    height,
+    fontSize,
+    fontName: "Inter",
+    fontFamily: "Inter",
+    fills: [{ type: "SOLID", color: "#111827", opacity: 1 }],
+    color: "#111827",
+    opacity: 1,
+    visible: true,
+  };
+}
+
+function upsertFigmaOutput(outputs: ProjectData["figmaOutputs"], stage: "background_variations"): NonNullable<ProjectData["figmaOutputs"]> {
+  return [...(outputs ?? []).filter((output) => output.stage !== stage), { stage, placedAt: new Date().toISOString(), status: "placed" }];
 }
 
 function projectDataToBuilder(project: ProjectData) {

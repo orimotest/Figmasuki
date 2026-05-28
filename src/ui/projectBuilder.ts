@@ -22,7 +22,7 @@ export function buildProjectData(params: {
   const { exploreResult, svgCandidates, diagnosisResults = [], comparisonResult, backgroundResult, productionStatus, figmaOutputs = [] } = params;
   const input = exploreResult.input;
   const isSeminar = exploreResult.contentType === "seminar_banner";
-  const stageWorkflow = createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, backgroundResult });
+  const stageWorkflow = createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, comparisonResult, backgroundResult });
 
   return {
     projectId: `project_${Date.now().toString(36)}`,
@@ -77,11 +77,11 @@ function inferProjectName(input: ExploreInput): string {
 function createProviderMode(exploreResult: ExploreResult, svgCandidates: SvgCandidate[]): string {
   const exploreFallback = exploreResult.providerMeta?.fallbackUsed;
   const fallback = svgCandidates.some((candidate) => candidate.meta.fallbackUsed);
-  if (fallback || exploreFallback) return "Demo Mode / fallback";
+  if (fallback || exploreFallback) return "代替処理あり";
   if (exploreResult.providerMeta?.provider === "dify" || svgCandidates.some((candidate) => candidate.meta.provider === "gemini")) {
-    return "Live Mode";
+    return "API接続中";
   }
-  return `${getRuntimeExecutionModeLabel()} Mode`;
+  return getRuntimeExecutionModeLabel() === "Live" ? "API接続中" : "API未接続";
 }
 
 function createSvgProviderMeta(svgCandidates: SvgCandidate[]) {

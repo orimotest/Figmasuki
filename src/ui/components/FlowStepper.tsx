@@ -9,7 +9,7 @@ type FlowStepperProps = {
   completedTabs?: AppTab[];
 };
 
-const orderedTabs: AppTab[] = ["Explore", "Diagnose", "Compare", "Finish"];
+const orderedTabs: AppTab[] = ["Brief", "Explore", "Compare"];
 
 export function FlowStepper({ activeTab, completedTabs = [] }: FlowStepperProps) {
   return (

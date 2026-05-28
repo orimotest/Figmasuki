@@ -1,4 +1,5 @@
 import type { BackgroundResult } from "../../schemas/background";
+import type { ComparisonResult } from "../../schemas/comparison";
 import type { Direction } from "../../schemas/direction";
 import type { LayoutDraftInput, TypographyDraftLayoutType } from "../../schemas/layoutDraft";
 import type { SvgCandidate } from "../../schemas/svg";
@@ -70,6 +71,7 @@ const ideaSeeds: Record<string, Array<Pick<IdeaDirection, "name" | "mainCopy" | 
 export function createDemoStageWorkflow(params: {
   directions: Direction[];
   refinedSvgCandidates: SvgCandidate[];
+  comparisonResult?: ComparisonResult;
   backgroundResult?: BackgroundResult;
 }): StageWorkflowData {
   const ideaDirections = createIdeaDirections(params.directions);
@@ -81,10 +83,12 @@ export function createDemoStageWorkflow(params: {
     concern: getConcern(index),
   }));
   const backgroundVariations = createBackgroundVariations(params.backgroundResult);
+  const primaryCandidate =
+    refinedSvgCandidates.find((candidate) => candidate.id === params.comparisonResult?.recommendation.primaryFrameId) ?? refinedSvgCandidates[0];
   const finalCandidate: FinalCandidate = {
     id: "final_demo_01",
-    name: "Final Candidate / Demo",
-    refinedCandidateId: refinedSvgCandidates[0]?.id ?? "seminar_problem_01",
+    name: "Final Candidate",
+    refinedCandidateId: primaryCandidate?.id ?? "seminar_problem_01",
     selectedBackgroundId: backgroundVariations.find((variation) => variation.selected)?.id,
     reason: "課題共感型は初心者向けセミナーの入口として分かりやすく、背景を加えても文字とCTAを編集可能に保ちやすいため。",
     editableLayers: ["見出しテキスト", "サブコピー", "CTA", "日時情報", "背景レイヤー"],
@@ -170,20 +174,21 @@ function getDraftEvaluationMemo(layoutType: TypographyDraftLayoutType, selectedF
 
 function createBackgroundVariations(backgroundResult?: BackgroundResult): BackgroundVariation[] {
   const target = backgroundResult?.brief.targetFrameName ?? "Primary案";
+  const generatedImage = getBackgroundDataUrl(backgroundResult);
   return [
     {
       id: "bg_soft_tech",
-      name: "Soft Tech Gradient",
-      direction: `${target} の文字領域を邪魔しない、淡いブルーのテック系背景。`,
-      svg: createBackgroundSvg("#EFF6FF", "#DBEAFE", "#93C5FD"),
-      imageDataUrl: softGradientBackgroundDataUrl,
+      name: backgroundResult?.styleName ?? "Quiet Tech Texture",
+      direction: `${target} の文字領域を空け、控えめな奥行きで信頼感を足す背景。`,
+      svg: backgroundResult?.svg ?? createBackgroundSvg("#F6F8F7", "#DCEBE4", "#2F7D65"),
+      imageDataUrl: generatedImage ?? softGradientBackgroundDataUrl,
       selected: true,
     },
     {
       id: "bg_geometry",
       name: "Subtle Geometry",
       direction: "右側に控えめな幾何学パターンを置き、中央の文字可読性を保つ。",
-      svg: createBackgroundSvg("#F8FAFC", "#E0F2FE", "#38BDF8"),
+      svg: createBackgroundSvg("#F8FAFC", "#E7EEF0", "#5B8DEF"),
       imageDataUrl: subtleGeometryBackgroundDataUrl,
       selected: false,
     },
@@ -198,19 +203,26 @@ function createBackgroundVariations(backgroundResult?: BackgroundResult): Backgr
   ];
 }
 
+function getBackgroundDataUrl(backgroundResult?: BackgroundResult): string | undefined {
+  if (!backgroundResult) return undefined;
+  if (backgroundResult.imageUrl?.startsWith("data:")) return backgroundResult.imageUrl;
+  if (backgroundResult.base64) return `data:image/png;base64,${backgroundResult.base64}`;
+  return undefined;
+}
+
 function createDemoComparison(): DemoComparison {
   return {
-    summary: "5案は、初心者向けの入口、参加メリット、実務性、BtoB信頼感、やさしい参加感で役割が分かれています。Demoでは課題共感型をPrimary、参加メリット型をSecondaryとして扱います。",
+    summary: "5案は、初心者向けの入口、参加メリット、実務性、BtoB信頼感、やさしい参加感で役割が分かれています。Demo Modeでは課題共感型をPrimary、参加メリット型をSecondaryとして扱います。",
     primaryName: "課題共感型",
     secondaryName: "参加メリット型",
-    selectionReason: "初心者向けセミナーの最初の接点として、参加前の不安に寄り添う課題共感型が最も自然に見えるため。",
+    selectionReason: "初心者向けセミナーの最初の接点として、参加前の不安を言語化する課題共感型が最もクリック理由を作りやすいため。",
     rows: [
       {
         name: "課題共感型",
         role: "入口を作る",
         layout: "左寄せ / やさしい導入",
         strength: "不安のある人が自分ごと化しやすい。",
-        concern: "一般的に見えないよう背景で個性を足したい。",
+        concern: "一般論に見えないよう、背景で現場感を少し足したい。",
         bestFor: "初心者向け導入セミナー",
       },
       {
@@ -218,7 +230,7 @@ function createDemoComparison(): DemoComparison {
         role: "申込を促す",
         layout: "左右分割 / 告知感強め",
         strength: "60分で得られる内容が明確。",
-        concern: "広告感が強くなりすぎる可能性。",
+        concern: "申込訴求が前に出るため、初回接点では少し広告感が強い。",
         bestFor: "申込重視の告知",
       },
       {

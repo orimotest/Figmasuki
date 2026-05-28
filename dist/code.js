@@ -23,8 +23,8 @@
   // src/config/app.ts
   var appConfig = {
     name: "AI Cover Studio",
-    uiWidth: 760,
-    uiHeight: 640
+    uiWidth: 800,
+    uiHeight: 450
   };
 
   // src/config/runtimeApiSettings.ts
@@ -369,8 +369,8 @@
       return {
         type: "RESIZE_UI",
         payload: {
-          width: Math.max(560, Math.min(1280, Math.round(width))),
-          height: Math.max(560, Math.min(920, Math.round(height)))
+          width: Math.max(640, Math.min(1280, Math.round(width))),
+          height: Math.max(420, Math.min(920, Math.round(height)))
         }
       };
     }
@@ -475,10 +475,10 @@
     border: { r: 0.898, g: 0.918, b: 0.949 },
     text: { r: 0.067, g: 0.094, b: 0.153 },
     muted: { r: 0.294, g: 0.333, b: 0.388 },
-    blue: { r: 0.145, g: 0.388, b: 0.922 },
-    paleBlue: { r: 0.929, g: 0.961, b: 1 },
-    green: { r: 0.086, g: 0.639, b: 0.29 },
-    orange: { r: 0.961, g: 0.62, b: 0.043 }
+    blue: { r: 0.122, g: 0.435, b: 0.357 },
+    paleBlue: { r: 0.91, g: 0.957, b: 0.937 },
+    green: { r: 0.137, g: 0.478, b: 0.294 },
+    orange: { r: 0.678, g: 0.424, b: 0.153 }
   };
   var FONT_REGULAR = { family: "Inter", style: "Regular" };
   var FONT_BOLD = { family: "Inter", style: "Bold" };
@@ -584,7 +584,7 @@
     return board;
   }
   function renderProjectHeaderBoard(parent2, project, x, y) {
-    const board = createSection("01 Project Header", "\u5236\u4F5C\u6761\u4EF6\u3068\u5B9F\u884C\u30E2\u30FC\u30C9", x, y, 620, 720);
+    const board = createSection("01 Project Header", "\u6848\u4EF6\u524D\u63D0\u3001\u5165\u529B\u5185\u5BB9\u3001\u5B9F\u884C\u30E2\u30FC\u30C9\u3092\u5F8C\u304B\u3089\u8FFD\u3048\u308B\u3088\u3046\u306B\u307E\u3068\u3081\u307E\u3059\u3002", x, y, 620, 720);
     appendBoard(parent2, board);
     renderProjectHeaderContent(board, project, 24, 92, 572);
     return board;
@@ -609,7 +609,7 @@
     addText(brief, (_b = project.inputSummary.goal) != null ? _b : "\u672A\u6307\u5B9A", 18, 202, { size: 12, width: width - 36 });
   }
   function renderIdeaExploreBoard(parent2, ideas, x, y) {
-    const board = createSection("02 30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u65B9\u5411\u306B\u6574\u7406\u3057\u300115\u6848\u306E\u6587\u5B57\u7D44\u307F\u3078\u9032\u3081\u308B\u5019\u88DC\u3092\u898B\u3048\u308B\u5316\u3057\u307E\u3059\u3002\u3053\u3053\u3067\u306FSVG\u306F\u7F6E\u304D\u307E\u305B\u3093\u3002", x, y, 1220, 900);
+    const board = createSection("02 30 Ideas Explore", "30\u6848\u30925\u3064\u306E\u8A34\u6C42\u65B9\u5411\u306B\u5206\u3051\u3001\u306A\u305C\u6B8B\u3059\u304B\u30FB\u843D\u3068\u3059\u304B\u3092\u78BA\u8A8D\u3057\u307E\u3059\u3002", x, y, 1220, 900);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u63A2\u7D22", "30\u6848"],
@@ -619,7 +619,7 @@
     return board;
   }
   function renderTypographyDraftBoard(parent2, drafts, x, y) {
-    const board = createSection("03 15 Typography Drafts", "\u5B8C\u6210\u30C7\u30B6\u30A4\u30F3\u3067\u306F\u306A\u304F\u3001\u6587\u5B57\u7D44\u307F\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u691C\u8A0E\u3059\u308B\u8EFD\u91CFSVG\u3002", x, y, 1420, 1060);
+    const board = createSection("03 15 Typography Drafts", "\u5B8C\u6210\u6848\u306E\u524D\u306B\u3001\u6587\u5B57\u968E\u5C64\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u8EFD\u91CFSVG\u3067\u691C\u8A0E\u3057\u307E\u3059\u3002", x, y, 1420, 1060);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u30C9\u30E9\u30D5\u30C8", "15\u6848"],
@@ -630,7 +630,7 @@
     return board;
   }
   function renderRefinedSvgBoard(parent2, workflow, candidates, x, y) {
-    const board = createSection("04 5 Refined SVGs", "Gemini\u3067\u4ED5\u4E0A\u3052\u308B\u60F3\u5B9A\u306E\u9AD8\u54C1\u8CEASVG\u3002\u5B9F\u7269\u30D5\u30EC\u30FC\u30E0\u306F\u4E0A\u90E8\u306B\u3082\u914D\u7F6E\u3055\u308C\u307E\u3059\u3002", x, y, 1360, 1060);
+    const board = createSection("04 5 Refined SVGs", "\u6BD4\u8F03\u3057\u3084\u3059\u30445\u6848\u306B\u7D5E\u308A\u3001\u5F37\u307F\u3068\u61F8\u5FF5\u3092\u6DFB\u3048\u3066\u30EC\u30D3\u30E5\u30FC\u3067\u304D\u308B\u5F62\u306B\u3057\u307E\u3059\u3002", x, y, 1360, 1060);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u9AD8\u54C1\u8CEASVG", "5\u6848"],
@@ -647,16 +647,16 @@
     return board;
   }
   function renderCompareBoardPanel(parent2, result, demoComparison, x, y) {
-    const board = createSection("05 Compare Result", "5\u6848\u306E\u5F79\u5272\u3068\u5411\u304D\u4E0D\u5411\u304D\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3092\u6C7A\u3081\u308B\u3002", x, y, 900, 720);
+    const board = createSection("05 Compare Result", "5\u6848\u306E\u5F79\u5272\u3068\u7528\u9014\u3092\u6BD4\u8F03\u3057\u3001Primary / Secondary\u3068\u80CC\u666F\u65B9\u91DD\u3092\u6C7A\u3081\u307E\u3059\u3002", x, y, 900, 720);
     appendBoard(parent2, board);
     renderCompareContent(board, result, 24, 104, 852, demoComparison);
     return board;
   }
   function renderBackgroundVariationsBoard(parent2, variations, result, x, y) {
     var _a;
-    const board = createSection("06 Background Variations", "Primary\u6848\u306B\u3060\u3051\u80CC\u666F3\u6848\u3092\u4F5C\u308B\u3002\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
+    const board = createSection("06 Background Variations", "Primary\u6848\u306B\u80CC\u666F3\u6848\u3092\u5F53\u3066\u3001\u6587\u5B57\u3068CTA\u306F\u7DE8\u96C6\u53EF\u80FD\u306A\u307E\u307E\u6B8B\u3057\u307E\u3059\u3002", x, y, 880, 720);
     appendBoard(parent2, board);
-    addText(board, (_a = result == null ? void 0 : result.brief.promptText) != null ? _a : "\u6BD4\u8F03\u5F8C\u306Bbackground brief\u304C\u5165\u308A\u307E\u3059\u3002Demo\u3067\u306F\u80CC\u666F3\u6848\u306E\u65B9\u5411\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 24, 88, {
+    addText(board, (_a = result == null ? void 0 : result.brief.promptText) != null ? _a : "\u6BD4\u8F03\u5F8C\u306Bbackground brief\u304C\u5165\u308A\u307E\u3059\u3002\u4EE3\u66FF\u51E6\u7406\u3067\u306F\u80CC\u666F3\u6848\u306E\u65B9\u5411\u6027\u3092\u78BA\u8A8D\u3067\u304D\u307E\u3059\u3002", 24, 88, {
       size: 11,
       color: COLORS.muted,
       width: 820,
@@ -685,7 +685,7 @@
   }
   function renderIdeaGrid(parent2, ideas, x, y, width) {
     if (ideas.length === 0) {
-      addEmpty(parent2, "30\u6848\u63A2\u7D22\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
+      addEmpty(parent2, "30\u6848\u63A2\u7D22\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u30B5\u30F3\u30D7\u30EB\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
       return;
     }
     const groups = chunk(ideas.slice(0, 30), 6);
@@ -747,7 +747,7 @@
   }
   function renderDraftGrid(parent2, drafts, x, y, width) {
     if (drafts.length === 0) {
-      addEmpty(parent2, "15\u6848\u306ETypography Draft\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
+      addEmpty(parent2, "15\u6848\u306ETypography Draft\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u30B5\u30F3\u30D7\u30EB\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
       return;
     }
     const cardWidth = (width - 48) / 5;
@@ -774,7 +774,7 @@
   function renderRefinedGrid(parent2, workflow, candidates, directions, x, y, width) {
     var _a;
     if (candidates.length === 0) {
-      addEmpty(parent2, "5\u6848\u306E\u9AD8\u54C1\u8CEASVG\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002Demo\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
+      addEmpty(parent2, "5\u6848\u306E\u9AD8\u54C1\u8CEASVG\u306F\u307E\u3060\u3042\u308A\u307E\u305B\u3093\u3002\u30B5\u30F3\u30D7\u30EB\u30D5\u30ED\u30FC\u3092\u8AAD\u307F\u8FBC\u3080\u3068\u8868\u793A\u3055\u308C\u307E\u3059\u3002", x, y, width);
       return;
     }
     const byDirection = new Map(directions.map((direction) => [direction.id, direction]));

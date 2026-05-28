@@ -8,7 +8,6 @@ import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/mes
 import { runFinishWorkflow } from "../../workflows/finishWorkflow";
 import { buildProjectData } from "../projectBuilder";
 import { ActionBar } from "../components/ActionBar";
-import { CanvasBadge } from "../components/CanvasBadge";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { LoadingState } from "../components/LoadingState";
 import { ProviderBadge } from "../components/ProviderBadge";
@@ -29,7 +28,7 @@ const demoSvg = `<svg width="800" height="450" viewBox="0 0 800 450" xmlns="http
 
 export function FinishScreen({ providers, backgroundBrief, comparisonResult, projectData, onProjectData, onBackground }: FinishScreenProps) {
   const [backgroundResult, setBackgroundResult] = useState<BackgroundResult | undefined>();
-  const [statusLogs, setStatusLogs] = useState<string[]>(["比較で選ばれたPrimary案を仕上げる確認画面です。Demo Modeでは背景3案とFinal Candidateを確認できます。"]);
+  const [statusLogs, setStatusLogs] = useState<string[]>(["比較で選ばれたPrimary案を仕上げる確認画面です。背景3案とFinal Candidateを確認できます。"]);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -80,7 +79,7 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
       if (projectData) {
         onProjectData(buildProjectData({ ...projectDataToBuilder(projectData), backgroundResult: result }));
       }
-      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定のためDemo背景で続行しました。" : "背景生成が完了しました。"]);
+      setStatusLogs((entries) => [...entries, result.providerMeta?.fallbackUsed ? "API未設定の工程を代替処理で背景生成しました。" : "背景生成が完了しました。"]);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "背景生成に失敗しました。";
       setError(message);
@@ -124,14 +123,12 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
     <div className="review-screen">
       <div className="review-page-heading">
         <div>
-          <p className="eyebrow">AI CREATIVE PROCESS BOARD <span className="step-pill">Step 4/4</span></p>
+          <p className="eyebrow">Content Production Board <span className="step-pill">Step 4/4</span></p>
           <h2>仕上げ</h2>
           <p>比較で選ばれたベース案に背景を生成・適用し、Final Candidateを整えます。</p>
         </div>
         <div className="badge-row">
-          <CanvasBadge />
-          <span className="provider-badge warning">実行モード: Demo Mode</span>
-          <ProviderBadge label="provider" provider={activeResult?.providerMeta?.provider ?? providers.background} fallbackUsed={activeResult?.providerMeta?.fallbackUsed} />
+          <ProviderBadge label="接続先" provider={activeResult?.providerMeta?.provider ?? providers.background} fallbackUsed={activeResult?.providerMeta?.fallbackUsed} />
         </div>
       </div>
 
@@ -250,7 +247,7 @@ function ChecklistCard({ title, items, completed = false }: { title: string; ite
 }
 
 function InsightHero({ text }: { text: string }) {
-  return <section className="insight-hero"><span>💡</span><strong>{text}</strong></section>;
+  return <section className="insight-hero"><span aria-hidden="true">i</span><strong>{text}</strong></section>;
 }
 
 function InsightCard({ title, items }: { title: string; items: string[] }) {

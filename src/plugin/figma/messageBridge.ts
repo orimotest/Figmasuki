@@ -62,8 +62,8 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
     return {
       type: "RESIZE_UI",
       payload: {
-        width: Math.max(560, Math.min(1280, Math.round(width))),
-        height: Math.max(560, Math.min(920, Math.round(height))),
+        width: Math.max(640, Math.min(1280, Math.round(width))),
+        height: Math.max(420, Math.min(920, Math.round(height))),
       },
     };
   }
