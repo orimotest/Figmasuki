@@ -221,8 +221,7 @@ function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[]
   appendBoard(parent, board);
   addStageStats(board, [
     ["探索", "30案"],
-    ["Typographyへ", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}案`],
-    ["統合/保留", `${ideas.filter((idea) => idea.status !== "selected_for_typography").length}案`],
+    ["文字組みへ", `${ideas.filter((idea) => idea.status === "selected_for_typography").length}案`],
   ]);
   renderIdeaGrid(board, ideas, 24, 142, 1172);
   return board;
@@ -233,7 +232,7 @@ function renderTypographyDraftBoard(parent: FrameNode | null, drafts: Typography
   appendBoard(parent, board);
   addStageStats(board, [
     ["ドラフト", "15案"],
-    ["Refineへ", `${drafts.filter((draft) => draft.selectedForRefine).length}案`],
+    ["高品質SVGへ", `${drafts.filter((draft) => draft.selectedForRefine).length}案`],
     ["目的", "文字組み確認"],
   ]);
   renderDraftGrid(board, drafts, 24, 142, 1372);
@@ -315,36 +314,32 @@ function renderIdeaGrid(parent: FrameNode, ideas: IdeaDirection[], x: number, y:
     const rowIndex = Math.floor(groupIndex / 2);
     const groupFrame = createCard(x + col * (groupWidth + 24), y + rowIndex * 238, groupWidth, 218);
     parent.appendChild(groupFrame);
-    const selectedCount = group.filter((idea) => idea.status === "selected_for_typography").length;
-    addText(groupFrame, getIdeaGroupTitle(groupIndex), 16, 14, { size: 14, bold: true, color: COLORS.blue, width: groupWidth - 160 });
-    addPill(groupFrame, groupWidth - 132, 12, `${selectedCount}案を採用`, COLORS.green, 112);
+    addText(groupFrame, getIdeaGroupTitle(groupIndex), 16, 14, { size: 14, bold: true, color: COLORS.blue, width: groupWidth - 32 });
     addText(groupFrame, getIdeaGroupDescription(groupIndex), 16, 40, { size: 9, color: COLORS.muted, width: groupWidth - 32 });
 
     group.forEach((idea, ideaIndex) => {
       const itemCol = ideaIndex % 2;
       const itemRow = Math.floor(ideaIndex / 2);
       const itemWidth = (groupWidth - 42) / 2;
+      const isSelected = idea.status === "selected_for_typography";
       const row = createFrame(
         `Idea / ${idea.name}`,
         16 + itemCol * (itemWidth + 10),
         68 + itemRow * 46,
         itemWidth,
         38,
-        idea.status === "selected_for_typography" ? COLORS.paleBlue : COLORS.board,
+        isSelected ? COLORS.paleBlue : COLORS.board,
       );
       row.cornerRadius = 8;
-      row.strokes = [{ type: "SOLID", color: idea.status === "selected_for_typography" ? COLORS.blue : COLORS.border }];
-      row.strokeWeight = idea.status === "selected_for_typography" ? 1.5 : 1;
+      row.strokes = [{ type: "SOLID", color: isSelected ? COLORS.blue : COLORS.border }];
+      row.strokeWeight = isSelected ? 1.5 : 1;
       groupFrame.appendChild(row);
-      const statusLabel = idea.status === "selected_for_typography" ? "残す" : idea.status === "merged" ? "統合" : "保留";
-      const statusColor = idea.status === "selected_for_typography" ? COLORS.green : idea.status === "merged" ? COLORS.orange : COLORS.muted;
       addText(row, `${String(groupIndex * 6 + ideaIndex + 1).padStart(2, "0")} ${idea.name}`, 8, 7, {
         size: 8,
         bold: true,
-        color: statusColor,
-        width: itemWidth - 58,
+        color: isSelected ? COLORS.blue : COLORS.text,
+        width: itemWidth - 16,
       });
-      addPill(row, itemWidth - 52, 6, statusLabel, statusColor, 40);
       addText(row, idea.mainCopy.replace(/\n/g, " / "), 8, 22, { size: 7, bold: true, width: itemWidth - 16, height: 12 });
     });
   });
@@ -381,7 +376,11 @@ function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number
   drafts.slice(0, 15).forEach((draft, index) => {
     const col = index % 5;
     const row = Math.floor(index / 5);
-    const card = createCard(x + col * (cardWidth + 12), y + row * 292, cardWidth, 272);
+    const card = createCard(x + col * (cardWidth + 12), y + row * 262, cardWidth, 242);
+    if (draft.selectedForRefine) {
+      card.strokes = [{ type: "SOLID", color: COLORS.blue }];
+      card.strokeWeight = 1.5;
+    }
     parent.appendChild(card);
     addText(card, `${draft.name} / ${typographyDraftLayoutLabels[draft.layoutType]}`, 12, 10, {
       size: 10,
@@ -392,7 +391,6 @@ function renderDraftGrid(parent: FrameNode, drafts: TypographyDraft[], x: number
     addText(card, draft.directionName, 12, 30, { size: 8, color: COLORS.muted, width: cardWidth - 24 });
     appendSvg(card, draft.svg, 12, 54, cardWidth - 24, 138, draft.name);
     addText(card, draft.evaluationMemo, 12, 204, { size: 8, color: COLORS.muted, width: cardWidth - 24, height: 28 });
-    addPill(card, 12, 236, draft.selectedForRefine ? "5案へ残す" : "比較保留", draft.selectedForRefine ? COLORS.green : COLORS.muted, 90);
   });
 }
 
