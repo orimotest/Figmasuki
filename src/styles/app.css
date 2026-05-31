@@ -151,6 +151,8 @@ input:focus-visible {
   min-width: 0;
   display: grid;
   gap: 1px;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .sidebar-nav-item strong {
@@ -159,6 +161,8 @@ input:focus-visible {
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .sidebar-nav-item small {
@@ -169,6 +173,8 @@ input:focus-visible {
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .sidebar-status-icon {

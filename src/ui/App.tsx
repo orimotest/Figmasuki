@@ -20,7 +20,7 @@ import { ExploreScreen } from "./screens/ExploreScreen";
 import { FinishScreen } from "./screens/FinishScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
-const appViews: AppView[] = ["Auto", "Brief", "Diagnose", "Compare", "Finish", "Output"];
+const appViews: AppView[] = ["Brief", "Auto", "Diagnose", "Compare", "Finish", "Output"];
 
 const uiSizePresets = {
   Fit: { width: 800, height: 450 },
@@ -70,7 +70,7 @@ const viewLabels: Record<Exclude<AppView, "Settings">, { label: string; pill: st
 };
 
 export default function App() {
-  const [activeView, setActiveView] = useState<Exclude<AppView, "Settings">>("Auto");
+  const [activeView, setActiveView] = useState<Exclude<AppView, "Settings">>("Brief");
   const [uiSize, setUiSize] = useState<UiSizePreset>("Fit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);

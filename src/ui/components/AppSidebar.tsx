@@ -12,8 +12,8 @@ type AppSidebarProps = {
 };
 
 const navigationItems = [
-  { view: "Auto", label: "自動制作", description: "Finalまで", icon: PlayCircle },
   { view: "Brief", label: "要件入力", description: "入力を整理", icon: ClipboardList },
+  { view: "Auto", label: "自動制作", description: "Finalまで", icon: PlayCircle },
   { view: "Diagnose", label: "診断", description: "1案を見る", icon: Stethoscope },
   { view: "Compare", label: "比較", description: "複数案を整理", icon: Columns3 },
   { view: "Finish", label: "仕上げ", description: "背景とFinal", icon: Sparkles },
