@@ -32,6 +32,7 @@ import { normalizeRichTextInput } from "../../utils/markdown/normalizeRichText";
 
 type ExploreScreenProps = {
   phase?: "brief" | "production";
+  forcedInputMode?: InputMode;
   providers: ProviderConfig;
   projectData: ProjectData | null;
   onProceedToProduction?: () => void;
@@ -43,6 +44,41 @@ const sampleBriefs = {
     "note記事のサムネイル。テーマは「AI時代にデザイナーが持つべき判断力」。派手なAI感ではなく、制作現場で考え続ける人に届く静かな編集感にしたい。",
   seminar_banner:
     "オンラインセミナー集客用のバナー。対象はAI活用に関心はあるが、何から試すべきか迷っている事業部門の担当者。60分で基本の考え方と明日使える実践例を持ち帰れることを伝えたい。信頼感は保ちつつ、難しそうに見せない。",
+} satisfies Record<ContentType, string>;
+
+const sampleMarkdowns = {
+  note_thumbnail: `# noteサムネイル要件
+
+## テーマ
+AI時代にデザイナーが持つべき判断力
+
+## 読者
+- 制作現場でAIを使い始めたデザイナー
+- 生成結果の採用判断に迷っている編集者
+
+## 訴求
+- AIっぽさを避け、現場の言葉で判断する
+- 派手さよりも読みやすさと信頼感を優先する
+
+> 落ち着いた編集感。強い煽りは避ける。`,
+  seminar_banner: `# オンラインセミナー告知バナー
+
+## イベント概要
+- テーマ: AI活用の第一歩
+- 形式: オンラインセミナー
+- 対象: 事業部門の担当者、企画職、制作進行
+
+## 固定情報
+| 項目 | 内容 |
+| --- | --- |
+| 日時 | 6.18 WED 14:00-15:00 |
+| CTA | 無料で参加する |
+
+## 訴求
+- 60分で基本の考え方を把握できる
+- 明日から小さく試せる実践例を持ち帰れる
+
+> 信頼感を保ちつつ、難しそうに見せない。`,
 } satisfies Record<ContentType, string>;
 
 const emptyFixedCopy: FixedCopyInput = {
@@ -61,9 +97,9 @@ const sampleFixedCopy: FixedCopyInput = {
   time: "14:00-15:00",
 };
 
-export function ExploreScreen({ phase = "production", providers, projectData, onProceedToProduction, onProjectData }: ExploreScreenProps) {
+export function ExploreScreen({ phase = "production", forcedInputMode, providers, projectData, onProceedToProduction, onProjectData }: ExploreScreenProps) {
   const [contentType, setContentType] = useState<ContentType>("seminar_banner");
-  const [inputMode, setInputMode] = useState<InputMode>("brief_text");
+  const [inputMode, setInputMode] = useState<InputMode>(forcedInputMode ?? "brief_text");
   const [projectName, setProjectName] = useState("");
   const [briefText, setBriefText] = useState("");
   const [fixedCopy, setFixedCopy] = useState<FixedCopyInput>(emptyFixedCopy);
@@ -123,9 +159,13 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
   const primaryCandidate =
     visibleSvgCandidates.find((candidate) => candidate.id === projectData?.comparisonResult?.recommendation.primaryFrameId) ?? visibleSvgCandidates[0];
 
+  useEffect(() => {
+    if (forcedInputMode) setInputMode(forcedInputMode);
+  }, [forcedInputMode]);
+
   function loadSample(type: ContentType = "seminar_banner") {
     setContentType(type);
-    setInputMode("brief_text");
+    setInputMode(forcedInputMode ?? "brief_text");
     setProjectName(type === "seminar_banner" ? "オンラインセミナー集客バナー" : "AI時代のデザイン思考サムネイル");
     setBriefText(sampleBriefs[type]);
     setFixedCopy(sampleFixedCopy);
@@ -136,7 +176,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     setPdfFileName("");
     setPdfText("");
     setPdfStatus("");
-    setMarkdownText("");
+    setMarkdownText(forcedInputMode === "markdown" ? sampleMarkdowns[type] : "");
     setReferenceFrameSummary("");
     setProductionBrief(null);
     setError(null);
@@ -360,7 +400,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     setProductionStage("input_ready");
     setFigmaOutputs([]);
     setContentType("seminar_banner");
-    setInputMode("brief_text");
+    setInputMode(forcedInputMode ?? "brief_text");
     setProjectName("");
     setBriefText("");
     setFixedCopy(emptyFixedCopy);
@@ -420,7 +460,13 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
   const requirementEditor = (
     <>
       <div className="requirement-form">
-        <InputModeSelector value={inputMode} onChange={setInputMode} />
+        {!forcedInputMode && <InputModeSelector value={inputMode} onChange={setInputMode} />}
+        {forcedInputMode === "markdown" && (
+          <div className="mode-context-note">
+            <strong>Markdown / リッチテキスト入力</strong>
+            <span>見出し、箇条書き、表、引用を要件構造として読み取り、制作ブリーフとFigma要件ボードに使います。</span>
+          </div>
+        )}
 
         {inputMode === "minimal_prompt" && (
           <label className="field full-width primary-input-field">
@@ -582,7 +628,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
               リセット
             </button>
           </ActionBar>
-          {inputMode !== "brief_text" && advancedEditor}
+          {inputMode !== "brief_text" && inputMode !== "markdown" && advancedEditor}
         </section>
       </div>
     );

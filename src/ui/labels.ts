@@ -27,13 +27,13 @@ export const contentTypeLabels: Record<ContentType, string> = {
 };
 
 export const inputModeLabels: Record<InputMode, string> = {
-  minimal_prompt: "おまかせで作る",
-  brief_text: "要件テキストから作る",
-  fixed_copy: "確定コピーから作る",
-  pdf: "PDF / 資料から作る",
-  markdown: "Markdownから作る",
-  figma_reference: "既存Figma案を参考にする",
-  figma_variation: "既存Figma案を参考にする",
+  minimal_prompt: "AIに自動生成",
+  brief_text: "テキスト入力",
+  fixed_copy: "テキスト入力",
+  pdf: "PDFから生成",
+  markdown: "Markdownから生成",
+  figma_reference: "Figma案を参考",
+  figma_variation: "Figma案を参考",
 };
 
 export const providerLabels: Record<ProviderMode, string> = {

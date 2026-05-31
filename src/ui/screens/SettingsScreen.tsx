@@ -16,12 +16,21 @@ const difyFields: Array<[keyof RuntimeApiSettings["dify"], string, string]> = [
   ["compare", "Compare", "5案比較とbackground briefを生成"],
 ];
 
+const uiSizePresets = {
+  vertical: { label: "縦長", description: "左ナビと縦スクロール中心で確認する", width: 720, height: 620 },
+  work: { label: "作業", description: "入力と結果を並べて広めに使う", width: 840, height: 680 },
+  review: { label: "全体確認", description: "レビュー時に全体を見渡す", width: 1040, height: 720 },
+} as const;
+
+type UiSizePreset = keyof typeof uiSizePresets;
+
 type SettingsScreenProps = {
   compact?: boolean;
 };
 
 export function SettingsScreen({ compact = false }: SettingsScreenProps) {
   const [settings, setSettings] = useState<RuntimeApiSettings>(() => getRuntimeApiSettings());
+  const [uiSize, setUiSize] = useState<UiSizePreset>("vertical");
   const [logs, setLogs] = useState<string[]>([
     "API設定を保存すると外部APIに接続して制作フローを実行できます。未設定の場合は代替処理で動作します。",
   ]);
@@ -79,6 +88,13 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
     setLogs((items) => [...items, mode === "demo" ? "Demoモードに切り替えました。APIは呼ばずに確認できます。" : "APIモードに切り替えました。設定済みの接続先を使います。"]);
   }
 
+  function handleResizeUi(size: UiSizePreset) {
+    const preset = uiSizePresets[size];
+    setUiSize(size);
+    postToPlugin({ type: "RESIZE_UI", payload: { width: preset.width, height: preset.height } });
+    setLogs((items) => [...items, `表示サイズを${preset.label}に変更しました。`]);
+  }
+
   function handleSave() {
     setError(null);
     setSuccess(null);
@@ -121,6 +137,24 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
                 : "APIモードを使うには、DifyまたはGeminiの接続情報を入力してください。"
               : "Demoでは外部APIを呼ばず、制作フローとFigma出力を確認できます。"}
           </p>
+        </div>
+        <div className="settings-size-panel" aria-label="表示サイズ">
+          <div className="settings-size-heading">
+            <strong>表示サイズ</strong>
+            <span>Figmaプラグインの作業幅に合わせて切り替えます。</span>
+          </div>
+          <div className="size-preset-list" role="group" aria-label="表示サイズプリセット">
+            {(Object.keys(uiSizePresets) as UiSizePreset[]).map((key) => {
+              const preset = uiSizePresets[key];
+              return (
+                <button key={key} className={uiSize === key ? "active" : ""} type="button" onClick={() => handleResizeUi(key)}>
+                  <strong>{preset.label}</strong>
+                  <small>{preset.description}</small>
+                  <em>{preset.width}x{preset.height}</em>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="settings-summary">
           <span>現在: {settings.mode === "api" ? (isRuntimeLiveReady(settings) ? "APIモード" : "API設定待ち") : "Demoモード"}</span>

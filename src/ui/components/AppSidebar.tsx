@@ -1,17 +1,17 @@
 import { CheckCircle2, Circle, ClipboardList, Columns3, FileOutput, FileText, PlayCircle, Settings, Sparkles, Stethoscope, TriangleAlert } from "lucide-react";
 
-export type AppView = "Auto" | "Brief" | "Diagnose" | "Compare" | "Finish" | "Output" | "Settings";
+export type AppView = "Auto" | "Brief" | "Markdown" | "Diagnose" | "Compare" | "Finish" | "Output" | "Settings";
 export type AppViewStatus = "idle" | "done" | "error";
 
 type AppSidebarProps = {
   activeView: AppView;
-  outputCount: number;
   statuses: Partial<Record<AppView, AppViewStatus>>;
   onChange: (view: AppView) => void;
 };
 
 const navigationItems = [
   { view: "Brief", label: "要件入力", description: "入力を整理", icon: ClipboardList },
+  { view: "Markdown", label: "Markdown", description: "構造から生成", icon: FileText },
   { view: "Auto", label: "自動制作", description: "Finalまで", icon: PlayCircle },
   { view: "Diagnose", label: "診断", description: "1案を見る", icon: Stethoscope },
   { view: "Compare", label: "比較", description: "複数案を整理", icon: Columns3 },
@@ -20,7 +20,7 @@ const navigationItems = [
   { view: "Settings", label: "設定", description: "API接続", icon: Settings },
 ] satisfies Array<{ view: AppView; label: string; description: string; icon: typeof FileText }>;
 
-export function AppSidebar({ activeView, outputCount, statuses, onChange }: AppSidebarProps) {
+export function AppSidebar({ activeView, statuses, onChange }: AppSidebarProps) {
   return (
     <aside className="app-sidebar" aria-label="メインナビゲーション">
       <div className="sidebar-brand">
@@ -45,10 +45,6 @@ export function AppSidebar({ activeView, outputCount, statuses, onChange }: AppS
         })}
       </nav>
 
-      <div className="sidebar-status">
-        <span className="sidebar-mode">設定で切替</span>
-        <span>{outputCount}/7 Figma</span>
-      </div>
     </aside>
   );
 }

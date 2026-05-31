@@ -9,32 +9,16 @@ import type { ProcessBoardStage } from "../schemas/production";
 import type { ProjectData } from "../schemas/project";
 import type { ProviderConfig } from "../schemas/provider";
 import { postToPlugin } from "../plugin/figma/messageBridge";
-import { ActionFooter } from "./components/ActionFooter";
 import { AppSidebar, type AppView, type AppViewStatus } from "./components/AppSidebar";
 import { CanvasBadge } from "./components/CanvasBadge";
 import { EmptyState } from "./components/EmptyState";
-import { StatusLog } from "./components/StatusLog";
 import { CompareScreen } from "./screens/CompareScreen";
 import { DiagnoseScreen } from "./screens/DiagnoseScreen";
 import { ExploreScreen } from "./screens/ExploreScreen";
 import { FinishScreen } from "./screens/FinishScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
-const appViews: AppView[] = ["Brief", "Auto", "Diagnose", "Compare", "Finish", "Output"];
-
-const uiSizePresets = {
-  Fit: { width: 720, height: 620 },
-  Work: { width: 840, height: 680 },
-  Review: { width: 1040, height: 720 },
-} as const;
-
-type UiSizePreset = keyof typeof uiSizePresets;
-
-const uiSizeLabels = {
-  Fit: "Fit",
-  Work: "Work",
-  Review: "Review",
-} satisfies Record<UiSizePreset, string>;
+const appViews: AppView[] = ["Brief", "Markdown", "Auto", "Diagnose", "Compare", "Finish", "Output"];
 
 const viewLabels: Record<Exclude<AppView, "Settings">, { label: string; pill: string; description: string }> = {
   Auto: {
@@ -45,7 +29,12 @@ const viewLabels: Record<Exclude<AppView, "Settings">, { label: string; pill: st
   Brief: {
     label: "要件入力",
     pill: "Input",
-    description: "作りたいもの、要件書、PDF、Markdown、Figma参照を制作ブリーフへ整理します。",
+    description: "作りたいもの、テキスト、PDF、Figma参照を制作ブリーフへ整理します。",
+  },
+  Markdown: {
+    label: "Markdown生成",
+    pill: "Document",
+    description: "Notion、ChatGPT、要件書の構造を読み取り、要件定義ボードにも残します。",
   },
   Diagnose: {
     label: "診断",
@@ -71,7 +60,6 @@ const viewLabels: Record<Exclude<AppView, "Settings">, { label: string; pill: st
 
 export default function App() {
   const [activeView, setActiveView] = useState<Exclude<AppView, "Settings">>("Brief");
-  const [uiSize, setUiSize] = useState<UiSizePreset>("Fit");
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
@@ -88,6 +76,7 @@ export default function App() {
     return {
       Auto: projectData?.productionStatus?.stage === "error" ? "error" : projectData?.svgCandidates.length ? "done" : "idle",
       Brief: projectData ? "done" : "idle",
+      Markdown: projectData?.inputMode === "markdown" ? "done" : "idle",
       Diagnose: diagnosis || projectData?.diagnosisResults.length ? "done" : "idle",
       Compare: hasComparison ? "done" : "idle",
       Finish: hasBackground ? "done" : "idle",
@@ -150,11 +139,6 @@ export default function App() {
     handleRenderFullProcess();
   }
 
-  function handleResizeUi(size: UiSizePreset) {
-    setUiSize(size);
-    postToPlugin({ type: "RESIZE_UI", payload: uiSizePresets[size] });
-  }
-
   function handleSidebarChange(view: AppView) {
     if (view === "Settings") {
       setSettingsOpen(true);
@@ -165,7 +149,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AppSidebar activeView={activeView} outputCount={outputCount} statuses={navStatuses} onChange={handleSidebarChange} />
+      <AppSidebar activeView={activeView} statuses={navStatuses} onChange={handleSidebarChange} />
 
       <section className="app-workspace">
         <header className="plugin-header app-header">
@@ -179,14 +163,6 @@ export default function App() {
           </div>
           <div className="header-meta">
             <CanvasBadge />
-            <span className="provider-badge">{outputCount}/7 Figma</span>
-            <div className="ui-size-control" aria-label="UI size">
-              {(["Fit", "Work", "Review"] as UiSizePreset[]).map((size) => (
-                <button key={size} className={uiSize === size ? "active" : ""} type="button" onClick={() => handleResizeUi(size)}>
-                  {uiSizeLabels[size]}
-                </button>
-              ))}
-            </div>
             {(activeView === "Auto" || activeView === "Output") && (
               <button className="header-button" type="button" disabled={activeView === "Output" && !projectData} onClick={handleHeaderAction}>
                 {activeView === "Auto" ? "自動制作を開始" : "全工程をFigmaへ出力"}
@@ -198,6 +174,7 @@ export default function App() {
         <section className="plugin-scroll-area nice-scrollbar scroll-fade-bottom screen-area">
           {activeView === "Auto" && <ExploreScreen phase="production" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
           {activeView === "Brief" && <ExploreScreen phase="brief" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
+          {activeView === "Markdown" && <ExploreScreen phase="brief" forcedInputMode="markdown" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
           {activeView === "Diagnose" && <DiagnoseScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onDiagnosis={setDiagnosis} />}
           {activeView === "Compare" && <CompareScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onComparison={setComparison} onBackground={setBackground} />}
           {activeView === "Finish" && (
@@ -212,19 +189,6 @@ export default function App() {
           )}
           {activeView === "Output" && <FigmaOutputView projectData={projectData} onRenderFullProcess={handleRenderFullProcess} />}
         </section>
-
-        <ActionFooter>
-          <StatusLog
-            entries={[
-              settingsOpen
-                ? "APIキーは保存時にFigma clientStorageへ送ります。Gitには書き込みません。"
-                : activeView === "Brief"
-                  ? "要件入力は制作フローの入口です。Markdown、PDF、Figma参照もここで整理できます。"
-                  : "AIの工程、Figma出力状況、Final Candidateまでのつながりを確認できます。",
-              "制作モードは設定で切り替えます。APIキーや接続先はログに出しません。",
-            ]}
-          />
-        </ActionFooter>
       </section>
 
       {settingsOpen && (
@@ -252,6 +216,7 @@ function legacyTabToView(value: string | undefined): AppView | null {
   if (!value) return null;
   if (value === "Explore") return "Auto";
   if (value === "Brief") return "Brief";
+  if (value === "Markdown") return "Markdown";
   if (value === "Compare") return "Compare";
   if (value === "Diagnose") return "Diagnose";
   if (value === "Finish") return "Finish";
