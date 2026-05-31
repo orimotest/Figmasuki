@@ -19,11 +19,6 @@ export const tabLabels: Record<AppTab, { label: string; description: string; sho
     description: "選択したFigmaフレームや制作済み案を、単体ツールとして比較・評価できます。",
     shortDescription: "単体評価ツール",
   },
-  Settings: {
-    label: "設定",
-    description: "Dify / Geminiの接続情報と実行モードを確認します。",
-    shortDescription: "API接続",
-  },
 };
 
 export const contentTypeLabels: Record<ContentType, string> = {
@@ -36,6 +31,7 @@ export const inputModeLabels: Record<InputMode, string> = {
   brief_text: "要件テキストから作る",
   fixed_copy: "確定コピーから作る",
   pdf: "PDF / 資料から作る",
+  markdown: "Markdownから作る",
   figma_reference: "既存Figma案を参考にする",
   figma_variation: "既存Figma案を参考にする",
 };

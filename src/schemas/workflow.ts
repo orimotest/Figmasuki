@@ -65,9 +65,12 @@ export type DemoComparison = {
 export type FinalCandidate = {
   id: string;
   name: string;
+  variantLabel?: string;
   refinedCandidateId: string;
   selectedBackgroundId?: string;
   reason: string;
+  backgroundDirection?: string;
+  compositionNotes?: string[];
   editableLayers: string[];
   nextAdjustments: string[];
 };
@@ -79,4 +82,5 @@ export type StageWorkflowData = {
   demoComparison?: DemoComparison;
   backgroundVariations: BackgroundVariation[];
   finalCandidate?: FinalCandidate;
+  finalCandidates?: FinalCandidate[];
 };

@@ -3,7 +3,7 @@ import type { ComparisonResult } from "../../schemas/comparison";
 import type { Direction } from "../../schemas/direction";
 import type { LayoutDraftInput, TypographyDraftLayoutType } from "../../schemas/layoutDraft";
 import type { SvgCandidate } from "../../schemas/svg";
-import type { BackgroundVariation, DemoComparison, FinalCandidate, IdeaDirection, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
+import type { BackgroundVariation, DemoComparison, FinalCandidate, IdeaDirection, RefinedSvgCandidate, StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
 import { createTypographyDraftSvg } from "../../utils/typographyDraftSvg";
 import { editorialPaperBackgroundDataUrl, softGradientBackgroundDataUrl, subtleGeometryBackgroundDataUrl } from "./backgroundImageData";
 
@@ -94,6 +94,7 @@ export function createDemoStageWorkflow(params: {
     editableLayers: ["見出しテキスト", "サブコピー", "CTA", "日時情報", "背景レイヤー"],
     nextAdjustments: ["開催日時を実データに差し替える", "ブランドカラーへ寄せる", "CTA文言を申し込み導線に合わせる"],
   };
+  const finalCandidates = createFinalCandidates(refinedSvgCandidates, backgroundVariations, primaryCandidate, finalCandidate);
 
   return {
     ideaDirections,
@@ -102,7 +103,59 @@ export function createDemoStageWorkflow(params: {
     demoComparison: createDemoComparison(),
     backgroundVariations,
     finalCandidate,
+    finalCandidates,
   };
+}
+
+function createFinalCandidates(
+  refinedCandidates: RefinedSvgCandidate[],
+  backgroundVariations: BackgroundVariation[],
+  primaryCandidate: RefinedSvgCandidate | undefined,
+  legacyFinalCandidate: FinalCandidate,
+): FinalCandidate[] {
+  const fallbackCandidate = primaryCandidate ?? refinedCandidates[0];
+  const candidateQueue = [primaryCandidate, refinedCandidates[1], refinedCandidates[2]].filter(Boolean) as RefinedSvgCandidate[];
+  const variantNotes = [
+    {
+      label: "A",
+      name: "Final A / Quiet Tech",
+      reason: "背景の余白とやわらかい奥行きを生かし、初学者が最初に読むコピーを落ち着いて見せる完成案です。",
+      compositionNotes: ["左側に主コピーの読み始めを作る", "CTA周辺の背景コントラストを抑える", "テック感は薄く、信頼感を優先する"],
+      nextAdjustments: ["開催日時を実データへ差し替える", "ブランドカラーの緑をCTAだけに寄せる", "背景の明度をFigma上で微調整する"],
+    },
+    {
+      label: "B",
+      name: "Final B / Structured Geometry",
+      reason: "幾何学的な背景を使い、情報整理や実務感を強めた案です。比較検討中のユーザーに判断材料を渡しやすくします。",
+      compositionNotes: ["右側に補足情報のまとまりを作る", "背景パターンで視線の流れを作る", "見出しとCTAの距離を近づける"],
+      nextAdjustments: ["背景線が文字に近い箇所を避ける", "サブコピーを短くして実務感を残す", "CTAの横幅を申込文言に合わせる"],
+    },
+    {
+      label: "C",
+      name: "Final C / Editorial Texture",
+      reason: "紙面感のある写真・質感を生かし、セミナー告知を読み物として見せる案です。広告感を抑えたい掲載面に向きます。",
+      compositionNotes: ["余白を広く取り、読み物感を出す", "文字量を絞って写真の質感を見せる", "CTAは控えめだが見失わない位置に置く"],
+      nextAdjustments: ["背景の粒状感をブランドトーンに合わせる", "見出しの改行位置を最終コピーで調整する", "SNS掲載時の縮小表示を確認する"],
+    },
+  ];
+
+  return backgroundVariations.slice(0, 3).map((background, index) => {
+    const notes = variantNotes[index] ?? variantNotes[0];
+    const candidate = candidateQueue[index] ?? fallbackCandidate;
+    return {
+      ...legacyFinalCandidate,
+      id: `final_demo_${notes.label.toLowerCase()}`,
+      name: notes.name,
+      variantLabel: notes.label,
+      refinedCandidateId: candidate?.id ?? fallbackCandidate?.id ?? legacyFinalCandidate.refinedCandidateId,
+      selectedBackgroundId: background.id,
+      reason: notes.reason,
+      backgroundDirection: background.direction,
+      compositionNotes: notes.compositionNotes,
+      editableLayers: ["見出しテキスト", "サブコピー", "CTA", "日時情報", "背景画像レイヤー"],
+      nextAdjustments: notes.nextAdjustments,
+    };
+  });
 }
 
 function createIdeaDirections(directions: Direction[]): IdeaDirection[] {

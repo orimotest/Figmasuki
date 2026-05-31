@@ -2,6 +2,7 @@ import { appConfig } from "../config/app";
 import { RUNTIME_API_SETTINGS_STORAGE_KEY } from "../config/runtimeApiSettings";
 import type { RuntimeApiSettings } from "../schemas/apiSettings";
 import type { ProjectData } from "../schemas/project";
+import type { FinalCandidate } from "../schemas/workflow";
 import { createSvgNode } from "./figma/createSvgNode";
 import { extractFrameData } from "./figma/extractFrameData";
 import { extractMultiFrameData } from "./figma/extractMultiFrameData";
@@ -9,12 +10,14 @@ import { insertBackgroundImage } from "./figma/insertBackgroundImage";
 import { getErrorMessage, parsePluginRequestMessage, postToUi } from "./figma/messageBridge";
 import {
   PROCESS_STAGE_POSITIONS,
+  renderProcessOverviewBoard,
   renderProcessBoard,
   renderProcessStageBoard,
   renderStandaloneCompareBoard,
   renderStandaloneDiagnosisBoard,
   renderStandaloneFinishBoard,
 } from "./figma/renderProcessBoard";
+import { renderRequirementDocumentBoard } from "./figma/renderRequirementDocumentBoard";
 
 const PROCESS_LAYOUT = {
   baseXOffset: -3800,
@@ -85,6 +88,7 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     if (message.type === "PLACE_EXPLORE_PACKAGE") {
       const { startX, startY } = resetProcessBase();
       const boards = [];
+      boards.push(await renderProcessOverviewBoard(message.payload, { x: startX - 880, y: startY, zoom: false }));
       boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
       await sleep(350);
       boards.push(await renderProcessStageBoard(message.payload, "ideas", { ...getStagePosition("ideas", startX, startY), zoom: false }));
@@ -112,6 +116,12 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
       figma.currentPage.selection = [...boards, ...nodes, ...finalNodes];
       figma.viewport.scrollAndZoomIntoView([...boards, ...nodes, ...finalNodes]);
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "工程別ボードをFigmaに作成しました。" } });
+      return;
+    }
+
+    if (message.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD") {
+      await renderRequirementDocumentBoard(message.payload);
+      postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "要件定義ボードをFigmaに記録しました。" } });
       return;
     }
 
@@ -199,21 +209,43 @@ function placeSvgCandidates(items: Array<{ svg: string; name?: string }>, positi
 }
 
 function placeFinalCandidate(project: ProjectData, position: { x: number; y: number }) {
-  const finalCandidateId = project.stageWorkflow?.finalCandidate?.refinedCandidateId;
-  const candidate = project.svgCandidates.find((item) => item.id === finalCandidateId) ?? project.svgCandidates[0];
-  const selectedBackground = project.stageWorkflow?.backgroundVariations.find((item) => item.id === project.stageWorkflow?.finalCandidate?.selectedBackgroundId || item.selected);
-  if (!candidate) return [];
-  if (selectedBackground?.imageDataUrl) {
-    return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, `FINAL_${candidate.name}`, position)];
-  }
-  return [
-    createSvgNode(candidate.svg, `FINAL_${candidate.name}`, {
-      x: position.x,
-      y: position.y,
-      select: false,
-      zoom: false,
-    }),
-  ];
+  const finalCandidates = project.stageWorkflow?.finalCandidates?.length
+    ? project.stageWorkflow.finalCandidates
+    : project.stageWorkflow?.finalCandidate
+      ? [project.stageWorkflow.finalCandidate]
+      : [];
+  const fallbackFinalCandidates: FinalCandidate[] = project.svgCandidates[0]
+    ? [
+        {
+          id: "final_fallback",
+          name: "Final Candidate",
+          refinedCandidateId: project.svgCandidates[0].id,
+          reason: "",
+          editableLayers: [],
+          nextAdjustments: [],
+        },
+      ]
+    : [];
+  const candidatesToPlace = finalCandidates.length > 0 ? finalCandidates : fallbackFinalCandidates;
+
+  return candidatesToPlace.flatMap((finalCandidate, index) => {
+    const candidate = project.svgCandidates.find((item) => item.id === finalCandidate.refinedCandidateId) ?? project.svgCandidates[index] ?? project.svgCandidates[0];
+    const selectedBackground = project.stageWorkflow?.backgroundVariations.find((item) => item.id === finalCandidate.selectedBackgroundId || (index === 0 && item.selected));
+    const itemPosition = { x: position.x + index * (800 + PROCESS_LAYOUT.candidateGap), y: position.y };
+    const frameName = `${finalCandidate.variantLabel ? `FINAL_${finalCandidate.variantLabel}` : "FINAL"}_${candidate?.name ?? finalCandidate.name}`;
+    if (!candidate) return [];
+    if (selectedBackground?.imageDataUrl) {
+      return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, frameName, itemPosition)];
+    }
+    return [
+      createSvgNode(candidate.svg, frameName, {
+        x: itemPosition.x,
+        y: itemPosition.y,
+        select: false,
+        zoom: false,
+      }),
+    ];
+  });
 }
 
 function createFinalCandidateFrame(svg: string, backgroundDataUrl: string, name: string, position: { x: number; y: number }): FrameNode {

@@ -11,6 +11,7 @@ const inputModes: Array<{ mode: InputMode; description: string }> = [
   { mode: "brief_text", description: "概要文を貼り付け" },
   { mode: "fixed_copy", description: "コピーを固定" },
   { mode: "pdf", description: "資料から整理" },
+  { mode: "markdown", description: "Notion/ChatGPTを貼る" },
   { mode: "figma_reference", description: "選択フレームを参考" },
 ];
 

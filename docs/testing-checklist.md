@@ -16,7 +16,9 @@
 
 - Import `manifest.json` in Figma as a development plugin.
 - Confirm the plugin opens at 800x450.
-- Confirm 要件 / 制作 / 評価 / 設定 tabs render.
+- Confirm 要件 / 制作 / 評価 tabs render.
+- Confirm the settings icon opens the left API settings drawer and Esc closes it.
+- Confirm Fit / Work / Review resize presets change the plugin window size.
 - Confirm CanvasBadge displays 800x450 / 16:9.
 - Confirm provider badges show Demo Mode or Live Mode accurately.
 

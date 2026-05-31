@@ -2,6 +2,7 @@ import type { BackgroundResult } from "../../schemas/background";
 import type { ComparisonResult } from "../../schemas/comparison";
 import type { DiagnosisResult } from "../../schemas/diagnosis";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
+import type { NormalizedCreativeInput } from "../../schemas/input";
 import type { RuntimeApiSettings } from "../../schemas/apiSettings";
 import type { ProjectData } from "../../schemas/project";
 import type { ProcessBoardStage } from "../../schemas/production";
@@ -12,6 +13,7 @@ export type PluginRequestMessage =
   | { type: "INSERT_SVG_BATCH"; payload: { items: Array<{ svg: string; name?: string }>; x?: number; y?: number } }
   | { type: "PLACE_EXPLORE_PACKAGE"; payload: ProjectData }
   | { type: "RENDER_PROCESS_BOARD"; payload: ProjectData }
+  | { type: "RENDER_REQUIREMENT_DOCUMENT_BOARD"; payload: NormalizedCreativeInput }
   | { type: "RENDER_PROCESS_STAGE_BOARD"; payload: { project: ProjectData; stage: ProcessBoardStage; x?: number; y?: number; zoom?: boolean } }
   | { type: "RENDER_DIAGNOSIS_BOARD"; payload: DiagnosisResult }
   | { type: "RENDER_COMPARE_BOARD"; payload: ComparisonResult }
@@ -97,6 +99,10 @@ export function parsePluginRequestMessage(value: unknown): PluginRequestMessage 
 
   if (value.type === "RENDER_PROCESS_BOARD" && isRecord(value.payload)) {
     return { type: "RENDER_PROCESS_BOARD", payload: value.payload as ProjectData };
+  }
+
+  if (value.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD" && isRecord(value.payload)) {
+    return { type: "RENDER_REQUIREMENT_DOCUMENT_BOARD", payload: value.payload as NormalizedCreativeInput };
   }
 
   if (

@@ -62,6 +62,7 @@ export type ProjectData = {
     comparison?: ComparisonResult;
     backgroundVariations?: StageWorkflowData["backgroundVariations"];
     finalCandidate?: StageWorkflowData["finalCandidate"];
+    finalCandidates?: StageWorkflowData["finalCandidates"];
   };
   figmaOutputs?: FigmaOutputRecord[];
   createdAt: string;

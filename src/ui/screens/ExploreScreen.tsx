@@ -20,6 +20,7 @@ import { EmptyState } from "../components/EmptyState";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { InputModeSelector } from "../components/InputModeSelector";
 import { LoadingState } from "../components/LoadingState";
+import { MarkdownInputPanel } from "../components/MarkdownInputPanel";
 import { PresetSelector } from "../components/PresetSelector";
 import { ProductionTimeline, type ProductionTimelineItem } from "../components/ProductionTimeline";
 import { ProviderBadge } from "../components/ProviderBadge";
@@ -27,6 +28,7 @@ import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
 import { contentTypeLabels, inputModeLabels } from "../labels";
+import { normalizeRichTextInput } from "../../utils/markdown/normalizeRichText";
 
 type ExploreScreenProps = {
   phase?: "brief" | "production";
@@ -72,6 +74,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
   const [pdfFileName, setPdfFileName] = useState("");
   const [pdfText, setPdfText] = useState("");
   const [pdfStatus, setPdfStatus] = useState("");
+  const [markdownText, setMarkdownText] = useState("");
   const [referenceFrameSummary, setReferenceFrameSummary] = useState("");
   const [productionBrief, setProductionBrief] = useState<NormalizedCreativeInput | null>(null);
   const [isOrganizing, setIsOrganizing] = useState(false);
@@ -113,7 +116,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     };
     window.addEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
     return () => window.removeEventListener("START_AUTO_PRODUCTION", handleHeaderStart);
-  }, [isGenerating, isOrganizing, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText, pdfText, referenceFrameSummary, productionBrief]);
+  }, [isGenerating, isOrganizing, contentType, inputMode, briefText, fixedCopy, targetAudience, appealPoint, toneValue, ctaText, pdfText, markdownText, referenceFrameSummary, productionBrief]);
 
   const workflow = projectData?.stageWorkflow;
   const visibleSvgCandidates = svgCandidates.length ? svgCandidates : projectData?.svgCandidates ?? [];
@@ -133,6 +136,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     setPdfFileName("");
     setPdfText("");
     setPdfStatus("");
+    setMarkdownText("");
     setReferenceFrameSummary("");
     setProductionBrief(null);
     setError(null);
@@ -182,6 +186,8 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     try {
       const normalized = productionBrief ?? (await organizeInputWithDify(rawInput));
       if (!productionBrief) setProductionBrief(normalized);
+      postToPlugin({ type: "RENDER_REQUIREMENT_DOCUMENT_BOARD", payload: normalized });
+      setStatusLogs((entries) => [...entries, "要件定義ボードをFigmaに記録します。"]);
       const workflowInput = createExploreInputFromProductionBrief(normalized);
 
       await wait(420);
@@ -296,7 +302,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
       const message = caught instanceof Error ? caught.message : "自動制作を実行できませんでした。";
       setError(message);
       setProductionStage("error");
-      setStatusLogs((entries) => [...entries, message, "設定が未完了の場合は、設定画面でAPI設定を確認してください。"]);
+      setStatusLogs((entries) => [...entries, message, "設定が未完了の場合は、ヘッダーの設定アイコンからAPI設定を確認してください。"]);
     } finally {
       setIsGenerating(false);
     }
@@ -304,18 +310,22 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
 
   function createExploreInput(): ExploreInput {
     const sourceMode = inputMode === "figma_variation" ? "figma_reference" : inputMode;
+    const markdownSummary = sourceMode === "markdown" ? normalizeRichTextInput(markdownText) : undefined;
+    const sourceText = sourceMode === "markdown" ? (markdownSummary?.plainText ?? markdownText) : briefText;
     return {
       contentType,
       inputMode: sourceMode,
       projectName,
-      briefText: sourceMode === "fixed_copy" ? undefined : briefText,
+      briefText: sourceMode === "fixed_copy" ? undefined : sourceText,
       fixedCopy: sourceMode === "fixed_copy" ? { ...fixedCopy, cta: ctaText } : undefined,
-      rawInput: `${briefText}\nターゲット: ${targetAudience}\n訴求ポイント: ${appealPoint}\nトーン: ${toneValue}\nCTA: ${ctaText}`,
+      rawInput: `${sourceText}\nターゲット: ${targetAudience}\n訴求ポイント: ${appealPoint}\nトーン: ${toneValue}\nCTA: ${ctaText}`,
       targetAudience,
       tone: toneValue,
       goal: appealPoint,
       pdfText: sourceMode === "pdf" ? pdfText || briefText : undefined,
       pdfFileName: sourceMode === "pdf" ? pdfFileName : undefined,
+      markdownText: sourceMode === "markdown" ? markdownText : undefined,
+      requirementBlocks: markdownSummary?.blocks,
       referenceFrameSummary: sourceMode === "figma_reference" ? referenceFrameSummary : undefined,
       assumptions: [],
     };
@@ -334,6 +344,8 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
       goal: brief.goal,
       pdfText: brief.pdfText,
       pdfFileName: brief.pdfFileName,
+      markdownText: brief.markdownText,
+      requirementBlocks: brief.requirementBlocks,
       referenceFrameSummary: brief.referenceFrameSummary,
       assumptions: brief.assumptions,
     };
@@ -359,6 +371,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     setPdfFileName("");
     setPdfText("");
     setPdfStatus("");
+    setMarkdownText("");
     setReferenceFrameSummary("");
     setProductionBrief(null);
     setStatusLogs(["結果をリセットしました。要件を入力して自動制作を開始できます。"]);
@@ -388,6 +401,20 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
     } finally {
       setIsOrganizing(false);
     }
+  }
+
+  async function handleRenderRequirementBoard() {
+    const input = createExploreInput();
+    const validationMessage = validateInput(input);
+    if (validationMessage) {
+      setError(validationMessage);
+      setStatusLogs((entries) => [...entries, validationMessage]);
+      return;
+    }
+    setError(null);
+    const normalized = productionBrief ?? (await normalizeCreativeInput(input));
+    postToPlugin({ type: "RENDER_REQUIREMENT_DOCUMENT_BOARD", payload: normalized });
+    setStatusLogs((entries) => [...entries, "要件定義ボードをFigmaへ出力します。"]);
   }
 
   const requirementEditor = (
@@ -431,6 +458,10 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
               </label>
             </div>
           </div>
+        )}
+
+        {inputMode === "markdown" && (
+          <MarkdownInputPanel value={markdownText} onChange={setMarkdownText} />
         )}
 
         {inputMode === "fixed_copy" && (
@@ -538,6 +569,9 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
             <button className="primary-button" type="button" disabled={isOrganizing} onClick={() => void handleProceedToProduction()}>
               {isOrganizing ? "ブリーフ整理中..." : "この要件で自動制作へ"}
             </button>
+            <button className="secondary-button" type="button" onClick={() => void handleRenderRequirementBoard()}>
+              要件ボードをFigmaに出力
+            </button>
             <button className="secondary-button" type="button" onClick={() => loadSample("seminar_banner")}>
               セミナーサンプル
             </button>
@@ -587,7 +621,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
         </div>
         <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
         {isGenerating && <LoadingState title={getProductionStageLabel(productionStage)} description={getProductionStageMessage(productionStage)} />}
-        {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="設定画面でAPI設定を確認するか、入力内容を調整してください。" />}
+        {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="ヘッダーの設定アイコンからAPI設定を確認するか、入力内容を調整してください。" />}
         {productionStage === "completed" && (
           <SuccessMessage
             title="制作プロセスが完了しました"
@@ -622,7 +656,7 @@ export function ExploreScreen({ phase = "production", providers, projectData, on
           items={visibleSvgCandidates.slice(0, 3).map((candidate) => ({ id: candidate.id, name: candidate.name, svg: candidate.svg }))}
           emptyTitle="高品質SVGを生成中"
         />
-        <FinalCandidatePreview candidate={primaryCandidate} completed={productionStage === "completed"} hasBackground={Boolean(projectData?.backgroundResult)} />
+        <FinalCandidatePreview project={projectData} candidate={primaryCandidate} completed={productionStage === "completed"} hasBackground={Boolean(projectData?.backgroundResult)} />
       </section>
     </div>
   );
@@ -855,7 +889,31 @@ function PreviewShelf({ title, count, items, emptyTitle }: { title: string; coun
   );
 }
 
-function FinalCandidatePreview({ candidate, completed, hasBackground }: { candidate?: SvgCandidate; completed: boolean; hasBackground: boolean }) {
+function FinalCandidatePreview({ project, candidate, completed, hasBackground }: { project: ProjectData | null; candidate?: SvgCandidate; completed: boolean; hasBackground: boolean }) {
+  const finals = project?.stageWorkflow?.finalCandidates ?? [];
+  if (finals.length > 1) {
+    return (
+      <div className="result-card final-preview-card">
+        <div className="result-card-header">
+          <strong>Final Candidates 3案</strong>
+          <span>{completed ? "3案をFigmaへ記録" : hasBackground ? "背景生成済み" : "生成中"}</span>
+        </div>
+        <div className="final-variant-list">
+          {finals.slice(0, 3).map((final, index) => {
+            const previewCandidate = project?.svgCandidates.find((item) => item.id === final.refinedCandidateId) ?? candidate;
+            return (
+              <article className="final-variant-card" key={final.id}>
+                {previewCandidate && <MiniSvgPreview svg={previewCandidate.svg} label={final.variantLabel ?? String.fromCharCode(65 + index)} />}
+                <strong>{final.name}</strong>
+                <p>{final.reason}</p>
+              </article>
+            );
+          })}
+        </div>
+        <p>背景3案を選別だけで終わらせず、写真・背景ごとに完成候補として残します。Figmaでは3枚を横並びで配置します。</p>
+      </div>
+    );
+  }
   return (
     <div className="result-card final-preview-card">
       <div className="result-card-header">
@@ -1041,6 +1099,7 @@ function wait(ms: number): Promise<void> {
 function validateInput(input: ExploreInput): string | null {
   if (input.inputMode === "minimal_prompt" && (input.briefText ?? "").trim().length === 0) return "作りたいものを入力してください。";
   if (input.inputMode === "brief_text" && (input.briefText ?? "").trim().length === 0) return "要件テキストを入力してください。";
+  if (input.inputMode === "markdown" && !(input.markdownText || input.briefText)?.trim()) return "Markdownまたはリッチテキストの要件を貼り付けてください。";
   if (input.inputMode === "pdf" && !(input.pdfText || input.briefText)?.trim()) {
     return "PDFからテキストを取得できない場合は、要件欄に内容を貼り付けてください。";
   }

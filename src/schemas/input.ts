@@ -1,8 +1,19 @@
 import type { ContentType } from "./content";
 import type { CanvasSize } from "./canvas";
 
-export type InputSource = "minimal_prompt" | "brief_text" | "fixed_copy" | "pdf" | "figma_reference";
+export type InputSource = "minimal_prompt" | "brief_text" | "fixed_copy" | "pdf" | "markdown" | "figma_reference";
 export type InputMode = InputSource | "figma_variation";
+
+export type RequirementBlockType = "heading" | "paragraph" | "list" | "ordered_list" | "quote" | "code" | "table";
+
+export type RequirementBlock = {
+  id: string;
+  type: RequirementBlockType;
+  text: string;
+  level?: 1 | 2 | 3;
+  items?: string[];
+  rows?: string[][];
+};
 
 export type FixedCopyInput = {
   main: string;
@@ -25,6 +36,8 @@ export type ExploreInput = {
   goal?: string;
   pdfText?: string;
   pdfFileName?: string;
+  markdownText?: string;
+  requirementBlocks?: RequirementBlock[];
   referenceFrameSummary?: string;
   assumptions?: string[];
 };
@@ -44,6 +57,8 @@ export type NormalizedCreativeInput = {
   briefText?: string;
   pdfText?: string;
   pdfFileName?: string;
+  markdownText?: string;
+  requirementBlocks?: RequirementBlock[];
   referenceFrameSummary?: string;
   assumptions: string[];
 };

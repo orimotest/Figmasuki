@@ -1,11 +1,11 @@
 # API Settings
 
-API設定は、プラグイン内の設定タブ、または `src/config/apiSettings.ts` で管理します。
+API設定は、プラグイン内の設定ドロワー、または `src/config/apiSettings.ts` で管理します。
 
-## 推奨: 設定タブで保存する
+## 推奨: 設定ドロワーで保存する
 
 1. プラグインを起動
-2. `設定` タブを開く
+2. ヘッダー右側の設定アイコンを押す
 3. Dify Workflow URL / API Keyを入力
 4. Gemini API Key / modelを入力
 5. `接続設定を確認`
@@ -54,6 +54,6 @@ Copy-Item src\config\apiSettings.example.ts src\config\apiSettings.ts
 ## providerConfigとの関係
 
 `src/config/providers.ts` は、どのproviderを使うかを決めます。  
-`apiSettings.ts` と設定タブは、Dify / GeminiのURLやKeyを管理します。
+`apiSettings.ts` と設定ドロワーは、Dify / GeminiのURLやKeyを管理します。
 
 API設定が未完了、またはAPI呼び出しに失敗した場合はDemo Modeで継続できるようにしています。

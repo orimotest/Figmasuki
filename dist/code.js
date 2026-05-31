@@ -399,6 +399,9 @@
     if (value.type === "RENDER_PROCESS_BOARD" && isRecord(value.payload)) {
       return { type: "RENDER_PROCESS_BOARD", payload: value.payload };
     }
+    if (value.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD" && isRecord(value.payload)) {
+      return { type: "RENDER_REQUIREMENT_DOCUMENT_BOARD", payload: value.payload };
+    }
     if (value.type === "RENDER_PROCESS_STAGE_BOARD" && isRecord(value.payload) && isRecord(value.payload.project) && hasString(value.payload, "stage") && isProcessBoardStage(value.payload.stage)) {
       return {
         type: "RENDER_PROCESS_STAGE_BOARD",
@@ -502,6 +505,7 @@
     const startX = (_a = options.x) != null ? _a : figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
     const startY = (_b = options.y) != null ? _b : figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
     const boards = [
+      createProcessOverviewBoard(project, startX - 880, startY),
       renderProcessStageAt(project, "project_header", startX, startY),
       renderProcessStageAt(project, "ideas", startX, startY),
       renderProcessStageAt(project, "typography_drafts", startX, startY),
@@ -516,6 +520,17 @@
       figma.viewport.scrollAndZoomIntoView(boards);
     }
     return boards;
+  }
+  async function renderProcessOverviewBoard(project, options = {}) {
+    var _a, _b;
+    await loadFonts();
+    const defaultPosition = getDefaultStagePosition("project_header");
+    const board = createProcessOverviewBoard(project, (_a = options.x) != null ? _a : defaultPosition.x - 880, (_b = options.y) != null ? _b : defaultPosition.y);
+    if (options.zoom !== false) {
+      figma.currentPage.selection = [board];
+      figma.viewport.scrollAndZoomIntoView([board]);
+    }
+    return board;
   }
   async function renderProcessStageBoard(project, stage, options = {}) {
     var _a, _b;
@@ -582,6 +597,117 @@
     renderFinishContent(board, result, comparison, 32, 120, 836);
     placeStandalone(board);
     return board;
+  }
+  function createProcessOverviewBoard(project, x, y) {
+    const board = createAutoFrame("00 Production Timeline", x, y, 820, COLORS.board);
+    board.cornerRadius = 18;
+    board.strokes = [{ type: "SOLID", color: COLORS.border }];
+    board.strokeWeight = 1;
+    board.paddingTop = 28;
+    board.paddingRight = 28;
+    board.paddingBottom = 28;
+    board.paddingLeft = 28;
+    board.itemSpacing = 16;
+    board.appendChild(createAutoText("00 Production Timeline", 24, true, 764, COLORS.text));
+    board.appendChild(
+      createAutoText("\u8981\u4EF6\u6574\u7406\u304B\u3089Final Candidate\u307E\u3067\u3001AI\u304C\u4F55\u3092\u751F\u6210\u3057\u3001\u3069\u3053\u3092\u4EBA\u304C\u5224\u65AD\u3059\u308B\u304B\u3092\u8FFD\u3048\u308B\u5DE5\u7A0B\u6982\u8981\u3067\u3059\u3002", 12, false, 764, COLORS.muted)
+    );
+    board.appendChild(createOverviewMetaRow(project));
+    const steps = getOverviewSteps(project);
+    const list = createAutoFrame("Production Steps", 0, 0, 764, COLORS.board);
+    list.fills = [];
+    list.itemSpacing = 8;
+    steps.forEach((step) => list.appendChild(createOverviewStep(step)));
+    board.appendChild(list);
+    figma.currentPage.appendChild(board);
+    return board;
+  }
+  function createOverviewMetaRow(project) {
+    var _a, _b;
+    const row = createAutoFrame("Project Summary", 0, 0, 764, COLORS.paleBlue, "HORIZONTAL");
+    row.counterAxisSizingMode = "AUTO";
+    row.paddingTop = 12;
+    row.paddingRight = 12;
+    row.paddingBottom = 12;
+    row.paddingLeft = 12;
+    row.itemSpacing = 10;
+    row.cornerRadius = 12;
+    row.strokes = [{ type: "SOLID", color: COLORS.border }];
+    row.strokeWeight = 1;
+    [
+      ["Project", project.projectName],
+      ["Mode", project.providerMeta.mode],
+      ["Canvas", `${project.canvasSize.width} x ${project.canvasSize.height}`],
+      ["Figma", `${(_b = (_a = project.figmaOutputs) == null ? void 0 : _a.filter((output) => output.status === "placed").length) != null ? _b : 0} recorded`]
+    ].forEach(([label, value]) => row.appendChild(createAutoMetric(label, value)));
+    return row;
+  }
+  function createOverviewStep(step) {
+    const row = createAutoFrame(`Step ${step.no} / ${step.title}`, 0, 0, 764, step.done ? COLORS.paleBlue : COLORS.card, "HORIZONTAL");
+    row.counterAxisSizingMode = "AUTO";
+    row.paddingTop = 12;
+    row.paddingRight = 14;
+    row.paddingBottom = 12;
+    row.paddingLeft = 14;
+    row.itemSpacing = 12;
+    row.cornerRadius = 10;
+    row.strokes = [{ type: "SOLID", color: step.done ? COLORS.blue : COLORS.border }];
+    row.strokeWeight = step.done ? 1.4 : 1;
+    const badge = createAutoFrame(`Status / ${step.done ? "Done" : "Pending"}`, 0, 0, 70, step.done ? COLORS.blue : COLORS.board);
+    badge.counterAxisSizingMode = "FIXED";
+    badge.paddingTop = 8;
+    badge.paddingRight = 8;
+    badge.paddingBottom = 8;
+    badge.paddingLeft = 8;
+    badge.cornerRadius = 8;
+    badge.strokes = [{ type: "SOLID", color: step.done ? COLORS.blue : COLORS.border }];
+    badge.strokeWeight = 1;
+    badge.appendChild(createAutoText(step.no, 11, true, 54, step.done ? COLORS.board : COLORS.blue));
+    badge.appendChild(createAutoText(step.done ? "\u5B8C\u4E86" : "\u5F85\u6A5F", 8, true, 54, step.done ? COLORS.board : COLORS.muted));
+    row.appendChild(badge);
+    const copy = createAutoFrame("Step Copy", 0, 0, 654, COLORS.card);
+    copy.fills = [];
+    copy.itemSpacing = 4;
+    copy.appendChild(createAutoText(step.title, 13, true, 654, COLORS.text));
+    copy.appendChild(createAutoText(step.detail, 10, false, 654, COLORS.muted));
+    row.appendChild(copy);
+    return row;
+  }
+  function createAutoMetric(label, value) {
+    const metric = createAutoFrame(`Metric / ${label}`, 0, 0, 176, COLORS.board);
+    metric.paddingTop = 10;
+    metric.paddingRight = 10;
+    metric.paddingBottom = 10;
+    metric.paddingLeft = 10;
+    metric.itemSpacing = 4;
+    metric.cornerRadius = 8;
+    metric.appendChild(createAutoText(label, 9, true, 156, COLORS.blue));
+    metric.appendChild(createAutoText(value || "\u672A\u6307\u5B9A", 10, false, 156, COLORS.text));
+    return metric;
+  }
+  function getOverviewSteps(project) {
+    var _a, _b, _c, _d, _e, _f, _g, _h;
+    const workflow = project.stageWorkflow;
+    const ideas = (_a = workflow == null ? void 0 : workflow.ideaDirections.length) != null ? _a : project.copyDirections.length;
+    const drafts = (_b = workflow == null ? void 0 : workflow.typographyDrafts.length) != null ? _b : project.layoutStrategies.length;
+    const refined = (_c = workflow == null ? void 0 : workflow.refinedSvgCandidates.length) != null ? _c : project.svgCandidates.length;
+    const backgrounds = (_d = workflow == null ? void 0 : workflow.backgroundVariations.length) != null ? _d : project.backgroundResult ? 1 : 0;
+    const finals = (_f = (_e = workflow == null ? void 0 : workflow.finalCandidates) == null ? void 0 : _e.length) != null ? _f : (workflow == null ? void 0 : workflow.finalCandidate) ? 1 : 0;
+    return [
+      {
+        no: "01",
+        title: "\u8981\u4EF6\u6574\u7406",
+        detail: trimForBoard(project.inputSummary.brief || project.inputSummary.rawInput || "\u5165\u529B\u8981\u4EF6\u3092\u6574\u7406\u3057\u3066\u5236\u4F5C\u524D\u63D0\u3092\u6B8B\u3057\u307E\u3059\u3002", 90),
+        done: Boolean(project.inputSummary.brief || project.inputSummary.rawInput)
+      },
+      { no: "02", title: "30\u6848\u63A2\u7D22", detail: `${ideas}\u6848\u3092\u5F79\u5272\u5225\u306B\u898B\u6BD4\u3079\u3001\u6587\u5B57\u7D44\u307F\u306B\u9032\u3081\u308B\u65B9\u5411\u3092\u6B8B\u3057\u307E\u3059\u3002`, done: ideas > 0 },
+      { no: "03", title: "15\u6848\u6587\u5B57\u7D44\u307F\u30C9\u30E9\u30D5\u30C8", detail: `${drafts}\u6848\u306E\u968E\u5C64\u3001\u4F59\u767D\u3001CTA\u4F4D\u7F6E\u3092\u6BD4\u8F03\u3057\u307E\u3059\u3002`, done: drafts > 0 },
+      { no: "04", title: "5\u6848\u9AD8\u54C1\u8CEASVG", detail: `${refined}\u6848\u3092Figma\u4E0A\u3067\u7DE8\u96C6\u3067\u304D\u308BSVG\u5019\u88DC\u3068\u3057\u3066\u6574\u7406\u3057\u307E\u3059\u3002`, done: refined > 0 },
+      { no: "05", title: "\u6BD4\u8F03\u30FB\u8A55\u4FA1", detail: "Primary / Secondary\u3068\u3001\u80CC\u666F\u751F\u6210\u3078\u9032\u3080\u7406\u7531\u3092\u8A18\u9332\u3057\u307E\u3059\u3002", done: Boolean(project.comparisonResult || (workflow == null ? void 0 : workflow.demoComparison)) },
+      { no: "06", title: "\u80CC\u666F3\u6848\u751F\u6210", detail: `${backgrounds}\u6848\u306E\u80CC\u666F\u65B9\u5411\u3092\u6BD4\u8F03\u3057\u3001\u5199\u771F\u3084\u8CEA\u611F\u306E\u9055\u3044\u3092\u6B8B\u3057\u307E\u3059\u3002`, done: backgrounds > 0 },
+      { no: "07", title: "Final Candidate", detail: `${finals}\u6848\u306E\u6700\u7D42\u5019\u88DC\u3092\u3001\u80CC\u666F\u3054\u3068\u306E\u500B\u6027\u304C\u898B\u3048\u308B\u5F62\u3067\u78BA\u8A8D\u3057\u307E\u3059\u3002`, done: finals > 0 },
+      { no: "08", title: "Figma\u51FA\u529B\u5B8C\u4E86", detail: "\u5DE5\u7A0B\u30DC\u30FC\u30C9\u3001\u5019\u88DC\u30D5\u30EC\u30FC\u30E0\u3001\u6700\u7D42\u5019\u88DC\u3092\u30AD\u30E3\u30F3\u30D0\u30B9\u4E0A\u3067\u30EC\u30D3\u30E5\u30FC\u3057\u307E\u3059\u3002", done: ((_h = (_g = project.figmaOutputs) == null ? void 0 : _g.length) != null ? _h : 0) > 0 }
+    ];
   }
   function renderProjectHeaderBoard(parent2, project, x, y) {
     const board = createSection("01 Project Header", "\u6848\u4EF6\u524D\u63D0\u3001\u5165\u529B\u5185\u5BB9\u3001\u5B9F\u884C\u30E2\u30FC\u30C9\u3092\u5F8C\u304B\u3089\u8FFD\u3048\u308B\u3088\u3046\u306B\u307E\u3068\u3081\u307E\u3059\u3002", x, y, 620, 720);
@@ -666,10 +792,31 @@
     return board;
   }
   function renderFinalCandidateBoard(parent2, project, x, y) {
-    var _a;
+    var _a, _b, _c;
     const board = createSection("07 Final Candidate", "\u9078\u3093\u3060\u6848\u3001\u9069\u7528\u80CC\u666F\u3001\u4EBA\u9593\u304C\u6B21\u306B\u8ABF\u6574\u3059\u308B\u30DD\u30A4\u30F3\u30C8\u3002", x, y, 760, 720);
     appendBoard(parent2, board);
     const final = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate;
+    const finals = (_c = (_b = project.stageWorkflow) == null ? void 0 : _b.finalCandidates) != null ? _c : [];
+    if (finals.length > 1) {
+      board.resize(980, 720);
+      addText(board, "3\u3064\u306E\u80CC\u666F\u3092\u3001\u305D\u308C\u305E\u308C\u5225\u306E\u5B8C\u6210\u5019\u88DC\u3068\u3057\u3066\u78BA\u8A8D\u3057\u307E\u3059\u3002\u5199\u771F\u30FB\u80CC\u666F\u306E\u500B\u6027\u3092\u6B8B\u3057\u3001\u6587\u5B57\u7D44\u307F\u306F\u7528\u9014\u306B\u5408\u308F\u305B\u3066\u9078\u3073\u307E\u3059\u3002", 24, 84, {
+        size: 11,
+        color: COLORS.muted,
+        width: 920,
+        height: 34
+      });
+      finals.slice(0, 3).forEach((item, index) => {
+        var _a2, _b2, _c2;
+        const card2 = createCard(24 + index * 312, 138, 292, 482);
+        board.appendChild(card2);
+        addText(card2, `${(_a2 = item.variantLabel) != null ? _a2 : String.fromCharCode(65 + index)} / ${item.name}`, 16, 16, { size: 14, bold: true, color: COLORS.blue, width: 260 });
+        addText(card2, item.reason, 16, 48, { size: 9, width: 260, height: 74 });
+        addList(card2, "\u500B\u6027\u3092\u51FA\u3059\u5224\u65AD", (_b2 = item.compositionNotes) != null ? _b2 : [], 16, 144, 260);
+        addList(card2, "\u6B21\u306B\u8A70\u3081\u308B\u70B9", item.nextAdjustments, 16, 278, 260);
+        addPreviewBox(card2, 16, 408, `Final ${(_c2 = item.variantLabel) != null ? _c2 : index + 1}`, 260, 48);
+      });
+      return board;
+    }
     const card = createCard(24, 104, 712, 516);
     board.appendChild(card);
     if (!final) {
@@ -993,6 +1140,30 @@
     frame.clipsContent = false;
     return frame;
   }
+  function createAutoFrame(name, x, y, width, fill, layoutMode = "VERTICAL") {
+    const frame = figma.createFrame();
+    frame.name = name;
+    frame.x = x;
+    frame.y = y;
+    frame.resize(width, 1);
+    frame.layoutMode = layoutMode;
+    frame.primaryAxisSizingMode = layoutMode === "HORIZONTAL" ? "FIXED" : "AUTO";
+    frame.counterAxisSizingMode = layoutMode === "HORIZONTAL" ? "AUTO" : "FIXED";
+    frame.fills = [{ type: "SOLID", color: fill }];
+    frame.clipsContent = false;
+    return frame;
+  }
+  function createAutoText(characters, size, bold, width, color) {
+    const text = figma.createText();
+    text.name = bold ? "Text / Bold" : "Text";
+    text.fontName = bold ? FONT_BOLD : FONT_REGULAR;
+    text.fontSize = size;
+    text.fills = [{ type: "SOLID", color }];
+    text.textAutoResize = "HEIGHT";
+    text.resize(width, Math.max(18, size + 8));
+    text.characters = characters;
+    return text;
+  }
   function appendBoard(parent2, board) {
     if (parent2) {
       parent2.appendChild(board);
@@ -1058,6 +1229,10 @@
     parent2.appendChild(node);
     return node;
   }
+  function trimForBoard(value, maxLength) {
+    const compact = value.replace(/\s+/g, " ").trim();
+    return compact.length > maxLength ? `${compact.slice(0, maxLength - 1)}\u2026` : compact;
+  }
   async function loadFonts() {
     await Promise.all([figma.loadFontAsync(FONT_REGULAR), figma.loadFontAsync(FONT_BOLD)]);
   }
@@ -1071,6 +1246,311 @@
   function findFrameName(result, frameId) {
     var _a, _b;
     return (_b = (_a = result.frames.find((frame) => frame.id === frameId)) == null ? void 0 : _a.name) != null ? _b : frameId;
+  }
+
+  // src/utils/markdown/parseMarkdown.ts
+  function parseMarkdown(markdown) {
+    const lines = markdown.replace(/\r\n/g, "\n").split("\n");
+    const blocks = [];
+    let blockIndex = 0;
+    let paragraph = [];
+    let listItems = [];
+    let orderedItems = [];
+    let quoteItems = [];
+    let codeLines = [];
+    let inCode = false;
+    let tableRows = [];
+    const createBlock = (type, text) => {
+      blockIndex += 1;
+      return {
+        id: `${type}_${blockIndex}`,
+        type,
+        text
+      };
+    };
+    const flushParagraph = () => {
+      if (!paragraph.length) return;
+      blocks.push(createBlock("paragraph", stripInlineMarks(paragraph.join(" "))));
+      paragraph = [];
+    };
+    const flushList = () => {
+      if (listItems.length) {
+        blocks.push(__spreadProps(__spreadValues({}, createBlock("list", listItems.join("\n"))), { items: listItems }));
+        listItems = [];
+      }
+      if (orderedItems.length) {
+        blocks.push(__spreadProps(__spreadValues({}, createBlock("ordered_list", orderedItems.join("\n"))), { items: orderedItems }));
+        orderedItems = [];
+      }
+    };
+    const flushQuote = () => {
+      if (!quoteItems.length) return;
+      blocks.push(createBlock("quote", stripInlineMarks(quoteItems.join("\n"))));
+      quoteItems = [];
+    };
+    const flushTable = () => {
+      if (!tableRows.length) return;
+      blocks.push(__spreadProps(__spreadValues({}, createBlock("table", tableRows.map((row) => row.join(" | ")).join("\n"))), { rows: tableRows }));
+      tableRows = [];
+    };
+    const flushLooseBlocks = () => {
+      flushParagraph();
+      flushList();
+      flushQuote();
+      flushTable();
+    };
+    lines.forEach((line) => {
+      const trimmed = line.trim();
+      if (trimmed.startsWith("```")) {
+        if (inCode) {
+          blocks.push(createBlock("code", codeLines.join("\n")));
+          codeLines = [];
+        } else {
+          flushLooseBlocks();
+        }
+        inCode = !inCode;
+        return;
+      }
+      if (inCode) {
+        codeLines.push(line);
+        return;
+      }
+      if (!trimmed) {
+        flushLooseBlocks();
+        return;
+      }
+      const heading = /^(#{1,3})\s+(.+)$/.exec(trimmed);
+      if (heading) {
+        flushLooseBlocks();
+        blocks.push(__spreadProps(__spreadValues({}, createBlock("heading", stripInlineMarks(heading[2]))), { level: heading[1].length }));
+        return;
+      }
+      if (isTableRow(trimmed)) {
+        flushParagraph();
+        flushList();
+        flushQuote();
+        const cells = trimmed.replace(/^\|/, "").replace(/\|$/, "").split("|").map((cell) => stripInlineMarks(cell.trim()));
+        if (!cells.every((cell) => /^:?-{3,}:?$/.test(cell))) tableRows.push(cells);
+        return;
+      }
+      const unordered = /^[-*]\s+(.+)$/.exec(trimmed);
+      if (unordered) {
+        flushParagraph();
+        flushQuote();
+        flushTable();
+        listItems.push(stripInlineMarks(unordered[1]));
+        return;
+      }
+      const ordered = /^\d+\.\s+(.+)$/.exec(trimmed);
+      if (ordered) {
+        flushParagraph();
+        flushQuote();
+        flushTable();
+        orderedItems.push(stripInlineMarks(ordered[1]));
+        return;
+      }
+      if (trimmed.startsWith(">")) {
+        flushParagraph();
+        flushList();
+        flushTable();
+        quoteItems.push(stripInlineMarks(trimmed.replace(/^>\s?/, "")));
+        return;
+      }
+      flushList();
+      flushQuote();
+      flushTable();
+      paragraph.push(trimmed);
+    });
+    if (inCode && codeLines.length) blocks.push(createBlock("code", codeLines.join("\n")));
+    flushLooseBlocks();
+    return blocks;
+  }
+  function stripInlineMarks(value) {
+    return value.replace(/\*\*(.*?)\*\*/g, "$1").replace(/__(.*?)__/g, "$1").replace(/`([^`]+)`/g, "$1").replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").trim();
+  }
+  function isTableRow(value) {
+    return value.includes("|") && value.split("|").filter(Boolean).length >= 2;
+  }
+
+  // src/plugin/figma/renderRequirementDocumentBoard.ts
+  var FONT_REGULAR2 = { family: "Inter", style: "Regular" };
+  var FONT_BOLD2 = { family: "Inter", style: "Bold" };
+  var COLORS2 = {
+    board: { r: 1, g: 1, b: 1 },
+    card: { r: 0.984, g: 0.988, b: 0.984 },
+    code: { r: 0.071, g: 0.094, b: 0.122 },
+    border: { r: 0.86, g: 0.88, b: 0.9 },
+    text: { r: 0.12, g: 0.16, b: 0.2 },
+    muted: { r: 0.42, g: 0.45, b: 0.42 },
+    primary: { r: 0.122, g: 0.435, b: 0.357 },
+    primarySoft: { r: 0.91, g: 0.957, b: 0.937 }
+  };
+  async function renderRequirementDocumentBoard(input) {
+    var _a;
+    await Promise.all([figma.loadFontAsync(FONT_REGULAR2), figma.loadFontAsync(FONT_BOLD2)]);
+    const board = createAutoFrame2("00 Requirement Document Board", 900, COLORS2.board);
+    board.x = figma.viewport.center.x - 450;
+    board.y = figma.viewport.center.y - 360;
+    board.paddingTop = 28;
+    board.paddingRight = 28;
+    board.paddingBottom = 28;
+    board.paddingLeft = 28;
+    board.itemSpacing = 16;
+    board.strokes = [{ type: "SOLID", color: COLORS2.border }];
+    board.strokeWeight = 1;
+    board.cornerRadius = 18;
+    board.appendChild(createText("Requirement Document", 24, true, 844, COLORS2.text));
+    board.appendChild(createText("\u5165\u529B\u8981\u4EF6\u3068AI\u304C\u89E3\u91C8\u3057\u305F\u5236\u4F5C\u524D\u63D0\u3092\u3001\u5236\u4F5C\u958B\u59CB\u524D\u306B\u30EC\u30D3\u30E5\u30FC\u3067\u304D\u308B\u5F62\u3067\u6B8B\u3057\u307E\u3059\u3002", 12, false, 844, COLORS2.muted));
+    board.appendChild(createMetaGrid(input));
+    const blocks = ((_a = input.requirementBlocks) == null ? void 0 : _a.length) ? input.requirementBlocks : input.markdownText ? parseMarkdown(input.markdownText) : createFallbackBlocks(input);
+    const sections = createAutoFrame2("Requirement Sections", 844, COLORS2.board);
+    sections.layoutMode = "VERTICAL";
+    sections.itemSpacing = 10;
+    sections.fills = [];
+    blocks.slice(0, 24).forEach((block) => sections.appendChild(createBlockCard(block)));
+    board.appendChild(sections);
+    if (input.assumptions.length || input.missingInfo.length) {
+      board.appendChild(createReviewNotes(input));
+    }
+    figma.currentPage.appendChild(board);
+    figma.currentPage.selection = [board];
+    figma.viewport.scrollAndZoomIntoView([board]);
+    return board;
+  }
+  function createMetaGrid(input) {
+    var _a, _b;
+    const grid = createAutoFrame2("Requirement Summary", 844, COLORS2.primarySoft);
+    grid.layoutMode = "HORIZONTAL";
+    grid.counterAxisSizingMode = "AUTO";
+    grid.itemSpacing = 10;
+    grid.paddingTop = 14;
+    grid.paddingRight = 14;
+    grid.paddingBottom = 14;
+    grid.paddingLeft = 14;
+    grid.cornerRadius = 12;
+    grid.strokes = [{ type: "SOLID", color: COLORS2.border }];
+    grid.strokeWeight = 1;
+    [
+      ["Project", input.projectName],
+      ["Source", input.inputSource],
+      ["Target", (_a = input.target) != null ? _a : "\u672A\u6307\u5B9A"],
+      ["Goal", (_b = input.goal) != null ? _b : "\u672A\u6307\u5B9A"]
+    ].forEach(([label, value]) => grid.appendChild(createMetric(label, value)));
+    return grid;
+  }
+  function createMetric(label, value) {
+    const frame = createAutoFrame2(`Metric / ${label}`, 196, { r: 1, g: 1, b: 1 });
+    frame.paddingTop = 10;
+    frame.paddingRight = 10;
+    frame.paddingBottom = 10;
+    frame.paddingLeft = 10;
+    frame.itemSpacing = 5;
+    frame.cornerRadius = 9;
+    frame.appendChild(createText(label, 9, true, 176, COLORS2.primary));
+    frame.appendChild(createText(value || "\u672A\u6307\u5B9A", 11, false, 176, COLORS2.text));
+    return frame;
+  }
+  function createBlockCard(block) {
+    var _a, _b;
+    if (block.type === "table" && ((_a = block.rows) == null ? void 0 : _a.length)) return createTableCard(block);
+    const card = createAutoFrame2(`Requirement / ${block.type}`, 844, block.type === "code" ? COLORS2.code : COLORS2.card);
+    card.paddingTop = 12;
+    card.paddingRight = 14;
+    card.paddingBottom = 12;
+    card.paddingLeft = 14;
+    card.itemSpacing = 7;
+    card.cornerRadius = 10;
+    card.strokes = [{ type: "SOLID", color: COLORS2.border }];
+    card.strokeWeight = 1;
+    const dark = block.type === "code";
+    card.appendChild(createText(getBlockLabel(block), 9, true, 816, dark ? { r: 0.75, g: 0.85, b: 0.78 } : COLORS2.primary));
+    if ((_b = block.items) == null ? void 0 : _b.length) {
+      block.items.slice(0, 8).forEach((item) => card.appendChild(createText(`- ${item}`, 11, false, 816, dark ? { r: 0.92, g: 0.94, b: 0.9 } : COLORS2.text)));
+    } else {
+      card.appendChild(createText(block.text, block.type === "heading" ? 18 : 11, block.type === "heading", 816, dark ? { r: 0.92, g: 0.94, b: 0.9 } : COLORS2.text));
+    }
+    return card;
+  }
+  function createTableCard(block) {
+    var _a;
+    const card = createAutoFrame2("Requirement / table", 844, COLORS2.card);
+    card.paddingTop = 12;
+    card.paddingRight = 14;
+    card.paddingBottom = 12;
+    card.paddingLeft = 14;
+    card.itemSpacing = 7;
+    card.cornerRadius = 10;
+    card.strokes = [{ type: "SOLID", color: COLORS2.border }];
+    card.strokeWeight = 1;
+    card.appendChild(createText("\u8868", 9, true, 816, COLORS2.primary));
+    (_a = block.rows) == null ? void 0 : _a.slice(0, 8).forEach((cells, rowIndex) => {
+      const row = createAutoFrame2(`Table Row ${rowIndex + 1}`, 816, rowIndex === 0 ? COLORS2.primarySoft : { r: 1, g: 1, b: 1 });
+      row.layoutMode = "HORIZONTAL";
+      row.itemSpacing = 6;
+      row.paddingTop = 7;
+      row.paddingRight = 8;
+      row.paddingBottom = 7;
+      row.paddingLeft = 8;
+      row.cornerRadius = 6;
+      cells.slice(0, 4).forEach((cell) => row.appendChild(createText(cell, 10, rowIndex === 0, Math.floor(780 / Math.min(cells.length, 4)), COLORS2.text)));
+      card.appendChild(row);
+    });
+    return card;
+  }
+  function createReviewNotes(input) {
+    const card = createAutoFrame2("Review Notes", 844, COLORS2.primarySoft);
+    card.paddingTop = 12;
+    card.paddingRight = 14;
+    card.paddingBottom = 12;
+    card.paddingLeft = 14;
+    card.itemSpacing = 8;
+    card.cornerRadius = 10;
+    card.appendChild(createText("\u78BA\u8A8D\u30E1\u30E2", 12, true, 816, COLORS2.primary));
+    input.missingInfo.forEach((item) => card.appendChild(createText(`\u4E0D\u8DB3: ${item}`, 10, false, 816, COLORS2.text)));
+    input.assumptions.forEach((item) => card.appendChild(createText(`\u4EEE\u8AAC: ${item}`, 10, false, 816, COLORS2.text)));
+    return card;
+  }
+  function createFallbackBlocks(input) {
+    var _a, _b, _c;
+    return [
+      { id: "fallback_goal", type: "heading", level: 1, text: input.projectName },
+      { id: "fallback_brief", type: "paragraph", text: (_c = (_b = input.briefText) != null ? _b : (_a = input.fixedCopy) == null ? void 0 : _a.main) != null ? _c : "\u8981\u4EF6\u30C6\u30AD\u30B9\u30C8\u306F\u672A\u5165\u529B\u3067\u3059\u3002" }
+    ];
+  }
+  function createAutoFrame2(name, width, fill) {
+    const frame = figma.createFrame();
+    frame.name = name;
+    frame.resize(width, 1);
+    frame.layoutMode = "VERTICAL";
+    frame.primaryAxisSizingMode = "AUTO";
+    frame.counterAxisSizingMode = "FIXED";
+    frame.fills = [{ type: "SOLID", color: fill }];
+    frame.clipsContent = false;
+    return frame;
+  }
+  function createText(characters, size, bold, width, color) {
+    const text = figma.createText();
+    text.name = bold ? "Text / Bold" : "Text";
+    text.fontName = bold ? FONT_BOLD2 : FONT_REGULAR2;
+    text.fontSize = size;
+    text.fills = [{ type: "SOLID", color }];
+    text.textAutoResize = "HEIGHT";
+    text.resize(width, Math.max(18, size + 8));
+    text.characters = characters;
+    return text;
+  }
+  function getBlockLabel(block) {
+    var _a;
+    const labels = {
+      heading: `\u898B\u51FA\u3057${(_a = block.level) != null ? _a : ""}`,
+      paragraph: "\u672C\u6587",
+      list: "\u30EA\u30B9\u30C8",
+      ordered_list: "\u756A\u53F7\u4ED8\u304D\u30EA\u30B9\u30C8",
+      quote: "\u5F15\u7528",
+      code: "\u30B3\u30FC\u30C9",
+      table: "\u8868"
+    };
+    return labels[block.type];
   }
 
   // src/plugin/code.ts
@@ -1133,6 +1613,7 @@
       if (message.type === "PLACE_EXPLORE_PACKAGE") {
         const { startX, startY } = resetProcessBase();
         const boards = [];
+        boards.push(await renderProcessOverviewBoard(message.payload, { x: startX - 880, y: startY, zoom: false }));
         boards.push(await renderProcessStageBoard(message.payload, "project_header", { x: startX, y: startY, zoom: false }));
         await sleep(350);
         boards.push(await renderProcessStageBoard(message.payload, "ideas", __spreadProps(__spreadValues({}, getStagePosition("ideas", startX, startY)), { zoom: false })));
@@ -1159,6 +1640,11 @@
         figma.currentPage.selection = [...boards, ...nodes, ...finalNodes];
         figma.viewport.scrollAndZoomIntoView([...boards, ...nodes, ...finalNodes]);
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u5DE5\u7A0B\u5225\u30DC\u30FC\u30C9\u3092Figma\u306B\u4F5C\u6210\u3057\u307E\u3057\u305F\u3002" } });
+        return;
+      }
+      if (message.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD") {
+        await renderRequirementDocumentBoard(message.payload);
+        postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u8981\u4EF6\u5B9A\u7FA9\u30DC\u30FC\u30C9\u3092Figma\u306B\u8A18\u9332\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
@@ -1229,25 +1715,38 @@
     );
   }
   function placeFinalCandidate(project, position) {
-    var _a, _b, _c, _d;
-    const finalCandidateId = (_b = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidate) == null ? void 0 : _b.refinedCandidateId;
-    const candidate = (_c = project.svgCandidates.find((item) => item.id === finalCandidateId)) != null ? _c : project.svgCandidates[0];
-    const selectedBackground = (_d = project.stageWorkflow) == null ? void 0 : _d.backgroundVariations.find((item) => {
-      var _a2, _b2;
-      return item.id === ((_b2 = (_a2 = project.stageWorkflow) == null ? void 0 : _a2.finalCandidate) == null ? void 0 : _b2.selectedBackgroundId) || item.selected;
+    var _a, _b, _c;
+    const finalCandidates = ((_b = (_a = project.stageWorkflow) == null ? void 0 : _a.finalCandidates) == null ? void 0 : _b.length) ? project.stageWorkflow.finalCandidates : ((_c = project.stageWorkflow) == null ? void 0 : _c.finalCandidate) ? [project.stageWorkflow.finalCandidate] : [];
+    const fallbackFinalCandidates = project.svgCandidates[0] ? [
+      {
+        id: "final_fallback",
+        name: "Final Candidate",
+        refinedCandidateId: project.svgCandidates[0].id,
+        reason: "",
+        editableLayers: [],
+        nextAdjustments: []
+      }
+    ] : [];
+    const candidatesToPlace = finalCandidates.length > 0 ? finalCandidates : fallbackFinalCandidates;
+    return candidatesToPlace.flatMap((finalCandidate, index) => {
+      var _a2, _b2, _c2, _d;
+      const candidate = (_b2 = (_a2 = project.svgCandidates.find((item) => item.id === finalCandidate.refinedCandidateId)) != null ? _a2 : project.svgCandidates[index]) != null ? _b2 : project.svgCandidates[0];
+      const selectedBackground = (_c2 = project.stageWorkflow) == null ? void 0 : _c2.backgroundVariations.find((item) => item.id === finalCandidate.selectedBackgroundId || index === 0 && item.selected);
+      const itemPosition = { x: position.x + index * (800 + PROCESS_LAYOUT.candidateGap), y: position.y };
+      const frameName = `${finalCandidate.variantLabel ? `FINAL_${finalCandidate.variantLabel}` : "FINAL"}_${(_d = candidate == null ? void 0 : candidate.name) != null ? _d : finalCandidate.name}`;
+      if (!candidate) return [];
+      if (selectedBackground == null ? void 0 : selectedBackground.imageDataUrl) {
+        return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, frameName, itemPosition)];
+      }
+      return [
+        createSvgNode(candidate.svg, frameName, {
+          x: itemPosition.x,
+          y: itemPosition.y,
+          select: false,
+          zoom: false
+        })
+      ];
     });
-    if (!candidate) return [];
-    if (selectedBackground == null ? void 0 : selectedBackground.imageDataUrl) {
-      return [createFinalCandidateFrame(candidate.svg, selectedBackground.imageDataUrl, `FINAL_${candidate.name}`, position)];
-    }
-    return [
-      createSvgNode(candidate.svg, `FINAL_${candidate.name}`, {
-        x: position.x,
-        y: position.y,
-        select: false,
-        zoom: false
-      })
-    ];
   }
   function createFinalCandidateFrame(svg, backgroundDataUrl, name, position) {
     const frame = figma.createFrame();

@@ -16,7 +16,11 @@ const difyFields: Array<[keyof RuntimeApiSettings["dify"], string, string]> = [
   ["compare", "Compare", "5案比較とbackground briefを生成"],
 ];
 
-export function SettingsScreen() {
+type SettingsScreenProps = {
+  compact?: boolean;
+};
+
+export function SettingsScreen({ compact = false }: SettingsScreenProps) {
   const [settings, setSettings] = useState<RuntimeApiSettings>(emptyRuntimeApiSettings);
   const [logs, setLogs] = useState<string[]>([
     "API設定を保存すると外部APIに接続して制作フローを実行できます。未設定の場合は代替処理で動作します。",
@@ -80,7 +84,7 @@ export function SettingsScreen() {
   }
 
   return (
-    <div className="settings-screen">
+    <div className={compact ? "settings-screen settings-screen-compact" : "settings-screen"}>
       <section className="panel settings-summary-panel">
         <SectionHeader
           title="API設定"

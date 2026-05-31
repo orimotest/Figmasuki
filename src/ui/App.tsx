@@ -1,53 +1,109 @@
+import { X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { providerConfig } from "../config/providers";
 import { getRuntimeExecutionModeLabel, RUNTIME_API_SETTINGS_CHANGED_EVENT } from "../config/runtimeApiSettings";
 import type { BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
+import type { DiagnosisResult } from "../schemas/diagnosis";
+import type { ProcessBoardStage } from "../schemas/production";
 import type { ProjectData } from "../schemas/project";
 import type { ProviderConfig } from "../schemas/provider";
 import { postToPlugin } from "../plugin/figma/messageBridge";
 import { ActionFooter } from "./components/ActionFooter";
+import { AppSidebar, type AppView, type AppViewStatus } from "./components/AppSidebar";
 import { CanvasBadge } from "./components/CanvasBadge";
-import { FlowStepper } from "./components/FlowStepper";
+import { EmptyState } from "./components/EmptyState";
 import { StatusLog } from "./components/StatusLog";
-import { TabNav, type AppTab } from "./components/TabNav";
-import { tabLabels } from "./labels";
 import { CompareScreen } from "./screens/CompareScreen";
+import { DiagnoseScreen } from "./screens/DiagnoseScreen";
 import { ExploreScreen } from "./screens/ExploreScreen";
+import { FinishScreen } from "./screens/FinishScreen";
 import { SettingsScreen } from "./screens/SettingsScreen";
 
-const tabs: AppTab[] = ["Brief", "Explore", "Compare", "Settings"];
-const productionTabs: AppTab[] = ["Brief", "Explore", "Compare"];
+const appViews: AppView[] = ["Auto", "Brief", "Diagnose", "Compare", "Finish", "Output"];
 
 const uiSizePresets = {
-  S: { width: 800, height: 450 },
-  M: { width: 900, height: 560 },
-  L: { width: 1040, height: 720 },
+  Fit: { width: 800, height: 450 },
+  Work: { width: 900, height: 560 },
+  Review: { width: 1040, height: 720 },
 } as const;
 
 type UiSizePreset = keyof typeof uiSizePresets;
 
+const uiSizeLabels = {
+  Fit: "Fit",
+  Work: "Work",
+  Review: "Review",
+} satisfies Record<UiSizePreset, string>;
+
+const viewLabels: Record<Exclude<AppView, "Settings">, { label: string; pill: string; description: string }> = {
+  Auto: {
+    label: "自動制作",
+    pill: "Main Flow",
+    description: "要件からFinal Candidateまで、AIが段階的に制作します。",
+  },
+  Brief: {
+    label: "要件入力",
+    pill: "Input",
+    description: "作りたいもの、要件書、PDF、Markdown、Figma参照を制作ブリーフへ整理します。",
+  },
+  Diagnose: {
+    label: "診断",
+    pill: "Detail",
+    description: "選択中または生成済みの1案を読み取り、改善方針を整理します。",
+  },
+  Compare: {
+    label: "比較",
+    pill: "Detail",
+    description: "複数案の役割・強み・懸念を比較し、ベース候補を整理します。",
+  },
+  Finish: {
+    label: "仕上げ",
+    pill: "Detail",
+    description: "Primary案に背景を加え、Final Candidateとして整えます。",
+  },
+  Output: {
+    label: "Figma出力",
+    pill: "Canvas",
+    description: "Figmaに記録された工程ボードと成果物を確認します。",
+  },
+};
+
 export default function App() {
-  const [activeTab, setActiveTab] = useState<AppTab>("Brief");
-  const [uiSize, setUiSize] = useState<UiSizePreset>("S");
+  const [activeView, setActiveView] = useState<Exclude<AppView, "Settings">>("Auto");
+  const [uiSize, setUiSize] = useState<UiSizePreset>("Fit");
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [projectData, setProjectData] = useState<ProjectData | null>(null);
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
   const [background, setBackground] = useState<BackgroundResult | undefined>();
+  const [diagnosis, setDiagnosis] = useState<DiagnosisResult | undefined>();
   const [executionMode, setExecutionMode] = useState<"Live" | "Demo">(() => getRuntimeExecutionModeLabel());
   const providers: ProviderConfig = providerConfig;
 
-  const completedTabs = useMemo<AppTab[]>(() => {
-    const completed: AppTab[] = [];
-    if (activeTab !== "Brief") completed.push("Brief");
-    if (projectData?.svgCandidates.length || activeTab === "Compare") completed.push("Explore");
-    if (comparison || projectData?.comparisonResult || background || projectData?.backgroundResult) completed.push("Compare");
-    return completed;
-  }, [activeTab, projectData, comparison, background]);
+  const outputCount = projectData?.figmaOutputs?.length ?? 0;
+  const viewMeta = viewLabels[activeView];
+  const navStatuses = useMemo<Partial<Record<AppView, AppViewStatus>>>(() => {
+    const hasComparison = Boolean(comparison || projectData?.comparisonResult);
+    const hasBackground = Boolean(background || projectData?.backgroundResult || projectData?.stageWorkflow?.finalCandidates?.length);
+    return {
+      Auto: projectData?.productionStatus?.stage === "error" ? "error" : projectData?.svgCandidates.length ? "done" : "idle",
+      Brief: projectData ? "done" : "idle",
+      Diagnose: diagnosis || projectData?.diagnosisResults.length ? "done" : "idle",
+      Compare: hasComparison ? "done" : "idle",
+      Finish: hasBackground ? "done" : "idle",
+      Output: outputCount >= 7 ? "done" : "idle",
+      Settings: executionMode === "Live" ? "done" : "idle",
+    };
+  }, [projectData, comparison, background, diagnosis, outputCount, executionMode]);
 
   useEffect(() => {
     const handleTabChange = (event: Event) => {
-      const tab = (event as CustomEvent<AppTab>).detail;
-      if (tabs.includes(tab)) setActiveTab(tab);
+      const nextView = legacyTabToView((event as CustomEvent<string>).detail);
+      if (nextView === "Settings") {
+        setSettingsOpen(true);
+        return;
+      }
+      if (nextView && appViews.includes(nextView)) setActiveView(nextView);
     };
     window.addEventListener("CHANGE_APP_TAB", handleTabChange);
     return () => window.removeEventListener("CHANGE_APP_TAB", handleTabChange);
@@ -63,18 +119,32 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setSettingsOpen(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [settingsOpen]);
+
+  function handleProjectData(project: ProjectData | null) {
+    setProjectData(project);
+    if (!project) {
+      setComparison(undefined);
+      setBackground(undefined);
+      setDiagnosis(undefined);
+    }
+  }
+
   function handleRenderFullProcess() {
     if (!projectData) return;
     postToPlugin({ type: "RENDER_PROCESS_BOARD", payload: projectData });
   }
 
   function handleHeaderAction() {
-    if (activeTab === "Explore") {
+    if (activeView === "Auto") {
       window.dispatchEvent(new Event("START_AUTO_PRODUCTION"));
-      return;
-    }
-    if (activeTab === "Settings") {
-      window.dispatchEvent(new Event("SAVE_API_SETTINGS_FROM_HEADER"));
       return;
     }
     handleRenderFullProcess();
@@ -85,91 +155,168 @@ export default function App() {
     postToPlugin({ type: "RESIZE_UI", payload: uiSizePresets[size] });
   }
 
+  function handleSidebarChange(view: AppView) {
+    if (view === "Settings") {
+      setSettingsOpen(true);
+      return;
+    }
+    setActiveView(view);
+  }
+
   return (
     <main className="app-shell">
-      <header className="plugin-header app-header">
-        <div className="header-copy">
-          <p className="eyebrow">Figma Production Plugin</p>
-          <h1>Figma Cover Studio</h1>
-          <p className="header-description">
-            {productionTabs.includes(activeTab) && <span className="step-pill">{getStepLabel(activeTab)}</span>}
-            {tabLabels[activeTab].description}
-          </p>
-        </div>
-        <div className="header-meta">
-          <CanvasBadge />
-          <span className={executionMode === "Live" ? "provider-badge success" : "provider-badge warning"}>
-            {executionMode === "Live" ? "Live Mode" : "Demo Mode"}
-          </span>
-          <div className="ui-size-control" aria-label="UI size">
-            {(["S", "M", "L"] as UiSizePreset[]).map((size) => (
-              <button key={size} className={uiSize === size ? "active" : ""} type="button" onClick={() => handleResizeUi(size)}>
-                {size}
-              </button>
-            ))}
+      <AppSidebar activeView={activeView} executionMode={executionMode} outputCount={outputCount} statuses={navStatuses} onChange={handleSidebarChange} />
+
+      <section className="app-workspace">
+        <header className="plugin-header app-header">
+          <div className="header-copy">
+            <p className="eyebrow">AI Creative Assistant Foundation</p>
+            <h1>{viewMeta.label}</h1>
+            <p className="header-description">
+              <span className="step-pill">{viewMeta.pill}</span>
+              {viewMeta.description}
+            </p>
           </div>
-          {activeTab !== "Brief" && activeTab !== "Explore" && (
-            <button className="header-button" type="button" disabled={activeTab !== "Settings" && !projectData} onClick={handleHeaderAction}>
-              {activeTab === "Settings" ? "設定を保存" : "一連のプロセスをFigmaに出力"}
-            </button>
+          <div className="header-meta">
+            <CanvasBadge />
+            <span className={executionMode === "Live" ? "provider-badge success" : "provider-badge warning"}>{executionMode === "Live" ? "Live Mode" : "Demo Mode"}</span>
+            <span className="provider-badge">{outputCount}/7 Figma</span>
+            <div className="ui-size-control" aria-label="UI size">
+              {(["Fit", "Work", "Review"] as UiSizePreset[]).map((size) => (
+                <button key={size} className={uiSize === size ? "active" : ""} type="button" onClick={() => handleResizeUi(size)}>
+                  {uiSizeLabels[size]}
+                </button>
+              ))}
+            </div>
+            {(activeView === "Auto" || activeView === "Output") && (
+              <button className="header-button" type="button" disabled={activeView === "Output" && !projectData} onClick={handleHeaderAction}>
+                {activeView === "Auto" ? "自動制作を開始" : "全工程をFigmaへ出力"}
+              </button>
+            )}
+          </div>
+        </header>
+
+        <section className="plugin-scroll-area nice-scrollbar scroll-fade-bottom screen-area">
+          {activeView === "Auto" && <ExploreScreen phase="production" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
+          {activeView === "Brief" && <ExploreScreen phase="brief" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
+          {activeView === "Diagnose" && <DiagnoseScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onDiagnosis={setDiagnosis} />}
+          {activeView === "Compare" && <CompareScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onComparison={setComparison} onBackground={setBackground} />}
+          {activeView === "Finish" && (
+            <FinishScreen
+              providers={providers}
+              backgroundBrief={comparison?.backgroundBrief ?? projectData?.comparisonResult?.backgroundBrief ?? null}
+              comparisonResult={comparison ?? projectData?.comparisonResult}
+              projectData={projectData}
+              onProjectData={setProjectData}
+              onBackground={setBackground}
+            />
           )}
-        </div>
-      </header>
+          {activeView === "Output" && <FigmaOutputView projectData={projectData} onRenderFullProcess={handleRenderFullProcess} />}
+        </section>
 
-      <div className="plugin-stepper">
-        <TabNav tabs={tabs} activeTab={activeTab} onChange={setActiveTab} />
-        {activeTab !== "Settings" && <FlowStepper activeTab={activeTab} completedTabs={completedTabs} />}
-      </div>
-
-      <section className="plugin-scroll-area nice-scrollbar scroll-fade-bottom screen-area">
-        {(activeTab === "Brief" || activeTab === "Explore") && (
-          <ExploreScreen
-            phase={activeTab === "Brief" ? "brief" : "production"}
-            providers={providers}
-            projectData={projectData}
-            onProceedToProduction={() => setActiveTab("Explore")}
-            onProjectData={(project) => {
-              setProjectData(project);
-              if (!project) {
-                setComparison(undefined);
-                setBackground(undefined);
-              }
-            }}
+        <ActionFooter>
+          <StatusLog
+            entries={[
+              settingsOpen
+                ? "APIキーは保存時にFigma clientStorageへ送ります。Gitには書き込みません。"
+                : activeView === "Brief"
+                  ? "要件入力は制作フローの入口です。Markdown、PDF、Figma参照もここで整理できます。"
+                  : "AIの工程、Figma出力状況、Final Candidateまでのつながりを確認できます。",
+              executionMode === "Live" ? "Live Modeで外部APIに接続します。" : "Demo Modeでは実案件風の代替データで制作フローを確認できます。",
+            ]}
           />
-        )}
-        {activeTab === "Compare" && (
-          <CompareScreen
-            providers={providers}
-            projectData={projectData}
-            onProjectData={setProjectData}
-            onComparison={setComparison}
-            onBackground={setBackground}
-          />
-        )}
-        {activeTab === "Settings" && <SettingsScreen />}
+        </ActionFooter>
       </section>
 
-      <ActionFooter>
-        <StatusLog
-          entries={[
-            activeTab === "Brief"
-              ? "要件を整理すると、制作タブで一括生成に進めます。"
-              : activeTab === "Settings"
-                ? "APIキーは保存時にFigma clientStorageへ送ります。Gitには書き込みません。"
-                : "工程ごとの判断材料とFigma記録状況を確認できます。",
-            executionMode === "Live" ? "Live Modeで外部APIに接続しています。" : "Demo Modeでは実案件風の代替データで制作フローを確認できます。",
-          ]}
-        />
-      </ActionFooter>
+      {settingsOpen && (
+        <div className="settings-drawer-layer" role="presentation">
+          <button className="settings-drawer-backdrop" type="button" aria-label="設定を閉じる" onClick={() => setSettingsOpen(false)} />
+          <aside className="settings-drawer" role="dialog" aria-modal="true" aria-label="API設定">
+            <div className="settings-drawer-header">
+              <div>
+                <p className="eyebrow">Connection Settings</p>
+                <h2>API設定</h2>
+              </div>
+              <button className="icon-button" type="button" aria-label="設定を閉じる" onClick={() => setSettingsOpen(false)}>
+                <X size={16} aria-hidden="true" />
+              </button>
+            </div>
+            <SettingsScreen compact />
+          </aside>
+        </div>
+      )}
     </main>
   );
 }
 
-function getStepLabel(tab: AppTab): string {
-  const labels: Partial<Record<AppTab, string>> = {
-    Brief: "Step 1/2",
-    Explore: "Step 2/2",
-    Compare: "Sub Tool",
+function legacyTabToView(value: string | undefined): AppView | null {
+  if (!value) return null;
+  if (value === "Explore") return "Auto";
+  if (value === "Brief") return "Brief";
+  if (value === "Compare") return "Compare";
+  if (value === "Diagnose") return "Diagnose";
+  if (value === "Finish") return "Finish";
+  if (value === "Output") return "Output";
+  if (value === "Settings") return "Settings";
+  return null;
+}
+
+function FigmaOutputView({ projectData, onRenderFullProcess }: { projectData: ProjectData | null; onRenderFullProcess: () => void }) {
+  const outputs = projectData?.figmaOutputs ?? [];
+  const stages: ProcessBoardStage[] = ["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations", "final_candidate"];
+  return (
+    <div className="output-layout">
+      <section className="panel output-main-panel">
+        <div className="review-page-heading">
+          <div>
+            <p className="eyebrow">Canvas Records</p>
+            <h2>Figma出力</h2>
+            <p>工程ボード、5案、背景3案、Final CandidateがFigma上で追える状態か確認します。</p>
+          </div>
+          <button className="primary-button" type="button" disabled={!projectData} onClick={onRenderFullProcess}>
+            全工程をFigmaへ出力
+          </button>
+        </div>
+        {projectData ? (
+          <ul className="output-stage-list">
+            {stages.map((stage, index) => {
+              const output = outputs.find((item) => item.stage === stage);
+              return (
+                <li key={stage} className={output ? "placed" : "pending"}>
+                  <span>{String(index + 1).padStart(2, "0")}</span>
+                  <strong>{getOutputStageLabel(stage)}</strong>
+                  <em>{output ? "記録済み" : "未出力"}</em>
+                </li>
+              );
+            })}
+          </ul>
+        ) : (
+          <EmptyState title="まだ出力できる制作結果がありません" body="要件入力から自動制作を実行すると、工程ボードと成果物をここで確認できます。" />
+        )}
+      </section>
+      <section className="panel output-side-panel">
+        <h3>出力の見方</h3>
+        <p>左から右へ、要件整理、探索、文字組み、5案比較、背景3案、Final Candidateの順で確認します。</p>
+        <ul className="review-check-list">
+          <li><span className="check-dot done">✓</span>工程ごとの判断理由が残る</li>
+          <li><span className="check-dot done">✓</span>Finalは背景3案を活かした3枚で確認</li>
+          <li><span className="check-dot done">✓</span>必要な箇所はFigma上で編集可能</li>
+        </ul>
+      </section>
+    </div>
+  );
+}
+
+function getOutputStageLabel(stage: ProcessBoardStage): string {
+  const labels: Record<ProcessBoardStage, string> = {
+    project_header: "Project Header",
+    ideas: "30 Ideas Explore",
+    typography_drafts: "15 Typography Drafts",
+    refined_svgs: "5 Refined SVGs",
+    diagnosis: "Diagnosis",
+    compare: "Compare Result",
+    background_variations: "Background Variations",
+    final_candidate: "Final Candidates",
   };
-  return labels[tab] ?? "";
+  return labels[stage];
 }

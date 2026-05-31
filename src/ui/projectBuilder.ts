@@ -51,6 +51,7 @@ export function buildProjectData(params: {
       comparison: comparisonResult,
       backgroundVariations: stageWorkflow.backgroundVariations,
       finalCandidate: stageWorkflow.finalCandidate,
+      finalCandidates: stageWorkflow.finalCandidates,
     },
     figmaOutputs,
     createdAt: new Date().toISOString(),

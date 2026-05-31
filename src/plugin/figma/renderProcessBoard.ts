@@ -59,6 +59,7 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
   const startX = options.x ?? figma.viewport.center.x + DEFAULT_LAYOUT_BASE.xOffset;
   const startY = options.y ?? figma.viewport.center.y + DEFAULT_LAYOUT_BASE.yOffset;
   const boards = [
+    createProcessOverviewBoard(project, startX - 880, startY),
     renderProcessStageAt(project, "project_header", startX, startY),
     renderProcessStageAt(project, "ideas", startX, startY),
     renderProcessStageAt(project, "typography_drafts", startX, startY),
@@ -74,6 +75,17 @@ export async function renderProcessBoard(project: ProjectData, options: RenderOp
     figma.viewport.scrollAndZoomIntoView(boards);
   }
   return boards;
+}
+
+export async function renderProcessOverviewBoard(project: ProjectData, options: RenderOptions = {}): Promise<FrameNode> {
+  await loadFonts();
+  const defaultPosition = getDefaultStagePosition("project_header");
+  const board = createProcessOverviewBoard(project, options.x ?? defaultPosition.x - 880, options.y ?? defaultPosition.y);
+  if (options.zoom !== false) {
+    figma.currentPage.selection = [board];
+    figma.viewport.scrollAndZoomIntoView([board]);
+  }
+  return board;
 }
 
 export async function renderProcessStageBoard(project: ProjectData, stage: ProcessBoardStage, options: RenderOptions = {}): Promise<FrameNode> {
@@ -189,6 +201,124 @@ export function renderFinishBoard(result?: BackgroundResult, comparison?: Compar
   return board;
 }
 
+function createProcessOverviewBoard(project: ProjectData, x: number, y: number): FrameNode {
+  const board = createAutoFrame("00 Production Timeline", x, y, 820, COLORS.board);
+  board.cornerRadius = 18;
+  board.strokes = [{ type: "SOLID", color: COLORS.border }];
+  board.strokeWeight = 1;
+  board.paddingTop = 28;
+  board.paddingRight = 28;
+  board.paddingBottom = 28;
+  board.paddingLeft = 28;
+  board.itemSpacing = 16;
+  board.appendChild(createAutoText("00 Production Timeline", 24, true, 764, COLORS.text));
+  board.appendChild(
+    createAutoText("要件整理からFinal Candidateまで、AIが何を生成し、どこを人が判断するかを追える工程概要です。", 12, false, 764, COLORS.muted),
+  );
+  board.appendChild(createOverviewMetaRow(project));
+
+  const steps = getOverviewSteps(project);
+  const list = createAutoFrame("Production Steps", 0, 0, 764, COLORS.board);
+  list.fills = [];
+  list.itemSpacing = 8;
+  steps.forEach((step) => list.appendChild(createOverviewStep(step)));
+  board.appendChild(list);
+
+  figma.currentPage.appendChild(board);
+  return board;
+}
+
+function createOverviewMetaRow(project: ProjectData): FrameNode {
+  const row = createAutoFrame("Project Summary", 0, 0, 764, COLORS.paleBlue, "HORIZONTAL");
+  row.counterAxisSizingMode = "AUTO";
+  row.paddingTop = 12;
+  row.paddingRight = 12;
+  row.paddingBottom = 12;
+  row.paddingLeft = 12;
+  row.itemSpacing = 10;
+  row.cornerRadius = 12;
+  row.strokes = [{ type: "SOLID", color: COLORS.border }];
+  row.strokeWeight = 1;
+  [
+    ["Project", project.projectName],
+    ["Mode", project.providerMeta.mode],
+    ["Canvas", `${project.canvasSize.width} x ${project.canvasSize.height}`],
+    ["Figma", `${project.figmaOutputs?.filter((output) => output.status === "placed").length ?? 0} recorded`],
+  ].forEach(([label, value]) => row.appendChild(createAutoMetric(label, value)));
+  return row;
+}
+
+function createOverviewStep(step: { no: string; title: string; detail: string; done: boolean }): FrameNode {
+  const row = createAutoFrame(`Step ${step.no} / ${step.title}`, 0, 0, 764, step.done ? COLORS.paleBlue : COLORS.card, "HORIZONTAL");
+  row.counterAxisSizingMode = "AUTO";
+  row.paddingTop = 12;
+  row.paddingRight = 14;
+  row.paddingBottom = 12;
+  row.paddingLeft = 14;
+  row.itemSpacing = 12;
+  row.cornerRadius = 10;
+  row.strokes = [{ type: "SOLID", color: step.done ? COLORS.blue : COLORS.border }];
+  row.strokeWeight = step.done ? 1.4 : 1;
+
+  const badge = createAutoFrame(`Status / ${step.done ? "Done" : "Pending"}`, 0, 0, 70, step.done ? COLORS.blue : COLORS.board);
+  badge.counterAxisSizingMode = "FIXED";
+  badge.paddingTop = 8;
+  badge.paddingRight = 8;
+  badge.paddingBottom = 8;
+  badge.paddingLeft = 8;
+  badge.cornerRadius = 8;
+  badge.strokes = [{ type: "SOLID", color: step.done ? COLORS.blue : COLORS.border }];
+  badge.strokeWeight = 1;
+  badge.appendChild(createAutoText(step.no, 11, true, 54, step.done ? COLORS.board : COLORS.blue));
+  badge.appendChild(createAutoText(step.done ? "完了" : "待機", 8, true, 54, step.done ? COLORS.board : COLORS.muted));
+  row.appendChild(badge);
+
+  const copy = createAutoFrame("Step Copy", 0, 0, 654, COLORS.card);
+  copy.fills = [];
+  copy.itemSpacing = 4;
+  copy.appendChild(createAutoText(step.title, 13, true, 654, COLORS.text));
+  copy.appendChild(createAutoText(step.detail, 10, false, 654, COLORS.muted));
+  row.appendChild(copy);
+  return row;
+}
+
+function createAutoMetric(label: string, value: string): FrameNode {
+  const metric = createAutoFrame(`Metric / ${label}`, 0, 0, 176, COLORS.board);
+  metric.paddingTop = 10;
+  metric.paddingRight = 10;
+  metric.paddingBottom = 10;
+  metric.paddingLeft = 10;
+  metric.itemSpacing = 4;
+  metric.cornerRadius = 8;
+  metric.appendChild(createAutoText(label, 9, true, 156, COLORS.blue));
+  metric.appendChild(createAutoText(value || "未指定", 10, false, 156, COLORS.text));
+  return metric;
+}
+
+function getOverviewSteps(project: ProjectData): Array<{ no: string; title: string; detail: string; done: boolean }> {
+  const workflow = project.stageWorkflow;
+  const ideas = workflow?.ideaDirections.length ?? project.copyDirections.length;
+  const drafts = workflow?.typographyDrafts.length ?? project.layoutStrategies.length;
+  const refined = workflow?.refinedSvgCandidates.length ?? project.svgCandidates.length;
+  const backgrounds = workflow?.backgroundVariations.length ?? (project.backgroundResult ? 1 : 0);
+  const finals = workflow?.finalCandidates?.length ?? (workflow?.finalCandidate ? 1 : 0);
+  return [
+    {
+      no: "01",
+      title: "要件整理",
+      detail: trimForBoard(project.inputSummary.brief || project.inputSummary.rawInput || "入力要件を整理して制作前提を残します。", 90),
+      done: Boolean(project.inputSummary.brief || project.inputSummary.rawInput),
+    },
+    { no: "02", title: "30案探索", detail: `${ideas}案を役割別に見比べ、文字組みに進める方向を残します。`, done: ideas > 0 },
+    { no: "03", title: "15案文字組みドラフト", detail: `${drafts}案の階層、余白、CTA位置を比較します。`, done: drafts > 0 },
+    { no: "04", title: "5案高品質SVG", detail: `${refined}案をFigma上で編集できるSVG候補として整理します。`, done: refined > 0 },
+    { no: "05", title: "比較・評価", detail: "Primary / Secondaryと、背景生成へ進む理由を記録します。", done: Boolean(project.comparisonResult || workflow?.demoComparison) },
+    { no: "06", title: "背景3案生成", detail: `${backgrounds}案の背景方向を比較し、写真や質感の違いを残します。`, done: backgrounds > 0 },
+    { no: "07", title: "Final Candidate", detail: `${finals}案の最終候補を、背景ごとの個性が見える形で確認します。`, done: finals > 0 },
+    { no: "08", title: "Figma出力完了", detail: "工程ボード、候補フレーム、最終候補をキャンバス上でレビューします。", done: (project.figmaOutputs?.length ?? 0) > 0 },
+  ];
+}
+
 function renderProjectHeaderBoard(parent: FrameNode | null, project: ProjectData, x: number, y: number): FrameNode {
   const board = createSection("01 Project Header", "案件前提、入力内容、実行モードを後から追えるようにまとめます。", x, y, 620, 720);
   appendBoard(parent, board);
@@ -288,6 +418,26 @@ function renderFinalCandidateBoard(parent: FrameNode | null, project: ProjectDat
   const board = createSection("07 Final Candidate", "選んだ案、適用背景、人間が次に調整するポイント。", x, y, 760, 720);
   appendBoard(parent, board);
   const final = project.stageWorkflow?.finalCandidate;
+  const finals = project.stageWorkflow?.finalCandidates ?? [];
+  if (finals.length > 1) {
+    board.resize(980, 720);
+    addText(board, "3つの背景を、それぞれ別の完成候補として確認します。写真・背景の個性を残し、文字組みは用途に合わせて選びます。", 24, 84, {
+      size: 11,
+      color: COLORS.muted,
+      width: 920,
+      height: 34,
+    });
+    finals.slice(0, 3).forEach((item, index) => {
+      const card = createCard(24 + index * 312, 138, 292, 482);
+      board.appendChild(card);
+      addText(card, `${item.variantLabel ?? String.fromCharCode(65 + index)} / ${item.name}`, 16, 16, { size: 14, bold: true, color: COLORS.blue, width: 260 });
+      addText(card, item.reason, 16, 48, { size: 9, width: 260, height: 74 });
+      addList(card, "個性を出す判断", item.compositionNotes ?? [], 16, 144, 260);
+      addList(card, "次に詰める点", item.nextAdjustments, 16, 278, 260);
+      addPreviewBox(card, 16, 408, `Final ${item.variantLabel ?? index + 1}`, 260, 48);
+    });
+    return board;
+  }
   const card = createCard(24, 104, 712, 516);
   board.appendChild(card);
   if (!final) {
@@ -648,6 +798,32 @@ function createFrame(name: string, x: number, y: number, width: number, height: 
   return frame;
 }
 
+function createAutoFrame(name: string, x: number, y: number, width: number, fill: RGB, layoutMode: "VERTICAL" | "HORIZONTAL" = "VERTICAL"): FrameNode {
+  const frame = figma.createFrame();
+  frame.name = name;
+  frame.x = x;
+  frame.y = y;
+  frame.resize(width, 1);
+  frame.layoutMode = layoutMode;
+  frame.primaryAxisSizingMode = layoutMode === "HORIZONTAL" ? "FIXED" : "AUTO";
+  frame.counterAxisSizingMode = layoutMode === "HORIZONTAL" ? "AUTO" : "FIXED";
+  frame.fills = [{ type: "SOLID", color: fill }];
+  frame.clipsContent = false;
+  return frame;
+}
+
+function createAutoText(characters: string, size: number, bold: boolean, width: number, color: RGB): TextNode {
+  const text = figma.createText();
+  text.name = bold ? "Text / Bold" : "Text";
+  text.fontName = bold ? FONT_BOLD : FONT_REGULAR;
+  text.fontSize = size;
+  text.fills = [{ type: "SOLID", color }];
+  text.textAutoResize = "HEIGHT";
+  text.resize(width, Math.max(18, size + 8));
+  text.characters = characters;
+  return text;
+}
+
 function appendBoard(parent: FrameNode | null, board: FrameNode): void {
   if (parent) {
     parent.appendChild(board);
@@ -718,6 +894,11 @@ function addText(parent: FrameNode, characters: string, x: number, y: number, op
   }
   parent.appendChild(node);
   return node;
+}
+
+function trimForBoard(value: string, maxLength: number): string {
+  const compact = value.replace(/\s+/g, " ").trim();
+  return compact.length > maxLength ? `${compact.slice(0, maxLength - 1)}…` : compact;
 }
 
 function renderArrow(parent: FrameNode, x: number, y: number, width: number): void {
