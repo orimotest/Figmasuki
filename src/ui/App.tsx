@@ -23,8 +23,8 @@ import { SettingsScreen } from "./screens/SettingsScreen";
 const appViews: AppView[] = ["Brief", "Auto", "Diagnose", "Compare", "Finish", "Output"];
 
 const uiSizePresets = {
-  Fit: { width: 800, height: 450 },
-  Work: { width: 900, height: 560 },
+  Fit: { width: 720, height: 620 },
+  Work: { width: 840, height: 680 },
   Review: { width: 1040, height: 720 },
 } as const;
 
@@ -77,7 +77,7 @@ export default function App() {
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
   const [background, setBackground] = useState<BackgroundResult | undefined>();
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | undefined>();
-  const [executionMode, setExecutionMode] = useState<"Live" | "Demo">(() => getRuntimeExecutionModeLabel());
+  const [executionMode, setExecutionMode] = useState<"API" | "Demo">(() => getRuntimeExecutionModeLabel());
   const providers: ProviderConfig = providerConfig;
 
   const outputCount = projectData?.figmaOutputs?.length ?? 0;
@@ -92,7 +92,7 @@ export default function App() {
       Compare: hasComparison ? "done" : "idle",
       Finish: hasBackground ? "done" : "idle",
       Output: outputCount >= 7 ? "done" : "idle",
-      Settings: executionMode === "Live" ? "done" : "idle",
+      Settings: executionMode === "API" ? "done" : "idle",
     };
   }, [projectData, comparison, background, diagnosis, outputCount, executionMode]);
 
@@ -165,7 +165,7 @@ export default function App() {
 
   return (
     <main className="app-shell">
-      <AppSidebar activeView={activeView} executionMode={executionMode} outputCount={outputCount} statuses={navStatuses} onChange={handleSidebarChange} />
+      <AppSidebar activeView={activeView} outputCount={outputCount} statuses={navStatuses} onChange={handleSidebarChange} />
 
       <section className="app-workspace">
         <header className="plugin-header app-header">
@@ -179,7 +179,6 @@ export default function App() {
           </div>
           <div className="header-meta">
             <CanvasBadge />
-            <span className={executionMode === "Live" ? "provider-badge success" : "provider-badge warning"}>{executionMode === "Live" ? "Live Mode" : "Demo Mode"}</span>
             <span className="provider-badge">{outputCount}/7 Figma</span>
             <div className="ui-size-control" aria-label="UI size">
               {(["Fit", "Work", "Review"] as UiSizePreset[]).map((size) => (
@@ -222,7 +221,7 @@ export default function App() {
                 : activeView === "Brief"
                   ? "要件入力は制作フローの入口です。Markdown、PDF、Figma参照もここで整理できます。"
                   : "AIの工程、Figma出力状況、Final Candidateまでのつながりを確認できます。",
-              executionMode === "Live" ? "Live Modeで外部APIに接続します。" : "Demo Modeでは実案件風の代替データで制作フローを確認できます。",
+              "制作モードは設定で切り替えます。APIキーや接続先はログに出しません。",
             ]}
           />
         </ActionFooter>

@@ -22,20 +22,30 @@ export function saveRuntimeApiSettings(settings: RuntimeApiSettings): void {
   }
 }
 
+export function isRuntimeApiMode(settings = getRuntimeApiSettings()): boolean {
+  return settings.mode === "api";
+}
+
 export function isRuntimeLiveReady(settings = getRuntimeApiSettings()): boolean {
+  return isRuntimeApiMode(settings) && isRuntimeApiConfigured(settings);
+}
+
+export function isRuntimeApiConfigured(settings = getRuntimeApiSettings()): boolean {
   return hasAnyDifyWorkflow(settings) || settings.gemini.apiKey.trim().length > 0;
 }
 
-export function getRuntimeExecutionModeLabel(settings = getRuntimeApiSettings()): "Live" | "Demo" {
-  return isRuntimeLiveReady(settings) ? "Live" : "Demo";
+export function getRuntimeExecutionModeLabel(settings = getRuntimeApiSettings()): "API" | "Demo" {
+  return isRuntimeLiveReady(settings) ? "API" : "Demo";
 }
 
 export function hasDifyWorkflowSettings(workflow: keyof RuntimeApiSettings["dify"], settings = getRuntimeApiSettings()): boolean {
+  if (!isRuntimeApiMode(settings)) return false;
   const target = settings.dify[workflow];
   return target.url.trim().length > 0 && target.apiKey.trim().length > 0;
 }
 
 export function hasGeminiSettings(settings = getRuntimeApiSettings()): boolean {
+  if (!isRuntimeApiMode(settings)) return false;
   return settings.gemini.apiKey.trim().length > 0;
 }
 
@@ -62,6 +72,7 @@ function hasAnyDifyWorkflow(settings: RuntimeApiSettings): boolean {
 function readFileSettings(): RuntimeApiSettings {
   const dify = apiSettings.dify as typeof apiSettings.dify & Record<string, { url?: string; apiKey?: string } | undefined>;
   return {
+    mode: "demo",
     dify: {
       inputOrganizer: toCredential(dify.inputOrganizer ?? dify.copy),
       ideaExplorer: toCredential(dify.ideaExplorer ?? dify.ideas ?? dify.copy),
@@ -85,6 +96,7 @@ function toCredential(value?: { url?: string; apiKey?: string }): { url: string;
 
 function mergeRuntimeSettings(primary: Partial<RuntimeApiSettings> | undefined, fallback: RuntimeApiSettings): RuntimeApiSettings {
   return {
+    mode: primary?.mode ?? fallback.mode ?? emptyRuntimeApiSettings.mode,
     dify: {
       inputOrganizer: mergeCredential(primary?.dify?.inputOrganizer, fallback.dify.inputOrganizer),
       ideaExplorer: mergeCredential(primary?.dify?.ideaExplorer, fallback.dify.ideaExplorer),

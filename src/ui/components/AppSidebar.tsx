@@ -5,7 +5,6 @@ export type AppViewStatus = "idle" | "done" | "error";
 
 type AppSidebarProps = {
   activeView: AppView;
-  executionMode: "Live" | "Demo";
   outputCount: number;
   statuses: Partial<Record<AppView, AppViewStatus>>;
   onChange: (view: AppView) => void;
@@ -21,7 +20,7 @@ const navigationItems = [
   { view: "Settings", label: "設定", description: "API接続", icon: Settings },
 ] satisfies Array<{ view: AppView; label: string; description: string; icon: typeof FileText }>;
 
-export function AppSidebar({ activeView, executionMode, outputCount, statuses, onChange }: AppSidebarProps) {
+export function AppSidebar({ activeView, outputCount, statuses, onChange }: AppSidebarProps) {
   return (
     <aside className="app-sidebar" aria-label="メインナビゲーション">
       <div className="sidebar-brand">
@@ -47,7 +46,7 @@ export function AppSidebar({ activeView, executionMode, outputCount, statuses, o
       </nav>
 
       <div className="sidebar-status">
-        <span className={executionMode === "Live" ? "sidebar-mode live" : "sidebar-mode demo"}>{executionMode}</span>
+        <span className="sidebar-mode">設定で切替</span>
         <span>{outputCount}/7 Figma</span>
       </div>
     </aside>

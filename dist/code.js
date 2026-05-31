@@ -23,8 +23,8 @@
   // src/config/app.ts
   var appConfig = {
     name: "AI Cover Studio",
-    uiWidth: 800,
-    uiHeight: 450
+    uiWidth: 720,
+    uiHeight: 620
   };
 
   // src/config/runtimeApiSettings.ts
@@ -1589,11 +1589,12 @@
       if (message.type === "TEST_API_SETTINGS") {
         const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
         const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
+        const canUseApi = message.payload.mode === "api" && (hasDify || hasGemini);
         postToUi({
           type: "API_SETTINGS_TEST_RESULT",
           payload: {
             ok: hasDify || hasGemini,
-            message: hasDify || hasGemini ? "\u4FDD\u5B58\u6E08\u307F\u8A2D\u5B9A\u3092\u78BA\u8A8D\u3057\u307E\u3057\u305F\u3002Live Mode\u3078\u5207\u308A\u66FF\u3048\u308B\u6E96\u5099\u304C\u3042\u308A\u307E\u3059\u3002" : "API\u8A2D\u5B9A\u304C\u672A\u5B8C\u4E86\u3067\u3059\u3002Dify\u307E\u305F\u306FGemini\u306EURL / Key\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
+            message: canUseApi ? "API\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u63A5\u7D9A\u8A2D\u5B9A\u3092\u78BA\u8A8D\u3057\u307E\u3057\u305F\u3002" : hasDify || hasGemini ? "\u63A5\u7D9A\u8A2D\u5B9A\u306F\u5165\u529B\u6E08\u307F\u3067\u3059\u3002API\u3092\u4F7F\u3046\u5834\u5408\u306F\u8A2D\u5B9A\u3067API\u30E2\u30FC\u30C9\u306B\u5207\u308A\u66FF\u3048\u3066\u304F\u3060\u3055\u3044\u3002" : "API\u8A2D\u5B9A\u304C\u672A\u5B8C\u4E86\u3067\u3059\u3002Dify\u307E\u305F\u306FGemini\u306EURL / Key\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
           }
         });
         return;

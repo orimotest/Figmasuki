@@ -61,11 +61,16 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     if (message.type === "TEST_API_SETTINGS") {
       const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
       const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
+      const canUseApi = message.payload.mode === "api" && (hasDify || hasGemini);
       postToUi({
         type: "API_SETTINGS_TEST_RESULT",
         payload: {
           ok: hasDify || hasGemini,
-          message: hasDify || hasGemini ? "保存済み設定を確認しました。Live Modeへ切り替える準備があります。" : "API設定が未完了です。DifyまたはGeminiのURL / Keyを入力してください。",
+          message: canUseApi
+            ? "APIモードで使える接続設定を確認しました。"
+            : hasDify || hasGemini
+              ? "接続設定は入力済みです。APIを使う場合は設定でAPIモードに切り替えてください。"
+              : "API設定が未完了です。DifyまたはGeminiのURL / Keyを入力してください。",
         },
       });
       return;

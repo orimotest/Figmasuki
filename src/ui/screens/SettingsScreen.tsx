@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { emptyRuntimeApiSettings, type RuntimeApiSettings } from "../../schemas/apiSettings";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
-import { isRuntimeLiveReady, maskSecret, saveRuntimeApiSettings } from "../../config/runtimeApiSettings";
+import { getRuntimeApiSettings, isRuntimeApiConfigured, isRuntimeLiveReady, maskSecret, saveRuntimeApiSettings } from "../../config/runtimeApiSettings";
 import { ErrorMessage } from "../components/ErrorMessage";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
@@ -21,7 +21,7 @@ type SettingsScreenProps = {
 };
 
 export function SettingsScreen({ compact = false }: SettingsScreenProps) {
-  const [settings, setSettings] = useState<RuntimeApiSettings>(emptyRuntimeApiSettings);
+  const [settings, setSettings] = useState<RuntimeApiSettings>(() => getRuntimeApiSettings());
   const [logs, setLogs] = useState<string[]>([
     "API設定を保存すると外部APIに接続して制作フローを実行できます。未設定の場合は代替処理で動作します。",
   ]);
@@ -33,8 +33,9 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
       const message = event.data.pluginMessage;
       if (!message) return;
       if (message.type === "API_SETTINGS_LOADED" && message.payload.settings) {
-        setSettings(message.payload.settings);
-        saveRuntimeApiSettings(message.payload.settings);
+        const loadedSettings = normalizeLoadedSettings(message.payload.settings);
+        setSettings(loadedSettings);
+        saveRuntimeApiSettings(loadedSettings);
         setLogs((items) => [...items, "保存済みのAPI設定を読み込みました。"]);
       }
       if (message.type === "API_SETTINGS_SAVED") {
@@ -70,6 +71,14 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
     setSettings((current) => ({ ...current, gemini: { ...current.gemini, [key]: value } }));
   }
 
+  function updateMode(mode: RuntimeApiSettings["mode"]) {
+    const nextSettings = { ...settings, mode };
+    setSettings(nextSettings);
+    saveRuntimeApiSettings(nextSettings);
+    postToPlugin({ type: "SAVE_API_SETTINGS", payload: nextSettings });
+    setLogs((items) => [...items, mode === "demo" ? "Demoモードに切り替えました。APIは呼ばずに確認できます。" : "APIモードに切り替えました。設定済みの接続先を使います。"]);
+  }
+
   function handleSave() {
     setError(null);
     setSuccess(null);
@@ -92,8 +101,29 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
         />
         {success && <SuccessMessage title={success} />}
         {error && <ErrorMessage title="設定を確認してください" detail={error} />}
+        <div className="settings-mode-panel" aria-label="制作モード">
+          <div>
+            <strong>制作モード</strong>
+            <span>{settings.mode === "api" ? "API接続を使う" : "Demoデータで確認する"}</span>
+          </div>
+          <div className="mode-toggle" role="group" aria-label="DemoとAPIの切り替え">
+            <button className={settings.mode === "demo" ? "active" : ""} type="button" onClick={() => updateMode("demo")}>
+              Demo
+            </button>
+            <button className={settings.mode === "api" ? "active" : ""} type="button" onClick={() => updateMode("api")}>
+              API
+            </button>
+          </div>
+          <p>
+            {settings.mode === "api"
+              ? isRuntimeApiConfigured(settings)
+                ? "APIモードでは、設定済みのDify / Geminiを使います。未設定の工程は代替処理で継続します。"
+                : "APIモードを使うには、DifyまたはGeminiの接続情報を入力してください。"
+              : "Demoでは外部APIを呼ばず、制作フローとFigma出力を確認できます。"}
+          </p>
+        </div>
         <div className="settings-summary">
-          <span>接続状態: {isRuntimeLiveReady(settings) ? "API接続中" : "接続設定待ち"}</span>
+          <span>現在: {settings.mode === "api" ? (isRuntimeLiveReady(settings) ? "APIモード" : "API設定待ち") : "Demoモード"}</span>
           <span>Dify: {configuredDifyCount(settings)}/6 workflow</span>
           <span>Gemini: {maskSecret(settings.gemini.apiKey)}</span>
         </div>
@@ -169,4 +199,20 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
 
 function configuredDifyCount(settings: RuntimeApiSettings): number {
   return Object.values(settings.dify).filter((workflow) => workflow.url.trim() && workflow.apiKey.trim()).length;
+}
+
+function normalizeLoadedSettings(settings: RuntimeApiSettings): RuntimeApiSettings {
+  return {
+    ...emptyRuntimeApiSettings,
+    ...settings,
+    mode: settings.mode ?? emptyRuntimeApiSettings.mode,
+    dify: {
+      ...emptyRuntimeApiSettings.dify,
+      ...settings.dify,
+    },
+    gemini: {
+      ...emptyRuntimeApiSettings.gemini,
+      ...settings.gemini,
+    },
+  };
 }

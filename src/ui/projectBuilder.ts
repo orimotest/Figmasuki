@@ -82,7 +82,7 @@ function createProviderMode(exploreResult: ExploreResult, svgCandidates: SvgCand
   if (exploreResult.providerMeta?.provider === "dify" || svgCandidates.some((candidate) => candidate.meta.provider === "gemini")) {
     return "API接続中";
   }
-  return getRuntimeExecutionModeLabel() === "Live" ? "API接続中" : "API未接続";
+  return getRuntimeExecutionModeLabel() === "API" ? "API接続中" : "API未接続";
 }
 
 function createSvgProviderMeta(svgCandidates: SvgCandidate[]) {

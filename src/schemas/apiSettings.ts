@@ -4,6 +4,7 @@ export type ApiWorkflowCredential = {
 };
 
 export type RuntimeApiSettings = {
+  mode: "demo" | "api";
   dify: {
     inputOrganizer: ApiWorkflowCredential;
     ideaExplorer: ApiWorkflowCredential;
@@ -21,6 +22,7 @@ export type RuntimeApiSettings = {
 };
 
 export const emptyRuntimeApiSettings: RuntimeApiSettings = {
+  mode: "demo",
   dify: {
     inputOrganizer: { url: "", apiKey: "" },
     ideaExplorer: { url: "", apiKey: "" },

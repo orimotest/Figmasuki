@@ -56,4 +56,4 @@ Copy-Item src\config\apiSettings.example.ts src\config\apiSettings.ts
 `src/config/providers.ts` は、どのproviderを使うかを決めます。  
 `apiSettings.ts` と設定ドロワーは、Dify / GeminiのURLやKeyを管理します。
 
-API設定が未完了、またはAPI呼び出しに失敗した場合はDemo Modeで継続できるようにしています。
+設定ドロワーの制作モードで `Demo` を選ぶと、接続情報が保存されていても外部APIは呼びません。`API` を選び、DifyまたはGeminiの設定が入っている場合だけAPI接続を使います。API設定が未完了、またはAPI呼び出しに失敗した場合は代替処理で継続できるようにしています。
