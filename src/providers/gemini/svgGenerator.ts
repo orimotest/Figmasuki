@@ -1,4 +1,5 @@
 import { CANVAS_SIZE } from "../../config/canvas";
+import { env } from "../../config/env";
 import type { Direction } from "../../schemas/direction";
 import type { SvgCandidate } from "../../schemas/svg";
 import { extractSvgFromText, validateSvg } from "../../utils/svgValidator";
@@ -19,7 +20,7 @@ export async function generateSvgWithGemini(direction: Direction): Promise<SvgCa
 }
 
 async function requestSvg(direction: Direction, prompt: string): Promise<SvgCandidate> {
-  const text = await callGeminiText({ prompt, temperature: 0.35 });
+  const text = await callGeminiText({ model: env.GEMINI_SVG_MODEL, prompt, temperature: 0.35 });
   const svg = extractSvgFromText(text);
   const validation = validateSvg(svg);
   const now = new Date().toISOString();
@@ -78,6 +79,10 @@ Design rules:
 - This is an editable design foundation, not a flattened final image.
 - note_thumbnail should feel editorial and readable, not like a hard-selling ad.
 - seminar_banner should make title, date, benefit, and CTA easy to scan.
+- Final SVG must not show internal direction names, role names, or classification badges such as "参加メリット型", "課題共感型", "実務ノウハウ型", "Webinar", "Draft", "Primary", or "Secondary".
+- Do not add a top-left pill just to label the concept. Only include user-facing seminar content: headline, subcopy, date/time/place, benefit text, and CTA.
+- Keep CTA separated from title, subcopy, and meta by at least 20px. If space is tight, reduce supporting cards before shrinking whitespace.
+- Prefer simple, inspectable layouts over decorative panels. The output will be pasted into Figma for review, so avoid dense UI-like widgets.
 
 Forbidden:
 - foreignObject
@@ -87,6 +92,7 @@ Forbidden:
 - animation
 - complex filters
 - markdown code fences
+- visible internal labels, debug labels, or concept labels
 
 Return exactly one SVG string.`;
 }

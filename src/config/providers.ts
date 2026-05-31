@@ -7,5 +7,5 @@ export const providerConfig = {
   diagnosis: "demo",
   compare: "demo",
   background: "demo",
-  fallbackToDemo: true,
+  fallbackToDemo: false,
 } as const satisfies ProviderConfig;

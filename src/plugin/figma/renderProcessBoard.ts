@@ -358,11 +358,11 @@ function renderIdeaExploreBoard(parent: FrameNode | null, ideas: IdeaDirection[]
 }
 
 function renderTypographyDraftBoard(parent: FrameNode | null, drafts: TypographyDraft[], x: number, y: number): FrameNode {
-  const board = createSection("03 15 Typography Drafts", "完成案の前に、文字階層・余白・CTA位置を軽量SVGで検討します。", x, y, 1420, 1060);
+  const board = createSection("03 15 Typography Drafts", "完成案の前に、主見出し・補助コピー・日時・CTA文言の役割と改行をシンプルに確認します。", x, y, 1420, 1060);
   appendBoard(parent, board);
   addStageStats(board, [
     ["ドラフト", "15案"],
-    ["高品質SVGへ", `${drafts.filter((draft) => draft.selectedForRefine).length}案`],
+    ["SVG生成へ", `${drafts.filter((draft) => draft.selectedForRefine).length}案`],
     ["目的", "文字組み確認"],
   ]);
   renderDraftGrid(board, drafts, 24, 142, 1372);

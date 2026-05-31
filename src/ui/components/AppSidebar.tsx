@@ -1,4 +1,4 @@
-import { CheckCircle2, Circle, ClipboardList, Columns3, FileOutput, FileText, PlayCircle, Settings, Sparkles, Stethoscope, TriangleAlert } from "lucide-react";
+import { CheckCircle2, Circle, ClipboardList, Columns3, FileOutput, PlayCircle, Settings, Sparkles, Stethoscope, TriangleAlert } from "lucide-react";
 
 export type AppView = "Auto" | "Brief" | "Markdown" | "Diagnose" | "Compare" | "Finish" | "Output" | "Settings";
 export type AppViewStatus = "idle" | "done" | "error";
@@ -10,15 +10,14 @@ type AppSidebarProps = {
 };
 
 const navigationItems = [
-  { view: "Brief", label: "要件入力", description: "入力を整理", icon: ClipboardList },
-  { view: "Markdown", label: "Markdown", description: "構造から生成", icon: FileText },
-  { view: "Auto", label: "自動制作", description: "Finalまで", icon: PlayCircle },
+  { view: "Brief", label: "要件入力", description: "Markdown対応", icon: ClipboardList },
+  { view: "Auto", label: "自動制作", description: "一括生成", icon: PlayCircle },
   { view: "Diagnose", label: "診断", description: "1案を見る", icon: Stethoscope },
   { view: "Compare", label: "比較", description: "複数案を整理", icon: Columns3 },
   { view: "Finish", label: "仕上げ", description: "背景とFinal", icon: Sparkles },
   { view: "Output", label: "Figma出力", description: "記録を確認", icon: FileOutput },
   { view: "Settings", label: "設定", description: "API接続", icon: Settings },
-] satisfies Array<{ view: AppView; label: string; description: string; icon: typeof FileText }>;
+] satisfies Array<{ view: AppView; label: string; description: string; icon: typeof ClipboardList }>;
 
 export function AppSidebar({ activeView, statuses, onChange }: AppSidebarProps) {
   return (
@@ -31,7 +30,7 @@ export function AppSidebar({ activeView, statuses, onChange }: AppSidebarProps) 
       <nav className="sidebar-nav">
         {navigationItems.map(({ view, label, description, icon: Icon }) => {
           const status = statuses[view] ?? "idle";
-          const active = view === activeView && view !== "Settings";
+          const active = (view === activeView || (view === "Brief" && activeView === "Markdown")) && view !== "Settings";
           return (
             <button key={view} className={active ? "sidebar-nav-item active" : "sidebar-nav-item"} type="button" onClick={() => onChange(view)}>
               <Icon size={15} aria-hidden="true" />

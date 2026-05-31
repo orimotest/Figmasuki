@@ -1,14 +1,22 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { hasDifyWorkflowSettings, isGeminiOnlyApiMode } from "../../config/runtimeApiSettings";
 import type { ContentType } from "../../schemas/content";
+import type { Direction } from "../../schemas/direction";
 import type { FixedCopyInput, InputMode, ExploreInput, NormalizedCreativeInput } from "../../schemas/input";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
+import type { LayoutDraftInput } from "../../schemas/layoutDraft";
 import type { ProjectData } from "../../schemas/project";
 import type { ProviderConfig } from "../../schemas/provider";
 import type { FigmaOutputRecord, ProcessBoardStage, ProductionStage } from "../../schemas/production";
 import type { ExploreResult, SvgCandidate } from "../../schemas/svg";
+import type { StageWorkflowData, TypographyDraft } from "../../schemas/workflow";
 import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
+import { createDemoStageWorkflow } from "../../data/demo/stagedWorkflowDemo";
+import { selectCandidatesWithDify } from "../../providers/dify/candidateSelectorClient";
 import { organizeInputWithDify } from "../../providers/dify/inputOrganizerClient";
+import { planTypographyDraftsWithDify } from "../../providers/dify/typographyPlannerClient";
 import { extractPdfText } from "../../utils/extractPdfText";
+import { createTypographyDraftSvg } from "../../utils/typographyDraftSvg";
 import { runCompareWorkflow } from "../../workflows/compareWorkflow";
 import { runExploreWorkflow } from "../../workflows/exploreWorkflow";
 import { runFinishWorkflow } from "../../workflows/finishWorkflow";
@@ -25,7 +33,6 @@ import { PresetSelector } from "../components/PresetSelector";
 import { ProductionTimeline, type ProductionTimelineItem } from "../components/ProductionTimeline";
 import { ProviderBadge } from "../components/ProviderBadge";
 import { SectionHeader } from "../components/SectionHeader";
-import { StatusLog } from "../components/StatusLog";
 import { SuccessMessage } from "../components/SuccessMessage";
 import { contentTypeLabels, inputModeLabels } from "../labels";
 import { normalizeRichTextInput } from "../../utils/markdown/normalizeRichText";
@@ -35,6 +42,8 @@ type ExploreScreenProps = {
   forcedInputMode?: InputMode;
   providers: ProviderConfig;
   projectData: ProjectData | null;
+  productionBrief?: NormalizedCreativeInput | null;
+  onProductionBrief?: (brief: NormalizedCreativeInput | null) => void;
   onProceedToProduction?: () => void;
   onProjectData: (project: ProjectData | null) => void;
 };
@@ -97,7 +106,16 @@ const sampleFixedCopy: FixedCopyInput = {
   time: "14:00-15:00",
 };
 
-export function ExploreScreen({ phase = "production", forcedInputMode, providers, projectData, onProceedToProduction, onProjectData }: ExploreScreenProps) {
+export function ExploreScreen({
+  phase = "production",
+  forcedInputMode,
+  providers,
+  projectData,
+  productionBrief: sharedProductionBrief,
+  onProductionBrief,
+  onProceedToProduction,
+  onProjectData,
+}: ExploreScreenProps) {
   const [contentType, setContentType] = useState<ContentType>("seminar_banner");
   const [inputMode, setInputMode] = useState<InputMode>(forcedInputMode ?? "brief_text");
   const [projectName, setProjectName] = useState("");
@@ -112,7 +130,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   const [pdfStatus, setPdfStatus] = useState("");
   const [markdownText, setMarkdownText] = useState("");
   const [referenceFrameSummary, setReferenceFrameSummary] = useState("");
-  const [productionBrief, setProductionBrief] = useState<NormalizedCreativeInput | null>(null);
+  const [productionBriefState, setProductionBriefState] = useState<NormalizedCreativeInput | null>(sharedProductionBrief ?? null);
   const [isOrganizing, setIsOrganizing] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [statusLogs, setStatusLogs] = useState<string[]>(["要件を入力して、自動制作を開始できます。"]);
@@ -122,6 +140,13 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   const [success, setSuccess] = useState<string | null>(null);
   const [productionStage, setProductionStage] = useState<ProductionStage>("input_ready");
   const [figmaOutputs, setFigmaOutputs] = useState<FigmaOutputRecord[]>([]);
+  const [geminiOnlyConfirmed, setGeminiOnlyConfirmed] = useState(false);
+  const productionBrief = sharedProductionBrief !== undefined ? sharedProductionBrief : productionBriefState;
+
+  function setProductionBrief(nextBrief: NormalizedCreativeInput | null) {
+    setProductionBriefState(nextBrief);
+    onProductionBrief?.(nextBrief);
+  }
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
@@ -162,6 +187,10 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   useEffect(() => {
     if (forcedInputMode) setInputMode(forcedInputMode);
   }, [forcedInputMode]);
+
+  useEffect(() => {
+    if (sharedProductionBrief !== undefined) setProductionBriefState(sharedProductionBrief);
+  }, [sharedProductionBrief]);
 
   function loadSample(type: ContentType = "seminar_banner") {
     setContentType(type);
@@ -207,6 +236,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   }
 
   async function runFullAutoProduction() {
+    if (!confirmGeminiOnlyRun()) return;
     setError(null);
     setSuccess(null);
     setFigmaOutputs([]);
@@ -235,6 +265,17 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
       setExploreResult(result);
       setStatusLogs((entries) => [...entries, `${result.exploredCount}案を探索しました。`]);
 
+      let plannedTypographyDrafts: TypographyDraft[] | undefined;
+      let svgExploreResult = result;
+      const buildStageWorkflow = (candidates: SvgCandidate[], comparisonResult?: Parameters<typeof createDemoStageWorkflow>[0]["comparisonResult"], backgroundResult?: Parameters<typeof createDemoStageWorkflow>[0]["backgroundResult"]): StageWorkflowData =>
+        createDemoStageWorkflow({
+          directions: result.directions,
+          refinedSvgCandidates: candidates,
+          comparisonResult,
+          backgroundResult,
+          typographyDrafts: plannedTypographyDrafts,
+        });
+
       let project = buildProjectData({
         exploreResult: result,
         svgCandidates: [],
@@ -250,14 +291,20 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
 
       setProductionStage("generating_typography_drafts");
       setStatusLogs((entries) => [...entries, "30案を整理し、文字組みドラフトに進める15案を選んでいます。"]);
+      const plannedDraftInputs = await createApiTypographyDraftInputs(result);
+      const selectedDraftInputs = await applyApiCandidateSelection(plannedDraftInputs);
+      plannedTypographyDrafts = selectedDraftInputs ? toTypographyDrafts(selectedDraftInputs) : undefined;
+      svgExploreResult = selectedDraftInputs ? createExploreResultFromSelectedDrafts(result, selectedDraftInputs) : result;
       await wait(560);
 
       setProductionStage("placing_typography_board");
-      project = {
-        ...project,
+      project = buildProjectData({
+        exploreResult: result,
+        svgCandidates: [],
         productionStatus: { stage: "placing_typography_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts"]),
-      };
+        stageWorkflow: buildStageWorkflow([]),
+      });
       onProjectData(project);
       postStageBoard(project, "typography_drafts");
       setFigmaOutputs(project.figmaOutputs ?? []);
@@ -268,13 +315,31 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
 
       setProductionStage("generating_refined_svgs");
       setStatusLogs((entries) => [...entries, "5案を高品質SVGに整えています。"]);
-      const svgResult = await runGenerateSvgWorkflow(result);
+      const progressiveSvgCandidates: SvgCandidate[] = [];
+      const svgResult = await runGenerateSvgWorkflow(svgExploreResult, {
+        concurrency: 2,
+        onCandidate: (candidate, index) => {
+          progressiveSvgCandidates[index] = candidate;
+          const availableCandidates = progressiveSvgCandidates.filter((item): item is SvgCandidate => Boolean(item));
+          setSvgCandidates(availableCandidates);
+          onProjectData(
+            buildProjectData({
+              exploreResult: result,
+              svgCandidates: availableCandidates,
+              productionStatus: { stage: "generating_refined_svgs", startedAt },
+              figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts"]),
+              stageWorkflow: buildStageWorkflow(availableCandidates),
+            }),
+          );
+        },
+      });
       setSvgCandidates(svgResult.svgs);
       project = buildProjectData({
         exploreResult: result,
         svgCandidates: svgResult.svgs,
         productionStatus: { stage: "placing_refined_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs"]),
+        stageWorkflow: buildStageWorkflow(svgResult.svgs),
       });
       onProjectData(project);
       await wait(520);
@@ -292,6 +357,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
         comparisonResult,
         productionStatus: { stage: "placing_compare_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare"]),
+        stageWorkflow: buildStageWorkflow(svgResult.svgs, comparisonResult),
       });
       onProjectData(project);
       await wait(420);
@@ -310,6 +376,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
         backgroundResult,
         productionStatus: { stage: "placing_background_board", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations"]),
+        stageWorkflow: buildStageWorkflow(svgResult.svgs, comparisonResult, backgroundResult),
       });
       onProjectData(project);
       await wait(520);
@@ -327,6 +394,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
         backgroundResult,
         productionStatus: { stage: "placing_final_candidate", startedAt },
         figmaOutputs: createOutputRecords(["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations", "final_candidate"]),
+        stageWorkflow: buildStageWorkflow(svgResult.svgs, comparisonResult, backgroundResult),
       });
       onProjectData(project);
       await wait(420);
@@ -346,6 +414,79 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
     } finally {
       setIsGenerating(false);
     }
+  }
+
+  async function createApiTypographyDraftInputs(result: ExploreResult): Promise<LayoutDraftInput[] | undefined> {
+    if (!hasDifyWorkflowSettings("typographyPlanner")) return undefined;
+    const drafts = await planTypographyDraftsWithDify(result.directions);
+    if (drafts.length < 15) {
+      throw new Error(`Typography Planner API の返却が不足しています。15案必要ですが ${drafts.length} 案でした。Dify の出力JSONを確認してください。`);
+    }
+    return drafts.slice(0, 15);
+  }
+
+  async function applyApiCandidateSelection(drafts: LayoutDraftInput[] | undefined): Promise<LayoutDraftInput[] | undefined> {
+    if (!drafts) return undefined;
+    if (!hasDifyWorkflowSettings("candidateSelector")) {
+      return drafts.map((draft, index) => ({ ...draft, selectedForRefine: [0, 4, 8, 11, 14].includes(index) }));
+    }
+
+    const selected = await selectCandidatesWithDify(drafts);
+    if (selected.length < 5) {
+      throw new Error(`Candidate Selector API の返却が不足しています。5案必要ですが ${selected.length} 案でした。Dify の出力JSONを確認してください。`);
+    }
+
+    const selectedIds = new Set(selected.slice(0, 5).map((item) => item.draftId));
+    return drafts.map((draft) => ({ ...draft, selectedForRefine: selectedIds.has(draft.id) }));
+  }
+
+  function toTypographyDrafts(drafts: LayoutDraftInput[]): TypographyDraft[] {
+    return drafts.map((draft, index) => ({
+      id: draft.id || `draft_${String(index + 1).padStart(2, "0")}`,
+      sourceIdeaId: draft.sourceIdeaId,
+      name: `Draft ${String(index + 1).padStart(2, "0")}`,
+      directionName: draft.directionName,
+      layoutType: draft.layoutType,
+      svg: createTypographyDraftSvg(draft),
+      evaluationMemo: draft.evaluationMemo ?? "文字組みと情報整理の比較用ドラフトです。",
+      selectedForRefine: Boolean(draft.selectedForRefine),
+    }));
+  }
+
+  function createExploreResultFromSelectedDrafts(result: ExploreResult, drafts: LayoutDraftInput[]): ExploreResult {
+    const selectedDrafts = drafts.filter((draft) => draft.selectedForRefine).slice(0, 5);
+    if (selectedDrafts.length !== 5) return result;
+    return {
+      ...result,
+      directions: selectedDrafts.map((draft, index) => createDirectionFromDraft(result, draft, index)),
+      selectedCount: 5,
+    };
+  }
+
+  function createDirectionFromDraft(result: ExploreResult, draft: LayoutDraftInput, index: number): Direction {
+    const source = result.directions.find((direction) => direction.id === draft.sourceIdeaId) ?? result.directions[index % result.directions.length];
+    return {
+      ...source,
+      id: draft.id,
+      title: draft.directionName || source.title,
+      name: draft.directionName || source.name,
+      layoutType: draft.layoutType,
+      copy: {
+        ...source.copy,
+        main: draft.mainCopy,
+        sub: draft.subCopy,
+        headline: draft.mainCopy,
+        subheadline: draft.subCopy,
+        cta: draft.cta ?? source.copy.cta,
+      },
+      layoutBrief: {
+        ...source.layoutBrief,
+        id: `layout_${draft.id}`,
+        title: draft.directionName || source.layoutBrief.title,
+        composition: `${source.layoutBrief.composition}\nTypography Draft: ${draft.layoutType}`,
+        hierarchy: draft.priority,
+      },
+    };
   }
 
   function createExploreInput(): ExploreInput {
@@ -418,6 +559,7 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   }
 
   async function handleProceedToProduction() {
+    if (!confirmGeminiOnlyRun()) return;
     const validationMessage = validateInput(createExploreInput());
     if (validationMessage) {
       setError(validationMessage);
@@ -441,6 +583,15 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
     } finally {
       setIsOrganizing(false);
     }
+  }
+
+  function confirmGeminiOnlyRun(): boolean {
+    if (!isGeminiOnlyApiMode() || geminiOnlyConfirmed) return true;
+    const allowed = window.confirm(
+      "Difyが未接続のため、Gemini APIだけで要件整理から生成まで実行します。API使用量が増える可能性があります。続行しますか？",
+    );
+    if (allowed) setGeminiOnlyConfirmed(true);
+    return allowed;
   }
 
   async function handleRenderRequirementBoard() {
@@ -611,18 +762,21 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
           {requirementEditor}
           {error && <ErrorMessage title="要件を確認してください" detail={error} action="不足している項目を入力すると、自動制作へ進めます。" />}
           {success && <SuccessMessage title={success} />}
+          <div className="sample-load-row" aria-label="サンプル要件">
+            <span>サンプルを読み込む</span>
+            <button type="button" onClick={() => loadSample("seminar_banner")}>
+              セミナー
+            </button>
+            <button type="button" onClick={() => loadSample("note_thumbnail")}>
+              note
+            </button>
+          </div>
           <ActionBar>
             <button className="primary-button" type="button" disabled={isOrganizing} onClick={() => void handleProceedToProduction()}>
               {isOrganizing ? "ブリーフ整理中..." : "この要件で自動制作へ"}
             </button>
             <button className="secondary-button" type="button" onClick={() => void handleRenderRequirementBoard()}>
               要件ボードをFigmaに出力
-            </button>
-            <button className="secondary-button" type="button" onClick={() => loadSample("seminar_banner")}>
-              セミナーサンプル
-            </button>
-            <button className="secondary-button" type="button" onClick={() => loadSample("note_thumbnail")}>
-              noteサンプル
             </button>
             <button className="ghost-button" type="button" onClick={handleReset}>
               リセット
@@ -635,37 +789,16 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
   }
 
   return (
-    <div className="explore-layout auto-production-grid">
-      <section className="panel requirement-summary-panel">
-        <SectionHeader title="制作ブリーフ" description="目的、相手、訴求が揃っているかを確認してから自動制作へ進みます。" />
-        {productionBrief ? (
-          <ProductionBriefEditor brief={productionBrief} onChange={setProductionBrief} />
-        ) : (
-          <EmptyState title="制作ブリーフ未整理" body="要件タブで入力内容を確認し、制作ブリーフを作成してから開始します。" />
-        )}
-        <ActionBar>
-          <button className="primary-button" type="button" disabled={isGenerating || !productionBrief} onClick={runFullAutoProduction}>
-            {isGenerating ? "制作中..." : productionStage === "completed" ? "再実行" : "自動制作を開始"}
-          </button>
-          {!productionBrief && (
-            <button className="secondary-button" type="button" onClick={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Brief" }))}>
-              要件を編集
-            </button>
-          )}
-        </ActionBar>
-      </section>
+    <div className="auto-dashboard">
+      <AutoDashboardSection step={1} title="要件入力">
+        <AutoRequirementOverview brief={productionBrief} onEdit={() => window.dispatchEvent(new CustomEvent("CHANGE_APP_TAB", { detail: "Brief" }))} />
+      </AutoDashboardSection>
 
-      <section className="panel production-panel">
-        <SectionHeader
-          title="段階型Explore / 自動制作フロー"
-          description="要件整理後はAIに任せて、比較・背景画像生成・最終候補の記録まで一括で進めます。"
-          aside={<ProviderBadge label="SVG" provider={providers.svg} />}
-        />
-        <div className="badge-row production-context-row">
-          <span className="provider-badge">現在: {getProductionStageLabel(productionStage)}</span>
-          <ProviderBadge label="copy" provider={providers.copy} />
+      <AutoDashboardSection step={2} title="自動制作フロー">
+        <div className="auto-flow-grid">
+          <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
+          <AutoProgressPanel stage={productionStage} isGenerating={isGenerating} providers={providers} svgCount={visibleSvgCandidates.length} />
         </div>
-        <ProductionTimeline currentStage={productionStage} items={productionTimelineItems} />
         {isGenerating && <LoadingState title={getProductionStageLabel(productionStage)} description={getProductionStageMessage(productionStage)} />}
         {error && <ErrorMessage title="自動制作を実行できませんでした" detail={error} action="ヘッダーの設定アイコンからAPI設定を確認するか、入力内容を調整してください。" />}
         {productionStage === "completed" && (
@@ -675,48 +808,182 @@ export function ExploreScreen({ phase = "production", forcedInputMode, providers
           />
         )}
         {success && productionStage !== "completed" && <SuccessMessage title={success} detail="Figma上で工程ごとの記録ボードを確認できます。" />}
-        <div className="production-bottom-grid">
-          <div className="result-card compact-card">
-            <div className="result-card-header">
-              <strong>処理ログ</strong>
-              <span>{statusLogs.length}件</span>
-            </div>
-            <StatusLog entries={statusLogs.slice(-5)} />
-          </div>
-          <FigmaOutputStatus outputs={figmaOutputs} />
-        </div>
-      </section>
+      </AutoDashboardSection>
 
-      <section className="panel current-results-panel">
-        <SectionHeader title="現在の成果" description="自動制作が進むほど、右側に成果が積み上がります。" />
-        <IdeaSummaryCard count={workflow?.ideaDirections.length ?? 0} />
-        <PreviewShelf
-          title="15案文字組みドラフト"
-          count={workflow?.typographyDrafts.length ?? 0}
-          items={workflow?.typographyDrafts.slice(0, 5).map((draft) => ({ id: draft.id, name: draft.name, svg: draft.svg })) ?? []}
-          emptyTitle="Typography Draftを生成中"
+      <AutoDashboardSection step={3} title="現在の成果プレビュー">
+        <AutoResultsPreview
+          workflow={workflow}
+          svgCandidates={visibleSvgCandidates}
+          primaryCandidate={primaryCandidate}
+          projectData={projectData}
+          completed={productionStage === "completed"}
         />
-        <PreviewShelf
-          title="5案高品質SVG"
-          count={visibleSvgCandidates.length}
-          items={visibleSvgCandidates.slice(0, 3).map((candidate) => ({ id: candidate.id, name: candidate.name, svg: candidate.svg }))}
-          emptyTitle="高品質SVGを生成中"
-        />
-        <FinalCandidatePreview project={projectData} candidate={primaryCandidate} completed={productionStage === "completed"} hasBackground={Boolean(projectData?.backgroundResult)} />
-      </section>
+      </AutoDashboardSection>
+
+      <AutoDashboardSection step={4} title="Figma出力ステータス">
+        <FigmaOutputStatus outputs={figmaOutputs} hasRequirementBoard={Boolean(productionBrief)} />
+      </AutoDashboardSection>
+
+      <div className="auto-dashboard-actions">
+        <button className="secondary-button" type="button" disabled={!productionBrief} onClick={() => void handleRenderRequirementBoard()}>
+          要件をFigmaに整理
+        </button>
+        <button className="primary-button" type="button" disabled={isGenerating || !productionBrief} onClick={runFullAutoProduction}>
+          {isGenerating ? "制作中..." : productionStage === "completed" ? "再実行" : "自動制作を開始"}
+        </button>
+      </div>
     </div>
   );
 }
 
-function FigmaOutputStatus({ outputs }: { outputs: FigmaOutputRecord[] }) {
+function AutoDashboardSection({ step, title, children }: { step: number; title: string; children: ReactNode }) {
+  return (
+    <section className="panel auto-section">
+      <div className="auto-section-heading">
+        <span>{step}</span>
+        <h2>{title}</h2>
+      </div>
+      {children}
+    </section>
+  );
+}
+
+function AutoRequirementOverview({ brief, onEdit }: { brief: NormalizedCreativeInput | null; onEdit: () => void }) {
+  const modeTabs = ["おまかせ", "要件テキスト", "確定コピー", "PDF", "Markdown"];
+  if (!brief) {
+    return <EmptyState title="制作ブリーフ未整理" body="要件入力/Markdownで入力内容を整理すると、この画面から一括制作を開始できます。" actionLabel="要件を入力" onAction={onEdit} />;
+  }
+
+  const rows: [string, string][] = [
+    ["制作物", contentTypeLabels[brief.contentType]],
+    ["内容", brief.briefText || brief.fixedCopy?.main || "AIが補完"],
+    ["ターゲット", brief.target || "AIが補完"],
+    ["訴求ポイント", brief.goal || "AIが補完"],
+    ["CTA", brief.fixedCopy?.cta || "AIが補完"],
+  ];
+
+  return (
+    <div className="auto-requirement-overview">
+      <div className="auto-input-tabs" aria-label="入力モード">
+        {modeTabs.map((tab) => (
+          <span className={isActiveRequirementTab(tab, brief.inputSource) ? "active" : ""} key={tab}>{tab}</span>
+        ))}
+      </div>
+      <dl className="auto-brief-table">
+        {rows.map(([label, value]) => (
+          <div key={label}>
+            <dt>{label}</dt>
+            <dd>{value}</dd>
+          </div>
+        ))}
+      </dl>
+      <button className="auto-note-button" type="button" onClick={onEdit}>
+        Notion / Docs / ChatGPTのMarkdownも貼り付け可能
+      </button>
+    </div>
+  );
+}
+
+function AutoProgressPanel({
+  stage,
+  isGenerating,
+  providers,
+  svgCount,
+}: {
+  stage: ProductionStage;
+  isGenerating: boolean;
+  providers: ProviderConfig;
+  svgCount: number;
+}) {
+  const progress = getProductionProgress(stage, svgCount);
+  const stageMessage =
+    stage === "generating_refined_svgs" ? `高品質SVGを5案生成しています。現在 ${Math.min(svgCount, 5)}/5 案まで完了しています。` : getProductionStageMessage(stage);
+  return (
+    <div className="auto-progress-panel">
+      <div className="auto-bot-face" aria-hidden="true">
+        <span />
+      </div>
+      <strong>{getProductionStageLabel(stage)}</strong>
+      <p>{isGenerating ? stageMessage : "自動制作を開始すると、工程ごとにFigmaへ記録しながら生成します。"}</p>
+      <div className="auto-progress-track">
+        <i style={{ width: `${progress}%` }} />
+      </div>
+      <em>{progress}%</em>
+      <div className="auto-provider-row">
+        <ProviderBadge label="copy" provider={providers.copy} />
+        <ProviderBadge label="SVG" provider={providers.svg} />
+      </div>
+    </div>
+  );
+}
+
+function AutoResultsPreview({
+  workflow,
+  svgCandidates,
+  primaryCandidate,
+  projectData,
+  completed,
+}: {
+  workflow: ProjectData["stageWorkflow"];
+  svgCandidates: SvgCandidate[];
+  primaryCandidate?: SvgCandidate;
+  projectData: ProjectData | null;
+  completed: boolean;
+}) {
+  const tags = ["時間効率", "実践的", "ビジネス", "初心者向け", "信頼感"];
+  const typographyItems = workflow?.typographyDrafts.slice(0, 3).map((draft) => ({ id: draft.id, name: draft.name, svg: draft.svg })) ?? [];
+  const refinedItems = svgCandidates.slice(0, 2).map((candidate) => ({ id: candidate.id, name: candidate.name, svg: candidate.svg }));
+
+  return (
+    <div className="auto-results-board">
+      <div className="auto-result-row">
+        <strong>30案探索サマリー</strong>
+        <div className="auto-tag-row">
+          {tags.map((tag) => <span key={tag}>{tag}</span>)}
+          <em>+5</em>
+        </div>
+      </div>
+      <PreviewResultRow title="15案ドラフト" count={workflow?.typographyDrafts.length ?? 0} items={typographyItems} />
+      <PreviewResultRow title="5案高品質SVG" count={svgCandidates.length} items={refinedItems} large />
+      <div className="auto-final-row">
+        <div className="auto-final-label">
+          <span>Final Candidate</span>
+          <em>{completed ? "完成" : "生成待ち"}</em>
+        </div>
+        <div className="auto-final-preview">
+          <FinalCandidatePreview project={projectData} candidate={primaryCandidate} completed={completed} hasBackground={Boolean(projectData?.backgroundResult)} />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PreviewResultRow({ title, count, items, large = false }: { title: string; count: number; items: { id: string; name: string; svg: string }[]; large?: boolean }) {
+  return (
+    <div className={large ? "auto-result-row large" : "auto-result-row"}>
+      <strong>{title}</strong>
+      <div className="auto-preview-strip">
+        {items.length > 0 ? items.map((item) => <MiniSvgPreview key={item.id} svg={item.svg} label={item.name} />) : <span className="auto-preview-placeholder">自動制作後に表示</span>}
+        {count > items.length && <em>+{count - items.length}</em>}
+      </div>
+    </div>
+  );
+}
+
+function FigmaOutputStatus({ outputs, hasRequirementBoard = false }: { outputs: FigmaOutputRecord[]; hasRequirementBoard?: boolean }) {
+  const requirementRecord = hasRequirementBoard ? 1 : 0;
   const stages: ProcessBoardStage[] = ["project_header", "ideas", "typography_drafts", "refined_svgs", "compare", "background_variations", "final_candidate"];
   return (
-    <div className="result-card compact-card">
+    <div className="result-card compact-card figma-status-card">
       <div className="result-card-header">
         <strong>Figmaへの記録</strong>
-        <span>{outputs.length}/7</span>
+        <span>{outputs.length + requirementRecord}/8</span>
       </div>
       <ul className="figma-output-list">
+        <li className={hasRequirementBoard ? "placed" : "pending"}>
+          <span>Requirements Board</span>
+          <em>{hasRequirementBoard ? "記録対象" : "待機"}</em>
+        </li>
         {stages.map((stage) => {
           const output = outputs.find((item) => item.stage === stage);
           return (
@@ -1029,6 +1296,41 @@ function getProductionStageLabel(stage: ProductionStage): string {
 function getProductionStageMessage(stage: ProductionStage): string {
   const item = productionTimelineItems.find((entry) => entry.stage === stage);
   return item?.description ?? "制作ジョブを進めています。";
+}
+
+function getProductionProgress(stage: ProductionStage, svgCount = 0): number {
+  if (stage === "generating_refined_svgs") {
+    return 56 + Math.round((Math.min(svgCount, 5) / 5) * 14);
+  }
+
+  const progressByStage: Record<ProductionStage, number> = {
+    idle: 0,
+    input_ready: 0,
+    exploring_ideas: 12,
+    placing_ideas_board: 18,
+    generating_typography_drafts: 35,
+    placing_typography_board: 45,
+    selecting_refined_candidates: 52,
+    generating_refined_svgs: 62,
+    placing_refined_board: 70,
+    running_auto_compare: 78,
+    placing_compare_board: 84,
+    generating_backgrounds: 90,
+    placing_background_board: 94,
+    placing_final_candidate: 98,
+    completed: 100,
+    error: 0,
+  };
+  return progressByStage[stage];
+}
+
+function isActiveRequirementTab(tab: string, source: NormalizedCreativeInput["inputSource"]): boolean {
+  if (tab === "おまかせ") return source === "minimal_prompt";
+  if (tab === "要件テキスト") return source === "brief_text";
+  if (tab === "確定コピー") return source === "fixed_copy";
+  if (tab === "PDF") return source === "pdf";
+  if (tab === "Markdown") return source === "markdown";
+  return false;
 }
 
 function getProcessBoardLabel(stage: ProcessBoardStage): string {

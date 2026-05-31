@@ -4,6 +4,7 @@ import type { DiagnosisResult, RuleCheckReport } from "../../schemas/diagnosis";
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import { isRecord } from "../../utils/guards";
 import { callDifyWorkflow } from "./difyClient";
+import { demoIdealTemplateContract, difyCommonContract } from "./difyPromptContracts";
 
 export async function diagnoseWithDify(
   frame: FigmaFrameData,
@@ -14,6 +15,8 @@ export async function diagnoseWithDify(
     url: env.DIFY_DIAGNOSIS_API_URL,
     apiKey: env.DIFY_DIAGNOSIS_API_KEY,
     inputs: {
+      contract: difyCommonContract,
+      idealTemplateReference: demoIdealTemplateContract,
       contentType,
       frame: compactFrame(frame),
       ruleCheck,

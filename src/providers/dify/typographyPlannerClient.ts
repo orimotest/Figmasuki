@@ -3,6 +3,7 @@ import type { LayoutDraftInput, TypographyDraftLayoutType } from "../../schemas/
 import type { Direction } from "../../schemas/direction";
 import { isRecord } from "../../utils/guards";
 import { callDifyWorkflow } from "./difyClient";
+import { demoIdealTemplateContract, difyCommonContract, typographyDraftContract } from "./difyPromptContracts";
 
 const allowedLayoutTypes: TypographyDraftLayoutType[] = [
   "left_hero",
@@ -22,6 +23,9 @@ export async function planTypographyDraftsWithDify(directions: Direction[]): Pro
     url: env.DIFY_TYPOGRAPHY_DRAFT_API_URL,
     apiKey: env.DIFY_TYPOGRAPHY_DRAFT_API_KEY,
     inputs: {
+      contract: difyCommonContract,
+      outputSchema: typographyDraftContract,
+      idealTemplateReference: demoIdealTemplateContract,
       directions,
       instruction: "Return Layout Draft JSON only. Do not return SVG.",
     },

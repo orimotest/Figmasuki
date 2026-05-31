@@ -19,7 +19,7 @@ export async function exploreLayoutWithDify(input: ExploreInput): Promise<Explor
     },
   });
 
-  const directions = normalizeDirections(output).slice(0, 5);
+  const directions = normalizeDirections(output, input.contentType).slice(0, 5);
   if (directions.length === 0) {
     throw new Error("Dify layout provider returned no directions.");
   }

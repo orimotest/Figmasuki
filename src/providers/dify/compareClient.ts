@@ -4,6 +4,7 @@ import type { ComparisonResult, FrameCompareSummary } from "../../schemas/compar
 import type { FigmaFrameData } from "../../schemas/figmaFrame";
 import { isRecord } from "../../utils/guards";
 import { callDifyWorkflow } from "./difyClient";
+import { demoIdealTemplateContract, difyCommonContract } from "./difyPromptContracts";
 
 export async function compareWithDify(
   frames: FigmaFrameData[],
@@ -14,6 +15,8 @@ export async function compareWithDify(
     url: env.DIFY_COMPARE_API_URL,
     apiKey: env.DIFY_COMPARE_API_KEY,
     inputs: {
+      contract: difyCommonContract,
+      idealTemplateReference: demoIdealTemplateContract,
       contentType,
       frames: frames.map((frame) => ({
         id: frame.id,

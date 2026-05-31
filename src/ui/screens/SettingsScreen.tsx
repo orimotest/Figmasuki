@@ -1,14 +1,12 @@
-import { useEffect, useState } from "react";
-import { emptyRuntimeApiSettings, type RuntimeApiSettings } from "../../schemas/apiSettings";
-import { postToPlugin, type PluginResponseMessage } from "../../plugin/figma/messageBridge";
-import { getRuntimeApiSettings, isRuntimeApiConfigured, isRuntimeLiveReady, maskSecret, saveRuntimeApiSettings } from "../../config/runtimeApiSettings";
-import { ErrorMessage } from "../components/ErrorMessage";
+import { useState } from "react";
+import { getRuntimeApiSettings, isRuntimeApiConfigured, isRuntimeLiveReady, notifyRuntimeApiSettingsChanged } from "../../config/runtimeApiSettings";
+import type { RuntimeApiSettings } from "../../schemas/apiSettings";
+import { postToPlugin } from "../../plugin/figma/messageBridge";
 import { SectionHeader } from "../components/SectionHeader";
 import { StatusLog } from "../components/StatusLog";
-import { SuccessMessage } from "../components/SuccessMessage";
 
 const difyFields: Array<[keyof RuntimeApiSettings["dify"], string, string]> = [
-  ["inputOrganizer", "Input Organizer", "入力内容をNormalizedCreativeInputへ整理"],
+  ["inputOrganizer", "Input Organizer", "入力内容を制作ブリーフへ整理"],
   ["ideaExplorer", "Idea Explorer", "30案のコピー・訴求軸を探索"],
   ["typographyPlanner", "Typography Planner", "15案のLayout Draft JSONを作成"],
   ["candidateSelector", "Candidate Selector", "15案から5案を選定"],
@@ -29,64 +27,11 @@ type SettingsScreenProps = {
 };
 
 export function SettingsScreen({ compact = false }: SettingsScreenProps) {
-  const [settings, setSettings] = useState<RuntimeApiSettings>(() => getRuntimeApiSettings());
+  const [settings] = useState<RuntimeApiSettings>(() => getRuntimeApiSettings());
   const [uiSize, setUiSize] = useState<UiSizePreset>("vertical");
   const [logs, setLogs] = useState<string[]>([
-    "API設定を保存すると外部APIに接続して制作フローを実行できます。未設定の場合は代替処理で動作します。",
+    "認証情報はこの画面では設定・保存しません。接続情報はsrc/config/apiSettings.tsで管理します。",
   ]);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent<{ pluginMessage?: PluginResponseMessage }>) => {
-      const message = event.data.pluginMessage;
-      if (!message) return;
-      if (message.type === "API_SETTINGS_LOADED" && message.payload.settings) {
-        const loadedSettings = normalizeLoadedSettings(message.payload.settings);
-        setSettings(loadedSettings);
-        saveRuntimeApiSettings(loadedSettings);
-        setLogs((items) => [...items, "保存済みのAPI設定を読み込みました。"]);
-      }
-      if (message.type === "API_SETTINGS_SAVED") {
-        setSuccess("API設定を保存しました。");
-        setLogs((items) => [...items, "Figma clientStorageにAPI設定を保存しました。"]);
-      }
-      if (message.type === "API_SETTINGS_TEST_RESULT") {
-        setLogs((items) => [...items, message.payload.message]);
-        if (message.payload.ok) setSuccess(message.payload.message);
-        else setError(message.payload.message);
-      }
-      if (message.type === "PLUGIN_ERROR") setError(message.payload.message);
-    };
-    window.addEventListener("message", handleMessage);
-    postToPlugin({ type: "LOAD_API_SETTINGS" });
-    return () => window.removeEventListener("message", handleMessage);
-  }, []);
-
-  useEffect(() => {
-    const handleHeaderSave = () => handleSave();
-    window.addEventListener("SAVE_API_SETTINGS_FROM_HEADER", handleHeaderSave);
-    return () => window.removeEventListener("SAVE_API_SETTINGS_FROM_HEADER", handleHeaderSave);
-  });
-
-  function updateDify(workflow: keyof RuntimeApiSettings["dify"], key: "url" | "apiKey", value: string) {
-    setSettings((current) => ({
-      ...current,
-      dify: { ...current.dify, [workflow]: { ...current.dify[workflow], [key]: value } },
-    }));
-  }
-
-  function updateGemini(key: keyof RuntimeApiSettings["gemini"], value: string) {
-    setSettings((current) => ({ ...current, gemini: { ...current.gemini, [key]: value } }));
-  }
-
-  function updateMode(mode: RuntimeApiSettings["mode"]) {
-    const nextSettings = { ...settings, mode };
-    setSettings(nextSettings);
-    saveRuntimeApiSettings(nextSettings);
-    postToPlugin({ type: "SAVE_API_SETTINGS", payload: nextSettings });
-    setLogs((items) => [...items, mode === "demo" ? "Demoモードに切り替えました。APIは呼ばずに確認できます。" : "APIモードに切り替えました。設定済みの接続先を使います。"]);
-  }
 
   function handleResizeUi(size: UiSizePreset) {
     const preset = uiSizePresets[size];
@@ -95,133 +40,76 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
     setLogs((items) => [...items, `表示サイズを${preset.label}に変更しました。`]);
   }
 
-  function handleSave() {
-    setError(null);
-    setSuccess(null);
-    saveRuntimeApiSettings(settings);
-    postToPlugin({ type: "SAVE_API_SETTINGS", payload: settings });
-  }
-
-  function handleTest() {
-    setError(null);
-    setSuccess(null);
-    postToPlugin({ type: "TEST_API_SETTINGS", payload: settings });
+  function handleRefreshStatus() {
+    notifyRuntimeApiSettingsChanged(settings);
+    setLogs((items) => [...items, "コード側API設定の状態を再確認しました。"]);
   }
 
   return (
     <div className={compact ? "settings-screen settings-screen-compact" : "settings-screen"}>
       <section className="panel settings-summary-panel">
         <SectionHeader
-          title="API設定"
-          description="Dify / Geminiの接続情報を保存します。API Keyは画面上でマスク表示し、ログには出しません。"
+          title="設定"
+          description="認証情報は非公開情報のため、この画面では入力・保存しません。src/config/apiSettings.tsで管理します。"
         />
-        {success && <SuccessMessage title={success} />}
-        {error && <ErrorMessage title="設定を確認してください" detail={error} />}
         <div className="settings-mode-panel" aria-label="制作モード">
           <div>
             <strong>制作モード</strong>
-            <span>{settings.mode === "api" ? "API接続を使う" : "Demoデータで確認する"}</span>
-          </div>
-          <div className="mode-toggle" role="group" aria-label="DemoとAPIの切り替え">
-            <button className={settings.mode === "demo" ? "active" : ""} type="button" onClick={() => updateMode("demo")}>
-              Demo
-            </button>
-            <button className={settings.mode === "api" ? "active" : ""} type="button" onClick={() => updateMode("api")}>
-              API
-            </button>
+            <span>{isRuntimeLiveReady(settings) ? "API接続" : "Demo確認"}</span>
           </div>
           <p>
-            {settings.mode === "api"
-              ? isRuntimeApiConfigured(settings)
-                ? "APIモードでは、設定済みのDify / Geminiを使います。未設定の工程は代替処理で継続します。"
-                : "APIモードを使うには、DifyまたはGeminiの接続情報を入力してください。"
-              : "Demoでは外部APIを呼ばず、制作フローとFigma出力を確認できます。"}
+            {isRuntimeApiConfigured(settings)
+              ? "コード側のAPI設定を検出しました。APIモードでは失敗時にDemoへ自動で逃げません。"
+              : "コード側API設定は未検出です。Demoは理想形の確認用として動作します。"}
           </p>
         </div>
-        <div className="settings-size-panel" aria-label="表示サイズ">
-          <div className="settings-size-heading">
-            <strong>表示サイズ</strong>
-            <span>Figmaプラグインの作業幅に合わせて切り替えます。</span>
-          </div>
-          <div className="size-preset-list" role="group" aria-label="表示サイズプリセット">
-            {(Object.keys(uiSizePresets) as UiSizePreset[]).map((key) => {
-              const preset = uiSizePresets[key];
-              return (
-                <button key={key} className={uiSize === key ? "active" : ""} type="button" onClick={() => handleResizeUi(key)}>
-                  <strong>{preset.label}</strong>
-                  <small>{preset.description}</small>
-                  <em>{preset.width}x{preset.height}</em>
-                </button>
-              );
-            })}
-          </div>
-        </div>
+
         <div className="settings-summary">
-          <span>現在: {settings.mode === "api" ? (isRuntimeLiveReady(settings) ? "APIモード" : "API設定待ち") : "Demoモード"}</span>
+          <span>現在: {isRuntimeLiveReady(settings) ? "APIモード" : "Demoモード"}</span>
           <span>Dify: {configuredDifyCount(settings)}/6 workflow</span>
-          <span>Gemini: {maskSecret(settings.gemini.apiKey)}</span>
+          <span>Gemini: {settings.gemini.apiKey.trim() ? "設定済み" : "未設定"}</span>
         </div>
         <p className="settings-note">
-          優先順位は Figma clientStorage、src/config/apiSettings.ts、apiSettings.example.ts の順です。Gitに実キーを入れないでください。
+          認証情報はUI、localStorage、Figma clientStorageへ保存しません。公開前はサーバーProxy化も検討してください。
         </p>
       </section>
 
       <section className="settings-grid">
         <div className="panel">
-          <SectionHeader title="Dify Workflow" description="WorkflowごとのURLとAPI Keyを入力します。" />
+          <SectionHeader title="API接続ステータス" description="コード側設定の有無だけを表示します。Key値は表示しません。" />
           <div className="settings-form-grid">
-            {difyFields.map(([workflow, label, description]) => (
-              <fieldset className="settings-fieldset" key={workflow}>
-                <legend>{label}</legend>
-                <p>{description}</p>
-                <label>
-                  Workflow URL
-                  <input
-                    value={settings.dify[workflow].url}
-                    onChange={(event) => updateDify(workflow, "url", event.target.value)}
-                    placeholder="https://api.dify.ai/v1/workflows/run"
-                  />
-                </label>
-                <label>
-                  API Key
-                  <input
-                    type="password"
-                    value={settings.dify[workflow].apiKey}
-                    onChange={(event) => updateDify(workflow, "apiKey", event.target.value)}
-                    placeholder="app-..."
-                  />
-                </label>
-              </fieldset>
-            ))}
+            {difyFields.map(([workflow, label, description]) => {
+              const configured = settings.dify[workflow].url.trim() && settings.dify[workflow].apiKey.trim();
+              return (
+                <div className="settings-fieldset" key={workflow}>
+                  <strong>{label}</strong>
+                  <p>{description}</p>
+                  <span className={configured ? "settings-status-pill configured" : "settings-status-pill"}>{configured ? "設定済み" : "未設定"}</span>
+                </div>
+              );
+            })}
           </div>
         </div>
 
         <div className="panel">
-          <SectionHeader title="Gemini" description="5案の高品質SVG化と背景3案生成に使う設定です。" />
-          <div className="settings-form-grid single">
-            <label>
-              API Key
-              <input type="password" value={settings.gemini.apiKey} onChange={(event) => updateGemini("apiKey", event.target.value)} placeholder="AIza..." />
-            </label>
-            <label>
-              Text Model
-              <input value={settings.gemini.textModel} onChange={(event) => updateGemini("textModel", event.target.value)} />
-            </label>
-            <label>
-              SVG Model
-              <input value={settings.gemini.svgModel} onChange={(event) => updateGemini("svgModel", event.target.value)} />
-            </label>
-            <label>
-              Image Model
-              <input value={settings.gemini.imageModel} onChange={(event) => updateGemini("imageModel", event.target.value)} />
-            </label>
+          <SectionHeader title="Plugin表示" description="API設定とは分離した、作業画面の表示サイズだけを調整できます。" />
+          <div className="settings-size-panel" aria-label="表示サイズ">
+            <div className="size-preset-list" role="group" aria-label="表示サイズプリセット">
+              {(Object.keys(uiSizePresets) as UiSizePreset[]).map((key) => {
+                const preset = uiSizePresets[key];
+                return (
+                  <button key={key} className={uiSize === key ? "active" : ""} type="button" onClick={() => handleResizeUi(key)}>
+                    <strong>{preset.label}</strong>
+                    <small>{preset.description}</small>
+                    <em>{preset.width}x{preset.height}</em>
+                  </button>
+                );
+              })}
+            </div>
           </div>
           <div className="settings-actions">
-            <button className="secondary-button" type="button" onClick={handleTest}>
-              接続設定を確認
-            </button>
-            <button className="primary-button" type="button" onClick={handleSave}>
-              設定を保存
+            <button className="secondary-button" type="button" onClick={handleRefreshStatus}>
+              接続状態を再確認
             </button>
           </div>
           <StatusLog entries={logs.slice(-5)} />
@@ -233,20 +121,4 @@ export function SettingsScreen({ compact = false }: SettingsScreenProps) {
 
 function configuredDifyCount(settings: RuntimeApiSettings): number {
   return Object.values(settings.dify).filter((workflow) => workflow.url.trim() && workflow.apiKey.trim()).length;
-}
-
-function normalizeLoadedSettings(settings: RuntimeApiSettings): RuntimeApiSettings {
-  return {
-    ...emptyRuntimeApiSettings,
-    ...settings,
-    mode: settings.mode ?? emptyRuntimeApiSettings.mode,
-    dify: {
-      ...emptyRuntimeApiSettings.dify,
-      ...settings.dify,
-    },
-    gemini: {
-      ...emptyRuntimeApiSettings.gemini,
-      ...settings.gemini,
-    },
-  };
 }

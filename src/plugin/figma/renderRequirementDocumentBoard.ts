@@ -15,12 +15,18 @@ const COLORS = {
   primarySoft: { r: 0.91, g: 0.957, b: 0.937 },
 };
 
-export async function renderRequirementDocumentBoard(input: NormalizedCreativeInput): Promise<FrameNode> {
+type RenderRequirementOptions = {
+  x?: number;
+  y?: number;
+  zoom?: boolean;
+};
+
+export async function renderRequirementDocumentBoard(input: NormalizedCreativeInput, options: RenderRequirementOptions = {}): Promise<FrameNode> {
   await Promise.all([figma.loadFontAsync(FONT_REGULAR), figma.loadFontAsync(FONT_BOLD)]);
 
   const board = createAutoFrame("00 Requirement Document Board", 900, COLORS.board);
-  board.x = figma.viewport.center.x - 450;
-  board.y = figma.viewport.center.y - 360;
+  board.x = options.x ?? figma.viewport.center.x - 450;
+  board.y = options.y ?? figma.viewport.center.y - 360;
   board.paddingTop = 28;
   board.paddingRight = 28;
   board.paddingBottom = 28;
@@ -47,8 +53,10 @@ export async function renderRequirementDocumentBoard(input: NormalizedCreativeIn
   }
 
   figma.currentPage.appendChild(board);
-  figma.currentPage.selection = [board];
-  figma.viewport.scrollAndZoomIntoView([board]);
+  if (options.zoom !== false) {
+    figma.currentPage.selection = [board];
+    figma.viewport.scrollAndZoomIntoView([board]);
+  }
   return board;
 }
 

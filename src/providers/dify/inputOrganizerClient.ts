@@ -1,13 +1,21 @@
 import { env } from "../../config/env";
-import { hasDifyWorkflowSettings } from "../../config/runtimeApiSettings";
+import { hasDifyWorkflowSettings, hasGeminiSettings, isRuntimeApiMode } from "../../config/runtimeApiSettings";
 import type { ExploreInput, NormalizedCreativeInput } from "../../schemas/input";
 import { normalizeCreativeInput } from "../../workflows/inputNormalizeWorkflow";
 import { isRecord } from "../../utils/guards";
+import { organizeInputWithGemini } from "../gemini/inputOrganizer";
 import { callDifyWorkflow } from "./difyClient";
+import { demoIdealTemplateContract, difyCommonContract } from "./difyPromptContracts";
 
 export async function organizeInputWithDify(input: ExploreInput): Promise<NormalizedCreativeInput> {
   const fallback = await normalizeCreativeInput(input);
   if (!hasDifyWorkflowSettings("inputOrganizer")) {
+    if (hasGeminiSettings()) {
+      return organizeInputWithGemini(input, fallback);
+    }
+    if (isRuntimeApiMode()) {
+      throw new Error("要件整理AIが未設定です。Dify Input Organizer workflow、またはGemini API Keyを設定してください。");
+    }
     return {
       ...fallback,
       assumptions: [...fallback.assumptions, "Input Organizerは未設定のため、ローカル正規化で進行しました。"],
@@ -20,6 +28,8 @@ export async function organizeInputWithDify(input: ExploreInput): Promise<Normal
       url: env.DIFY_INPUT_ORGANIZER_API_URL,
       apiKey: env.DIFY_INPUT_ORGANIZER_API_KEY,
       inputs: {
+        contract: difyCommonContract,
+        idealTemplateReference: demoIdealTemplateContract,
         ...input,
         canvasSize: fallback.canvasSize,
         safeArea: fallback.safeArea,
@@ -27,6 +37,9 @@ export async function organizeInputWithDify(input: ExploreInput): Promise<Normal
     });
   } catch (error) {
     const reason = error instanceof Error ? error.message : "Input Organizerの実行に失敗しました。";
+    if (isRuntimeApiMode()) {
+      throw new Error(`Input Organizerの実行に失敗しました: ${reason}`);
+    }
     return {
       ...fallback,
       assumptions: [...fallback.assumptions, `Input Organizerの代わりにローカル正規化で続行しました: ${reason}`],

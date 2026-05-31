@@ -2,6 +2,7 @@ import { env } from "../../config/env";
 import type { LayoutDraftInput } from "../../schemas/layoutDraft";
 import { isRecord } from "../../utils/guards";
 import { callDifyWorkflow } from "./difyClient";
+import { candidateSelectionContract, demoIdealTemplateContract, difyCommonContract } from "./difyPromptContracts";
 
 export type CandidateSelection = {
   draftId: string;
@@ -14,6 +15,9 @@ export async function selectCandidatesWithDify(drafts: LayoutDraftInput[]): Prom
     url: env.DIFY_REFINED_SELECTION_API_URL,
     apiKey: env.DIFY_REFINED_SELECTION_API_KEY,
     inputs: {
+      contract: difyCommonContract,
+      outputSchema: candidateSelectionContract,
+      idealTemplateReference: demoIdealTemplateContract,
       drafts,
       instruction: "Select five visually distinct candidates for Gemini SVG refine.",
     },

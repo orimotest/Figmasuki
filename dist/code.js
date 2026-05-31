@@ -27,9 +27,6 @@
     uiHeight: 620
   };
 
-  // src/config/runtimeApiSettings.ts
-  var RUNTIME_API_SETTINGS_STORAGE_KEY = "ai-cover-studio-runtime-api-settings";
-
   // src/plugin/figma/createSvgNode.ts
   var insertedSvgCount = 0;
   function createSvgNode(svg, name = "Generated SVG Layout", options = {}) {
@@ -357,11 +354,8 @@
     if (!isRecord(value) || !hasString(value, "type")) {
       return null;
     }
-    if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES" || value.type === "LOAD_API_SETTINGS") {
+    if (value.type === "REQUEST_SELECTED_FRAME" || value.type === "REQUEST_SELECTED_FRAMES") {
       return { type: value.type };
-    }
-    if ((value.type === "SAVE_API_SETTINGS" || value.type === "TEST_API_SETTINGS") && isRecord(value.payload)) {
-      return { type: value.type, payload: value.payload };
     }
     if (value.type === "RESIZE_UI" && isRecord(value.payload)) {
       const width = typeof value.payload.width === "number" ? value.payload.width : 960;
@@ -462,12 +456,12 @@
     center_focus: "\u4E2D\u592E\u914D\u7F6E",
     split_panel: "\u5DE6\u53F3\u5206\u5272",
     card_stack: "\u30AB\u30FC\u30C9\u6574\u7406",
-    cta_emphasis: "CTA\u5F37\u8ABF",
-    editorial_whitespace: "\u4F59\u767D\u578B",
+    cta_emphasis: "CTA\u6587\u8A00\u78BA\u8A8D",
+    editorial_whitespace: "\u4F59\u767D\u91CD\u8996",
     dark_center: "\u6FC3\u8272\u4E2D\u592E",
-    trust_panel: "\u4FE1\u983C\u611F\u30D1\u30CD\u30EB",
+    trust_panel: "\u4FE1\u983C\u30D1\u30CD\u30EB",
     beginner_soft: "\u521D\u5FC3\u8005\u5411\u3051",
-    meta_first: "\u958B\u50AC\u60C5\u5831\u512A\u5148"
+    meta_first: "\u65E5\u6642\u512A\u5148"
   };
 
   // src/plugin/figma/renderProcessBoard.ts
@@ -745,11 +739,11 @@
     return board;
   }
   function renderTypographyDraftBoard(parent2, drafts, x, y) {
-    const board = createSection("03 15 Typography Drafts", "\u5B8C\u6210\u6848\u306E\u524D\u306B\u3001\u6587\u5B57\u968E\u5C64\u30FB\u4F59\u767D\u30FBCTA\u4F4D\u7F6E\u3092\u8EFD\u91CFSVG\u3067\u691C\u8A0E\u3057\u307E\u3059\u3002", x, y, 1420, 1060);
+    const board = createSection("03 15 Typography Drafts", "\u5B8C\u6210\u6848\u306E\u524D\u306B\u3001\u4E3B\u898B\u51FA\u3057\u30FB\u88DC\u52A9\u30B3\u30D4\u30FC\u30FB\u65E5\u6642\u30FBCTA\u6587\u8A00\u306E\u5F79\u5272\u3068\u6539\u884C\u3092\u30B7\u30F3\u30D7\u30EB\u306B\u78BA\u8A8D\u3057\u307E\u3059\u3002", x, y, 1420, 1060);
     appendBoard(parent2, board);
     addStageStats(board, [
       ["\u30C9\u30E9\u30D5\u30C8", "15\u6848"],
-      ["\u9AD8\u54C1\u8CEASVG\u3078", `${drafts.filter((draft) => draft.selectedForRefine).length}\u6848`],
+      ["SVG\u751F\u6210\u3078", `${drafts.filter((draft) => draft.selectedForRefine).length}\u6848`],
       ["\u76EE\u7684", "\u6587\u5B57\u7D44\u307F\u78BA\u8A8D"]
     ]);
     renderDraftGrid(board, drafts, 24, 142, 1372);
@@ -1385,12 +1379,12 @@
     primary: { r: 0.122, g: 0.435, b: 0.357 },
     primarySoft: { r: 0.91, g: 0.957, b: 0.937 }
   };
-  async function renderRequirementDocumentBoard(input) {
-    var _a;
+  async function renderRequirementDocumentBoard(input, options = {}) {
+    var _a, _b, _c;
     await Promise.all([figma.loadFontAsync(FONT_REGULAR2), figma.loadFontAsync(FONT_BOLD2)]);
     const board = createAutoFrame2("00 Requirement Document Board", 900, COLORS2.board);
-    board.x = figma.viewport.center.x - 450;
-    board.y = figma.viewport.center.y - 360;
+    board.x = (_a = options.x) != null ? _a : figma.viewport.center.x - 450;
+    board.y = (_b = options.y) != null ? _b : figma.viewport.center.y - 360;
     board.paddingTop = 28;
     board.paddingRight = 28;
     board.paddingBottom = 28;
@@ -1402,7 +1396,7 @@
     board.appendChild(createText("Requirement Document", 24, true, 844, COLORS2.text));
     board.appendChild(createText("\u5165\u529B\u8981\u4EF6\u3068AI\u304C\u89E3\u91C8\u3057\u305F\u5236\u4F5C\u524D\u63D0\u3092\u3001\u5236\u4F5C\u958B\u59CB\u524D\u306B\u30EC\u30D3\u30E5\u30FC\u3067\u304D\u308B\u5F62\u3067\u6B8B\u3057\u307E\u3059\u3002", 12, false, 844, COLORS2.muted));
     board.appendChild(createMetaGrid(input));
-    const blocks = ((_a = input.requirementBlocks) == null ? void 0 : _a.length) ? input.requirementBlocks : input.markdownText ? parseMarkdown(input.markdownText) : createFallbackBlocks(input);
+    const blocks = ((_c = input.requirementBlocks) == null ? void 0 : _c.length) ? input.requirementBlocks : input.markdownText ? parseMarkdown(input.markdownText) : createFallbackBlocks(input);
     const sections = createAutoFrame2("Requirement Sections", 844, COLORS2.board);
     sections.layoutMode = "VERTICAL";
     sections.itemSpacing = 10;
@@ -1413,8 +1407,10 @@
       board.appendChild(createReviewNotes(input));
     }
     figma.currentPage.appendChild(board);
-    figma.currentPage.selection = [board];
-    figma.viewport.scrollAndZoomIntoView([board]);
+    if (options.zoom !== false) {
+      figma.currentPage.selection = [board];
+      figma.viewport.scrollAndZoomIntoView([board]);
+    }
     return board;
   }
   function createMetaGrid(input) {
@@ -1557,6 +1553,7 @@
   var PROCESS_LAYOUT = {
     baseXOffset: -3800,
     baseYOffset: -760,
+    requirementXOffset: -1880,
     bannersY: 1140,
     candidateGap: 80
   };
@@ -1574,29 +1571,6 @@
     try {
       if (message.type === "RESIZE_UI") {
         figma.ui.resize(message.payload.width, message.payload.height);
-        return;
-      }
-      if (message.type === "LOAD_API_SETTINGS") {
-        const settings = await figma.clientStorage.getAsync(RUNTIME_API_SETTINGS_STORAGE_KEY);
-        postToUi({ type: "API_SETTINGS_LOADED", payload: { settings } });
-        return;
-      }
-      if (message.type === "SAVE_API_SETTINGS") {
-        await figma.clientStorage.setAsync(RUNTIME_API_SETTINGS_STORAGE_KEY, message.payload);
-        postToUi({ type: "API_SETTINGS_SAVED", payload: { saved: true } });
-        return;
-      }
-      if (message.type === "TEST_API_SETTINGS") {
-        const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
-        const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
-        const canUseApi = message.payload.mode === "api" && (hasDify || hasGemini);
-        postToUi({
-          type: "API_SETTINGS_TEST_RESULT",
-          payload: {
-            ok: hasDify || hasGemini,
-            message: canUseApi ? "API\u30E2\u30FC\u30C9\u3067\u4F7F\u3048\u308B\u63A5\u7D9A\u8A2D\u5B9A\u3092\u78BA\u8A8D\u3057\u307E\u3057\u305F\u3002" : hasDify || hasGemini ? "\u63A5\u7D9A\u8A2D\u5B9A\u306F\u5165\u529B\u6E08\u307F\u3067\u3059\u3002API\u3092\u4F7F\u3046\u5834\u5408\u306F\u8A2D\u5B9A\u3067API\u30E2\u30FC\u30C9\u306B\u5207\u308A\u66FF\u3048\u3066\u304F\u3060\u3055\u3044\u3002" : "API\u8A2D\u5B9A\u304C\u672A\u5B8C\u4E86\u3067\u3059\u3002Dify\u307E\u305F\u306FGemini\u306EURL / Key\u3092\u5165\u529B\u3057\u3066\u304F\u3060\u3055\u3044\u3002"
-          }
-        });
         return;
       }
       if (message.type === "INSERT_SVG") {
@@ -1644,12 +1618,17 @@
         return;
       }
       if (message.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD") {
-        await renderRequirementDocumentBoard(message.payload);
+        const { startX, startY } = resetProcessBase();
+        await renderRequirementDocumentBoard(message.payload, {
+          x: startX + PROCESS_LAYOUT.requirementXOffset,
+          y: startY,
+          zoom: false
+        });
         postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "\u8981\u4EF6\u5B9A\u7FA9\u30DC\u30FC\u30C9\u3092Figma\u306B\u8A18\u9332\u3057\u307E\u3057\u305F\u3002" } });
         return;
       }
       if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
-        const processBase = message.payload.stage === "project_header" ? resetProcessBase() : getActiveProcessBase();
+        const processBase = message.payload.stage === "project_header" && !activeProcessBase ? resetProcessBase() : getActiveProcessBase();
         const stagePosition = typeof message.payload.x === "number" && typeof message.payload.y === "number" ? { x: message.payload.x, y: message.payload.y } : getStagePosition(message.payload.stage, processBase.startX, processBase.startY);
         const board = await renderProcessStageBoard(message.payload.project, message.payload.stage, {
           x: stagePosition.x,
@@ -1759,6 +1738,7 @@
     frame.clipsContent = true;
     frame.fills = [{ type: "IMAGE", scaleMode: "FILL", imageHash: figma.createImage(dataUrlToBytes2(backgroundDataUrl)).hash }];
     figma.currentPage.appendChild(frame);
+    frame.appendChild(createReadabilityLayer(svg));
     const overlay = figma.createNodeFromSvg(stripSvgBackground(svg));
     overlay.name = `${name}_editable_foreground`;
     const scale = Math.min(800 / Math.max(overlay.width, 1), 450 / Math.max(overlay.height, 1));
@@ -1772,6 +1752,21 @@
     overlay.y = (450 - overlay.height) / 2;
     frame.appendChild(overlay);
     return frame;
+  }
+  function createReadabilityLayer(svg) {
+    const layer = figma.createRectangle();
+    layer.name = hasBrightForegroundText(svg) ? "Readability layer / dark text-safe" : "Readability layer / light text-safe";
+    layer.resize(800, 450);
+    layer.x = 0;
+    layer.y = 0;
+    layer.fills = hasBrightForegroundText(svg) ? [{ type: "SOLID", color: { r: 0.02, g: 0.06, b: 0.14 }, opacity: 0.46 }] : [{ type: "SOLID", color: { r: 1, g: 1, b: 1 }, opacity: 0.72 }];
+    return layer;
+  }
+  function hasBrightForegroundText(svg) {
+    var _a;
+    const foreground = stripSvgBackground(svg);
+    const brightTextMatches = foreground.match(/<text\b[^>]*fill=["'](#FFFFFF|#F8FAFC|#EFF6FF|#DBEAFE|#DCEBFF|#BAE6FD|#67E8F9|white)["']/gi);
+    return ((_a = brightTextMatches == null ? void 0 : brightTextMatches.length) != null ? _a : 0) >= 2;
   }
   function stripSvgBackground(svg) {
     const foregroundOnly = svg.replace(/<g\s+id=["']background["'][\s\S]*?<\/g>/i, "").replace(/<rect\s+width=["']800["']\s+height=["']450["'][^>]*\/>/i, "");

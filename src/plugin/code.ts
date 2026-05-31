@@ -1,6 +1,4 @@
 import { appConfig } from "../config/app";
-import { RUNTIME_API_SETTINGS_STORAGE_KEY } from "../config/runtimeApiSettings";
-import type { RuntimeApiSettings } from "../schemas/apiSettings";
 import type { ProjectData } from "../schemas/project";
 import type { FinalCandidate } from "../schemas/workflow";
 import { createSvgNode } from "./figma/createSvgNode";
@@ -22,6 +20,7 @@ import { renderRequirementDocumentBoard } from "./figma/renderRequirementDocumen
 const PROCESS_LAYOUT = {
   baseXOffset: -3800,
   baseYOffset: -760,
+  requirementXOffset: -1880,
   bannersY: 1140,
   candidateGap: 80,
 };
@@ -43,36 +42,6 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
   try {
     if (message.type === "RESIZE_UI") {
       figma.ui.resize(message.payload.width, message.payload.height);
-      return;
-    }
-
-    if (message.type === "LOAD_API_SETTINGS") {
-      const settings = (await figma.clientStorage.getAsync(RUNTIME_API_SETTINGS_STORAGE_KEY)) as RuntimeApiSettings | undefined;
-      postToUi({ type: "API_SETTINGS_LOADED", payload: { settings } });
-      return;
-    }
-
-    if (message.type === "SAVE_API_SETTINGS") {
-      await figma.clientStorage.setAsync(RUNTIME_API_SETTINGS_STORAGE_KEY, message.payload);
-      postToUi({ type: "API_SETTINGS_SAVED", payload: { saved: true } });
-      return;
-    }
-
-    if (message.type === "TEST_API_SETTINGS") {
-      const hasDify = Object.values(message.payload.dify).some((workflow) => workflow.url.trim() && workflow.apiKey.trim());
-      const hasGemini = message.payload.gemini.apiKey.trim().length > 0;
-      const canUseApi = message.payload.mode === "api" && (hasDify || hasGemini);
-      postToUi({
-        type: "API_SETTINGS_TEST_RESULT",
-        payload: {
-          ok: hasDify || hasGemini,
-          message: canUseApi
-            ? "APIモードで使える接続設定を確認しました。"
-            : hasDify || hasGemini
-              ? "接続設定は入力済みです。APIを使う場合は設定でAPIモードに切り替えてください。"
-              : "API設定が未完了です。DifyまたはGeminiのURL / Keyを入力してください。",
-        },
-      });
       return;
     }
 
@@ -125,13 +94,18 @@ figma.ui.onmessage = async (rawMessage: unknown) => {
     }
 
     if (message.type === "RENDER_REQUIREMENT_DOCUMENT_BOARD") {
-      await renderRequirementDocumentBoard(message.payload);
+      const { startX, startY } = resetProcessBase();
+      await renderRequirementDocumentBoard(message.payload, {
+        x: startX + PROCESS_LAYOUT.requirementXOffset,
+        y: startY,
+        zoom: false,
+      });
       postToUi({ type: "PLUGIN_SUCCESS", payload: { message: "要件定義ボードをFigmaに記録しました。" } });
       return;
     }
 
     if (message.type === "RENDER_PROCESS_STAGE_BOARD") {
-      const processBase = message.payload.stage === "project_header" ? resetProcessBase() : getActiveProcessBase();
+      const processBase = message.payload.stage === "project_header" && !activeProcessBase ? resetProcessBase() : getActiveProcessBase();
       const stagePosition =
         typeof message.payload.x === "number" && typeof message.payload.y === "number"
           ? { x: message.payload.x, y: message.payload.y }
@@ -264,6 +238,8 @@ function createFinalCandidateFrame(svg: string, backgroundDataUrl: string, name:
   frame.fills = [{ type: "IMAGE", scaleMode: "FILL", imageHash: figma.createImage(dataUrlToBytes(backgroundDataUrl)).hash }];
   figma.currentPage.appendChild(frame);
 
+  frame.appendChild(createReadabilityLayer(svg));
+
   const overlay = figma.createNodeFromSvg(stripSvgBackground(svg));
   overlay.name = `${name}_editable_foreground`;
   const scale = Math.min(800 / Math.max(overlay.width, 1), 450 / Math.max(overlay.height, 1));
@@ -277,6 +253,24 @@ function createFinalCandidateFrame(svg: string, backgroundDataUrl: string, name:
   overlay.y = (450 - overlay.height) / 2;
   frame.appendChild(overlay);
   return frame;
+}
+
+function createReadabilityLayer(svg: string): RectangleNode {
+  const layer = figma.createRectangle();
+  layer.name = hasBrightForegroundText(svg) ? "Readability layer / dark text-safe" : "Readability layer / light text-safe";
+  layer.resize(800, 450);
+  layer.x = 0;
+  layer.y = 0;
+  layer.fills = hasBrightForegroundText(svg)
+    ? [{ type: "SOLID", color: { r: 0.02, g: 0.06, b: 0.14 }, opacity: 0.46 }]
+    : [{ type: "SOLID", color: { r: 1, g: 1, b: 1 }, opacity: 0.72 }];
+  return layer;
+}
+
+function hasBrightForegroundText(svg: string): boolean {
+  const foreground = stripSvgBackground(svg);
+  const brightTextMatches = foreground.match(/<text\b[^>]*fill=["'](#FFFFFF|#F8FAFC|#EFF6FF|#DBEAFE|#DCEBFF|#BAE6FD|#67E8F9|white)["']/gi);
+  return (brightTextMatches?.length ?? 0) >= 2;
 }
 
 function stripSvgBackground(svg: string): string {

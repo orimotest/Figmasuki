@@ -282,7 +282,7 @@ function candidateToItem(candidate: SvgCandidate | undefined, frame: FigmaFrameD
     id: candidate?.id ?? frame?.id ?? fallbackName,
     name,
     svg: candidate?.svg ?? fallbackSvg,
-    meta: [["サイズ", "800×450 固定"], ["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", name.includes("60分") ? "安心感・わかりやすさ" : "課題共感・親しみやすさ"]],
+    meta: [["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", name.includes("60分") ? "安心感・わかりやすさ" : "課題共感・親しみやすさ"]],
   };
 }
 
@@ -392,7 +392,8 @@ function PreviewFigure({ svg, label, large = false }: { svg: string; label: stri
 }
 
 function InfoList({ items }: { items: [string, string][] }) {
-  return <dl className="review-info-list">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
+  const visibleItems = items.filter(([label, value]) => !label.includes("サイズ") && !label.includes("繧ｵ") && !value.includes("800"));
+  return <dl className="review-info-list">{visibleItems.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
 }
 
 function ChecklistCard({ title, items, completed = false }: { title: string; items: string[]; completed?: boolean }) {

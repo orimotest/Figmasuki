@@ -1,7 +1,7 @@
 import { providerConfig } from "../config/providers";
 import { CANVAS_SIZE } from "../config/canvas";
 import { env } from "../config/env";
-import { hasDifyWorkflowSettings, hasGeminiSettings } from "../config/runtimeApiSettings";
+import { hasDifyWorkflowSettings, hasGeminiSettings, isRuntimeApiMode } from "../config/runtimeApiSettings";
 import type { BackgroundBrief, BackgroundResult } from "../schemas/background";
 import type { ContentType } from "../schemas/content";
 import type { ComparisonResult, FrameCompareSummary } from "../schemas/comparison";
@@ -21,6 +21,9 @@ import { exploreCopyWithDify } from "./dify/copyExplorer";
 import { diagnoseWithDify } from "./dify/diagnosisClient";
 import { exploreLayoutWithDify } from "./dify/layoutExplorer";
 import { generateBackgroundWithGemini } from "./gemini/backgroundGenerator";
+import { compareWithGemini } from "./gemini/compareClient";
+import { diagnoseWithGemini } from "./gemini/diagnosisClient";
+import { exploreWithGemini } from "./gemini/ideaExplorer";
 import { generateSvgWithGemini } from "./gemini/svgGenerator";
 
 const activeProviderConfig: ProviderConfig = providerConfig;
@@ -32,6 +35,7 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
     }
     const missing = missingDifySettings("layout");
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Dify layout", missing));
       return attachProviderMeta(await demoExplore(input), "dify", createMissingApiReason("Dify layout", missing));
     }
     return withDemoFallback("dify", () => exploreLayoutWithDify(input), () => demoExplore(input));
@@ -42,6 +46,7 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
     }
     const missing = missingDifySettings("copy");
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Dify copy", missing));
       return attachProviderMeta(await demoExplore(input), "dify", createMissingApiReason("Dify copy", missing));
     }
     return withDemoFallback<ExploreResult>(
@@ -62,6 +67,12 @@ export async function explore(input?: ExploreInput): Promise<ExploreResult> {
       () => demoExplore(input),
     );
   }
+  if (input && hasGeminiSettings()) {
+    return exploreWithGemini(input);
+  }
+  if (isRuntimeApiMode()) {
+    throw new Error("探索AIが未設定です。Dify Idea Explorer workflow、またはGemini API Keyを設定してください。");
+  }
   return demoExplore(input);
 }
 
@@ -69,9 +80,13 @@ export async function generateSvg(direction: Direction): Promise<SvgCandidate> {
   if (activeProviderConfig.svg === "gemini" || hasGeminiSettings()) {
     const missing = missingGeminiSettings();
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Gemini", missing));
       return attachProviderMeta(await demoGenerateSvg(direction), "gemini", createMissingApiReason("Gemini", missing));
     }
     return withDemoFallback("gemini", () => generateSvgWithGemini(direction), () => demoGenerateSvg(direction));
+  }
+  if (isRuntimeApiMode()) {
+    throw new Error("SVG生成AIが未設定です。Gemini API Keyを設定してください。");
   }
   return demoGenerateSvg(direction);
 }
@@ -80,9 +95,16 @@ export async function diagnose(frame: FigmaFrameData, contentType: ContentType, 
   if (activeProviderConfig.diagnosis === "dify" || hasDifyWorkflowSettings("diagnosis")) {
     const missing = missingDifySettings("diagnosis");
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Dify diagnosis", missing));
       return attachProviderMeta(await demoDiagnose(frame, contentType, ruleCheck), "dify", createMissingApiReason("Dify diagnosis", missing));
     }
     return withDemoFallback("dify", () => diagnoseWithDify(frame, contentType, ruleCheck), () => demoDiagnose(frame, contentType, ruleCheck));
+  }
+  if (hasGeminiSettings()) {
+    return diagnoseWithGemini(frame, contentType, ruleCheck);
+  }
+  if (isRuntimeApiMode()) {
+    throw new Error("診断AIが未設定です。Dify Diagnosis workflow、またはGemini API Keyを設定してください。");
   }
   return demoDiagnose(frame, contentType, ruleCheck);
 }
@@ -95,9 +117,16 @@ export async function compare(
   if (activeProviderConfig.compare === "dify" || hasDifyWorkflowSettings("compare")) {
     const missing = missingDifySettings("compare");
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Dify compare", missing));
       return attachProviderMeta(await demoCompare(frames, contentType, frameSummaries), "dify", createMissingApiReason("Dify compare", missing));
     }
     return withDemoFallback("dify", () => compareWithDify(frames, contentType, frameSummaries), () => demoCompare(frames, contentType, frameSummaries));
+  }
+  if (hasGeminiSettings()) {
+    return compareWithGemini(frames, contentType, frameSummaries);
+  }
+  if (isRuntimeApiMode()) {
+    throw new Error("比較AIが未設定です。Dify Compare workflow、またはGemini API Keyを設定してください。");
   }
   return demoCompare(frames, contentType, frameSummaries);
 }
@@ -106,9 +135,13 @@ export async function generateBackground(brief: BackgroundBrief): Promise<Backgr
   if (activeProviderConfig.background === "gemini" || hasGeminiSettings()) {
     const missing = missingGeminiSettings();
     if (missing.length > 0) {
+      if (isRuntimeApiMode()) throw new Error(createMissingApiReason("Gemini", missing));
       return attachProviderMeta(await demoGenerateBackground(brief), "gemini", createMissingApiReason("Gemini", missing));
     }
     return withDemoFallback("gemini", () => generateBackgroundWithGemini(brief), () => demoGenerateBackground(brief));
+  }
+  if (isRuntimeApiMode()) {
+    throw new Error("背景生成AIが未設定です。Gemini API Keyを設定してください。");
   }
   return demoGenerateBackground(brief);
 }
@@ -123,7 +156,7 @@ async function withDemoFallback<T extends object>(
   try {
     return await liveCall();
   } catch (error) {
-    if (!activeProviderConfig.fallbackToDemo) {
+    if (!activeProviderConfig.fallbackToDemo || isRuntimeApiMode()) {
       throw error;
     }
     const fallback = await demoCall();
@@ -177,5 +210,5 @@ function missingKeys(values: Record<string, string>): string[] {
 }
 
 function createMissingApiReason(label: string, missing: string[]): string {
-  return `${label} API設定が未設定です: ${missing.join(", ")}。Demo Modeで実行しています。`;
+  return `${label} API設定が未設定です: ${missing.join(", ")}。設定画面で接続情報を確認してください。`;
 }

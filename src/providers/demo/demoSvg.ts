@@ -67,9 +67,16 @@ function renderHeadlineGroup(direction: Direction): string {
 
 function renderCtaGroup(direction: Direction): string {
   const layout = getCtaLayout(direction.layoutType);
+  const label = direction.copy.cta ?? "";
+  const width = Math.min(layout.maxWidth, Math.max(layout.width, label.length * 15 + 56));
+  const x = Math.min(layout.x, layout.maxRight - width);
+  const fontSize = label.length > 8 ? 15 : 17;
+  const textX = x + width / 2;
+  const textY = layout.y + layout.height / 2 + Math.round(fontSize * 0.36);
+
   return `<g id="cta">
-    <rect x="${layout.x}" y="${layout.y}" width="${layout.width}" height="${layout.height}" rx="${layout.height / 2}" fill="${layout.fill}"/>
-    <text x="${layout.textX}" y="${layout.textY}" fill="${layout.textFill}" font-family="Inter, Arial, sans-serif" font-size="17" font-weight="850">${escapeXml(direction.copy.cta ?? "")}</text>
+    <rect x="${x}" y="${layout.y}" width="${width}" height="${layout.height}" rx="${layout.height / 2}" fill="${layout.fill}"/>
+    <text x="${textX}" y="${textY}" text-anchor="middle" fill="${layout.textFill}" font-family="Inter, Arial, sans-serif" font-size="${fontSize}" font-weight="850" letter-spacing="0">${escapeXml(label)}</text>
   </g>`;
 }
 
@@ -118,25 +125,25 @@ function getCtaLayout(layoutType: string): {
   x: number;
   y: number;
   width: number;
+  maxWidth: number;
+  maxRight: number;
   height: number;
-  textX: number;
-  textY: number;
   fill: string;
   textFill: string;
 } {
   if (layoutType === "benefit_first") {
-    return { x: 98, y: 322, width: 170, height: 48, textX: 124, textY: 353, fill: "#60A5FA", textFill: "#FFFFFF" };
+    return { x: 98, y: 322, width: 184, maxWidth: 210, maxRight: 744, height: 48, fill: "#60A5FA", textFill: "#FFFFFF" };
   }
   if (layoutType === "practical_blocks") {
-    return { x: 552, y: 365, width: 156, height: 42, textX: 580, textY: 392, fill: "#06B6D4", textFill: "#FFFFFF" };
+    return { x: 532, y: 356, width: 174, maxWidth: 200, maxRight: 744, height: 44, fill: "#06B6D4", textFill: "#FFFFFF" };
   }
   if (layoutType === "trust_editorial") {
-    return { x: 624, y: 322, width: 96, height: 44, textX: 643, textY: 350, fill: "#93C5FD", textFill: "#111827" };
+    return { x: 588, y: 320, width: 132, maxWidth: 156, maxRight: 744, height: 44, fill: "#93C5FD", textFill: "#111827" };
   }
   if (layoutType === "beginner_friendly") {
-    return { x: 548, y: 322, width: 168, height: 52, textX: 578, textY: 355, fill: "#2563EB", textFill: "#FFFFFF" };
+    return { x: 520, y: 322, width: 188, maxWidth: 218, maxRight: 744, height: 50, fill: "#2563EB", textFill: "#FFFFFF" };
   }
-  return { x: 92, y: 326, width: 164, height: 50, textX: 122, textY: 358, fill: "#F97316", textFill: "#FFFFFF" };
+  return { x: 92, y: 326, width: 184, maxWidth: 216, maxRight: 744, height: 50, fill: "#F97316", textFill: "#FFFFFF" };
 }
 
 function escapeXml(value: string): string {

@@ -1,26 +1,60 @@
+import { isRuntimeApiMode } from "../config/runtimeApiSettings";
 import { generateSvg } from "../providers";
 import type { Direction } from "../schemas/direction";
 import type { ExploreResult, SvgGenerationResult } from "../schemas/svg";
 import type { SvgCandidate } from "../schemas/svg";
 import { validateSvg } from "../utils/svgValidator";
 
-export async function runGenerateSvgWorkflow(exploreResult: ExploreResult): Promise<SvgGenerationResult> {
-  const results = await Promise.allSettled(exploreResult.directions.map((direction) => generateSvg(direction)));
-  const svgs = results.map((result, index) => {
-    if (result.status === "fulfilled" && result.value.validation.valid) return result.value;
-    const direction = exploreResult.directions[index];
-    const reason =
-      result.status === "rejected"
-        ? result.reason instanceof Error
-          ? result.reason.message
-          : "SVG生成に失敗しました。"
-        : result.value.validation.errors.join(" ");
-    return createFallbackSvgCandidate(direction, reason);
+type GenerateSvgWorkflowOptions = {
+  concurrency?: number;
+  onCandidate?: (candidate: SvgCandidate, index: number) => void;
+};
+
+export async function runGenerateSvgWorkflow(exploreResult: ExploreResult, options: GenerateSvgWorkflowOptions = {}): Promise<SvgGenerationResult> {
+  const concurrency = Math.max(1, Math.min(options.concurrency ?? 2, 3));
+  const svgs = await runWithConcurrency(exploreResult.directions, concurrency, async (direction, index) => {
+    const candidate = await generateSvgSafely(direction);
+    options.onCandidate?.(candidate, index);
+    return candidate;
   });
   if (svgs.length === 0) {
     throw new Error("Provider returned no SVG candidates.");
   }
   return { svgs };
+}
+
+async function generateSvgSafely(direction: Direction): Promise<SvgCandidate> {
+  try {
+    const candidate = await generateSvg(direction);
+    if (candidate.validation.valid) return candidate;
+    return createFallbackSvgCandidate(direction, candidate.validation.errors.join(" "));
+  } catch (error) {
+    if (isRuntimeApiMode()) {
+      throw error;
+    }
+    const reason = error instanceof Error ? error.message : "SVG生成に失敗しました。";
+    return createFallbackSvgCandidate(direction, reason);
+  }
+}
+
+async function runWithConcurrency<TInput, TOutput>(
+  items: TInput[],
+  concurrency: number,
+  task: (item: TInput, index: number) => Promise<TOutput>,
+): Promise<TOutput[]> {
+  const results: TOutput[] = new Array(items.length);
+  let nextIndex = 0;
+
+  async function worker(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await task(items[index], index);
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(concurrency, items.length) }, () => worker()));
+  return results;
 }
 
 function createFallbackSvgCandidate(direction: Direction, reason: string): SvgCandidate {

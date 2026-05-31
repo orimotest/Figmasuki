@@ -5,12 +5,12 @@ import { getRuntimeExecutionModeLabel, RUNTIME_API_SETTINGS_CHANGED_EVENT } from
 import type { BackgroundResult } from "../schemas/background";
 import type { ComparisonResult } from "../schemas/comparison";
 import type { DiagnosisResult } from "../schemas/diagnosis";
+import type { NormalizedCreativeInput } from "../schemas/input";
 import type { ProcessBoardStage } from "../schemas/production";
 import type { ProjectData } from "../schemas/project";
 import type { ProviderConfig } from "../schemas/provider";
 import { postToPlugin } from "../plugin/figma/messageBridge";
 import { AppSidebar, type AppView, type AppViewStatus } from "./components/AppSidebar";
-import { CanvasBadge } from "./components/CanvasBadge";
 import { EmptyState } from "./components/EmptyState";
 import { CompareScreen } from "./screens/CompareScreen";
 import { DiagnoseScreen } from "./screens/DiagnoseScreen";
@@ -65,6 +65,7 @@ export default function App() {
   const [comparison, setComparison] = useState<ComparisonResult | undefined>();
   const [background, setBackground] = useState<BackgroundResult | undefined>();
   const [diagnosis, setDiagnosis] = useState<DiagnosisResult | undefined>();
+  const [productionBrief, setProductionBrief] = useState<NormalizedCreativeInput | null>(null);
   const [executionMode, setExecutionMode] = useState<"API" | "Demo">(() => getRuntimeExecutionModeLabel());
   const providers: ProviderConfig = providerConfig;
 
@@ -75,15 +76,15 @@ export default function App() {
     const hasBackground = Boolean(background || projectData?.backgroundResult || projectData?.stageWorkflow?.finalCandidates?.length);
     return {
       Auto: projectData?.productionStatus?.stage === "error" ? "error" : projectData?.svgCandidates.length ? "done" : "idle",
-      Brief: projectData ? "done" : "idle",
-      Markdown: projectData?.inputMode === "markdown" ? "done" : "idle",
+      Brief: productionBrief || projectData ? "done" : "idle",
+      Markdown: productionBrief?.inputSource === "markdown" || projectData?.inputMode === "markdown" ? "done" : "idle",
       Diagnose: diagnosis || projectData?.diagnosisResults.length ? "done" : "idle",
       Compare: hasComparison ? "done" : "idle",
       Finish: hasBackground ? "done" : "idle",
       Output: outputCount >= 7 ? "done" : "idle",
       Settings: executionMode === "API" ? "done" : "idle",
     };
-  }, [projectData, comparison, background, diagnosis, outputCount, executionMode]);
+  }, [projectData, productionBrief, comparison, background, diagnosis, outputCount, executionMode]);
 
   useEffect(() => {
     const handleTabChange = (event: Event) => {
@@ -123,6 +124,7 @@ export default function App() {
       setComparison(undefined);
       setBackground(undefined);
       setDiagnosis(undefined);
+      setProductionBrief(null);
     }
   }
 
@@ -133,6 +135,10 @@ export default function App() {
 
   function handleHeaderAction() {
     if (activeView === "Auto") {
+      if (!productionBrief) {
+        setActiveView("Brief");
+        return;
+      }
       window.dispatchEvent(new Event("START_AUTO_PRODUCTION"));
       return;
     }
@@ -162,19 +168,49 @@ export default function App() {
             </p>
           </div>
           <div className="header-meta">
-            <CanvasBadge />
             {(activeView === "Auto" || activeView === "Output") && (
               <button className="header-button" type="button" disabled={activeView === "Output" && !projectData} onClick={handleHeaderAction}>
-                {activeView === "Auto" ? "自動制作を開始" : "全工程をFigmaへ出力"}
+                {activeView === "Auto" ? (productionBrief ? "自動制作を開始" : "要件を入力") : "全工程をFigmaへ出力"}
               </button>
             )}
           </div>
         </header>
 
         <section className="plugin-scroll-area nice-scrollbar scroll-fade-bottom screen-area">
-          {activeView === "Auto" && <ExploreScreen phase="production" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
-          {activeView === "Brief" && <ExploreScreen phase="brief" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
-          {activeView === "Markdown" && <ExploreScreen phase="brief" forcedInputMode="markdown" providers={providers} projectData={projectData} onProceedToProduction={() => setActiveView("Auto")} onProjectData={handleProjectData} />}
+          {activeView === "Auto" && (
+            <ExploreScreen
+              phase="production"
+              providers={providers}
+              projectData={projectData}
+              productionBrief={productionBrief}
+              onProductionBrief={setProductionBrief}
+              onProceedToProduction={() => setActiveView("Auto")}
+              onProjectData={handleProjectData}
+            />
+          )}
+          {activeView === "Brief" && (
+            <ExploreScreen
+              phase="brief"
+              providers={providers}
+              projectData={projectData}
+              productionBrief={productionBrief}
+              onProductionBrief={setProductionBrief}
+              onProceedToProduction={() => setActiveView("Auto")}
+              onProjectData={handleProjectData}
+            />
+          )}
+          {activeView === "Markdown" && (
+            <ExploreScreen
+              phase="brief"
+              forcedInputMode="markdown"
+              providers={providers}
+              projectData={projectData}
+              productionBrief={productionBrief}
+              onProductionBrief={setProductionBrief}
+              onProceedToProduction={() => setActiveView("Auto")}
+              onProjectData={handleProjectData}
+            />
+          )}
           {activeView === "Diagnose" && <DiagnoseScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onDiagnosis={setDiagnosis} />}
           {activeView === "Compare" && <CompareScreen providers={providers} projectData={projectData} onProjectData={setProjectData} onComparison={setComparison} onBackground={setBackground} />}
           {activeView === "Finish" && (

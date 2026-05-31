@@ -73,9 +73,10 @@ export function createDemoStageWorkflow(params: {
   refinedSvgCandidates: SvgCandidate[];
   comparisonResult?: ComparisonResult;
   backgroundResult?: BackgroundResult;
+  typographyDrafts?: TypographyDraft[];
 }): StageWorkflowData {
   const ideaDirections = createIdeaDirections(params.directions);
-  const typographyDrafts = createTypographyDrafts(ideaDirections);
+  const typographyDrafts = params.typographyDrafts?.length ? params.typographyDrafts : createTypographyDrafts(ideaDirections);
   const refinedSvgCandidates = params.refinedSvgCandidates.map((candidate, index) => ({
     ...candidate,
     sourceDraftId: typographyDrafts.filter((draft) => draft.selectedForRefine)[index]?.id,
@@ -211,18 +212,18 @@ function createTypographyDrafts(ideas: IdeaDirection[]): TypographyDraft[] {
 
 function getDraftEvaluationMemo(layoutType: TypographyDraftLayoutType, selectedForRefine: boolean): string {
   const base: Record<TypographyDraftLayoutType, string> = {
-    left_hero: "主見出しとCTAの読み順を素直に確認できます。",
-    center_focus: "中央配置で、主コピーが一覧上に残るかを見やすくしています。",
-    split_panel: "左のコピーと右の情報整理のバランスを比較できます。",
-    card_stack: "学べる内容を複数カードで見せた時の情報量を確認できます。",
-    cta_emphasis: "CTAが強すぎないか、行動導線の見つけやすさを確認できます。",
-    editorial_whitespace: "余白を広く取り、広告感を抑えた見え方を確認できます。",
-    dark_center: "濃色背景で印象を強めた時の可読性を確認できます。",
-    trust_panel: "BtoB向けに落ち着いた信頼感を出せるか確認できます。",
-    beginner_soft: "初心者向けのやわらかい印象と読みやすさを確認できます。",
-    meta_first: "日時や開催情報を先に見せる構成を確認できます。",
+    left_hero: "左から素直に読めるか、主見出しの改行を確認します。",
+    center_focus: "中央配置で主見出しが強く見えるかを確認します。",
+    split_panel: "主見出しと補助情報の左右バランスを確認します。",
+    card_stack: "補助情報を分けた時に読みやすいかを確認します。",
+    cta_emphasis: "CTAはボタン化せず、文言として位置と強さを確認します。",
+    editorial_whitespace: "余白を広く取り、広告感を抑えた読み方を確認します。",
+    dark_center: "濃色背景でも文字階層が崩れないかを確認します。",
+    trust_panel: "BtoB向けに落ち着いた情報整理ができるか確認します。",
+    beginner_soft: "初心者向けのやわらかさと見出しの読みやすさを確認します。",
+    meta_first: "日時を先に置いた時の読み順を確認します。",
   };
-  return `${base[layoutType]}${selectedForRefine ? " 5案化の候補として残します。" : " 代表性を見ながら整理対象にします。"}`;
+  return `${base[layoutType]}${selectedForRefine ? " 5案化の候補として残します。" : " 比較用のドラフトとして整理します。"}`;
 }
 
 function createBackgroundVariations(backgroundResult?: BackgroundResult): BackgroundVariation[] {

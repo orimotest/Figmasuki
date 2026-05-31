@@ -1,3 +1,5 @@
+// Copy this file to apiSettings.ts for local API testing.
+// Do not commit real API keys.
 export const apiSettings = {
   dify: {
     inputOrganizer: {

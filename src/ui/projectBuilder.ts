@@ -9,6 +9,7 @@ import type { ProjectData } from "../schemas/project";
 import { createLayoutStrategies } from "../schemas/project";
 import type { FigmaOutputRecord, ProductionStatus } from "../schemas/production";
 import type { ExploreResult, SvgCandidate } from "../schemas/svg";
+import type { StageWorkflowData } from "../schemas/workflow";
 
 export function buildProjectData(params: {
   exploreResult: ExploreResult;
@@ -18,11 +19,13 @@ export function buildProjectData(params: {
   backgroundResult?: BackgroundResult;
   productionStatus?: ProductionStatus;
   figmaOutputs?: FigmaOutputRecord[];
+  stageWorkflow?: StageWorkflowData;
 }): ProjectData {
-  const { exploreResult, svgCandidates, diagnosisResults = [], comparisonResult, backgroundResult, productionStatus, figmaOutputs = [] } = params;
+  const { exploreResult, svgCandidates, diagnosisResults = [], comparisonResult, backgroundResult, productionStatus, figmaOutputs = [], stageWorkflow: providedStageWorkflow } = params;
   const input = exploreResult.input;
   const isSeminar = exploreResult.contentType === "seminar_banner";
-  const stageWorkflow = createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, comparisonResult, backgroundResult });
+  const stageWorkflow =
+    providedStageWorkflow ?? createDemoStageWorkflow({ directions: exploreResult.directions, refinedSvgCandidates: svgCandidates, comparisonResult, backgroundResult });
 
   return {
     projectId: `project_${Date.now().toString(36)}`,

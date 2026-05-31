@@ -136,7 +136,7 @@ export function FinishScreen({ providers, backgroundBrief, comparisonResult, pro
         <section className="panel review-side-panel">
           <SectionHeader title="仕上げ対象" description="比較で選ばれたPrimary案を仕上げます。" />
           <PreviewFigure svg={primaryCandidate?.svg ?? demoSvg} label={activeBrief.targetFrameName} />
-          <InfoList items={[["案名", activeBrief.targetFrameName], ["ID", activeBrief.targetFrameId], ["サイズ", "800×450 固定"], ["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", "信頼感・親しみやすさ"]]} />
+          <InfoList items={[["案名", activeBrief.targetFrameName], ["ID", activeBrief.targetFrameId], ["タイプ", "セミナーバナー"], ["用途", "集客・告知"], ["トーン", "信頼感・親しみやすさ"]]} />
           <ChecklistCard title="仕上げの観点" items={["背景の方向性", "文字領域との相性", "CTAの見やすさ", "情報の読みやすさ", "ブランド感", "仕上げ後の使いやすさ"]} />
           <ChecklistCard title="処理の流れ" items={["ベース案を確認", "background briefを生成", "背景候補を生成", "適用イメージを確認", "最終候補を作成"]} completed />
         </section>
@@ -239,7 +239,8 @@ function PreviewFigure({ svg, label, large = false }: { svg: string; label: stri
 }
 
 function InfoList({ items }: { items: [string, string][] }) {
-  return <dl className="review-info-list">{items.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
+  const visibleItems = items.filter(([label, value]) => !label.includes("サイズ") && !label.includes("繧ｵ") && !value.includes("800"));
+  return <dl className="review-info-list">{visibleItems.map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>;
 }
 
 function ChecklistCard({ title, items, completed = false }: { title: string; items: string[]; completed?: boolean }) {
